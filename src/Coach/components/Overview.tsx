@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FaPlus, 
   FaBook, 
@@ -33,9 +34,30 @@ interface OverviewProps {
     duration: string;
     status: string;
   }>;
+  onTabChange?: (tab: string) => void;
 }
 
-const Overview: React.FC<OverviewProps> = ({ coachData, recentActivity, upcomingSessions }) => {
+const Overview: React.FC<OverviewProps> = ({ coachData, recentActivity, upcomingSessions, onTabChange }) => {
+  const navigate = useNavigate();
+
+  const handleCreateCourse = () => {
+    if (onTabChange) {
+      onTabChange('courses');
+    }
+  };
+
+  const handleUploadVideo = () => {
+    if (onTabChange) {
+      onTabChange('videos');
+    }
+  };
+
+  const handleScheduleSession = () => {
+    if (onTabChange) {
+      onTabChange('schedule');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -43,7 +65,7 @@ const Overview: React.FC<OverviewProps> = ({ coachData, recentActivity, upcoming
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm font-medium">Total Students</p>
+              <p className="text-blue-100 text-sm font-medium">Total Trained Students</p>
               <p className="text-3xl font-bold">{coachData.totalStudents}</p>
               <p className="text-blue-100 text-sm">+12% this month</p>
             </div>
@@ -97,15 +119,24 @@ const Overview: React.FC<OverviewProps> = ({ coachData, recentActivity, upcoming
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105">
+          <button 
+            onClick={handleCreateCourse}
+            className="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
+          >
             <FaPlus className="text-lg" />
             <span className="font-medium">Create Course</span>
           </button>
-          <button className="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 transform hover:scale-105">
+          <button 
+            onClick={handleUploadVideo}
+            className="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 transform hover:scale-105"
+          >
             <FaVideo className="text-lg" />
             <span className="font-medium">Upload Video</span>
           </button>
-          <button className="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 transform hover:scale-105">
+          <button 
+            onClick={handleScheduleSession}
+            className="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 transform hover:scale-105"
+          >
             <FaCalendarAlt className="text-lg" />
             <span className="font-medium">Schedule Session</span>
           </button>

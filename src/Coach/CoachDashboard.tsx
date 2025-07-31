@@ -90,19 +90,29 @@ const CoachDashboard: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <Overview coachData={mockData.extendedCoachData} recentActivity={mockData.recentActivity} upcomingSessions={mockData.upcomingSessions} />;
+        return <Overview 
+          coachData={mockData.extendedCoachData} 
+          recentActivity={mockData.recentActivity} 
+          upcomingSessions={mockData.upcomingSessions}
+          onTabChange={handleTabChange}
+        />;
       case 'courses':
         return <Courses courses={mockData.courses} />;
       case 'videos':
         return <Videos />;
       case 'schedule':
-        return <Schedule upcomingSessions={mockData.upcomingSessions} />;
+        return <Schedule />;
       case 'analytics':
         return <Analytics />;
       case 'profile':
         return <Profile coachData={mockData.extendedCoachData} />;
       default:
-        return <Overview coachData={mockData.extendedCoachData} recentActivity={mockData.recentActivity} upcomingSessions={mockData.upcomingSessions} />;
+        return <Overview 
+          coachData={mockData.extendedCoachData} 
+          recentActivity={mockData.recentActivity} 
+          upcomingSessions={mockData.upcomingSessions}
+          onTabChange={handleTabChange}
+        />;
     }
   };
 
