@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   FaTimes, 
   FaUpload, 
@@ -18,6 +19,8 @@ import { toast } from 'react-toastify';
 interface CreateCourseFormProps {
   onClose: () => void;
   onSubmit: (courseData: CourseFormData) => void;
+  initialData?: Partial<CourseFormData>;
+  isEditing?: boolean;
 }
 
 interface TimeSlot {
@@ -48,16 +51,16 @@ interface CourseFormData {
   thumbnail?: File;
 }
 
-const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }) => {
+const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, initialData, isEditing = false }) => {
   const [formData, setFormData] = useState<CourseFormData>({
-    title: '',
-    description: '',
-    benefits: '',
-    category: '',
-    program: 'morning',
-    credits: 0,
-    timezone: '',
-    weeklySchedule: [
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    benefits: initialData?.benefits || '',
+    category: initialData?.category || '',
+    program: initialData?.program || 'morning',
+    credits: initialData?.credits || 0,
+    timezone: initialData?.timezone || '',
+    weeklySchedule: initialData?.weeklySchedule || [
       { day: 'SUNDAYS', isActive: false, timeSlots: [] },
       { day: 'MONDAYS', isActive: false, timeSlots: [] },
       { day: 'TUESDAYS', isActive: false, timeSlots: [] },
@@ -74,12 +77,31 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
   const [uploadedThumbnail, setUploadedThumbnail] = useState<File | null>(null);
   const [isTimezoneDropdownOpen, setIsTimezoneDropdownOpen] = useState(false);
   const [timezoneSearchTerm, setTimezoneSearchTerm] = useState('');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const [openTimeDropdown, setOpenTimeDropdown] = useState<{dayIndex: number, slotId: string, type: 'start' | 'end'} | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number, width: number} | null>(null);
 
   const videoRef = useRef<HTMLInputElement>(null);
   const thumbnailRef = useRef<HTMLInputElement>(null);
   const timezoneDropdownRef = useRef<HTMLDivElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const timeDropdownRef = useRef<HTMLDivElement>(null);
+  const timezoneButtonRef = useRef<HTMLButtonElement>(null);
+  const categoryButtonRef = useRef<HTMLButtonElement>(null);
+  const modalContainerRef = useRef<HTMLDivElement>(null);
+
+  // Category data
+  const categories = [
+    { value: 'academic-enrichment', label: 'Academic Enrichment' },
+    { value: 'creative-arts', label: 'Creative Arts' },
+    { value: 'life-skills', label: 'Life Skills' },
+    { value: 'performing-arts', label: 'Performing Arts' },
+    { value: 'sports-physical', label: 'Sports & Physical Activity' },
+    { value: 'technology-stem', label: 'Technology & STEM' },
+    { value: 'mindfulness-wellbeing', label: 'Mindfulness & Wellbeing' },
+    { value: 'languages-communication', label: 'Languages & Communication' }
+  ];
 
   // Timezone data
   const timezones = [
@@ -107,6 +129,11 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
     { value: 'BRT', label: 'Brazil Time (BRT/BRST)', region: 'Other', flag: '🇧🇷' }
   ];
 
+  // Filter categories based on search term
+  const filteredCategories = categories.filter(cat => 
+    cat.label.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
+
   // Filter timezones based on search term
   const filteredTimezones = timezones.filter(tz => 
     tz.label.toLowerCase().includes(timezoneSearchTerm.toLowerCase()) ||
@@ -122,41 +149,109 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
     return groups;
   }, {} as Record<string, typeof timezones>);
 
+  // Get selected category display
+  const selectedCategory = categories.find(cat => cat.value === formData.category);
+
   // Get selected timezone display
   const selectedTimezone = timezones.find(tz => tz.value === formData.timezone);
+
+  // Handle scroll to update dropdown position
+  const handleScroll = () => {
+    if (isTimezoneDropdownOpen && timezoneButtonRef.current) {
+      const rect = timezoneButtonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width
+      });
+    }
+  };
 
   // Handle click outside dropdown
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (timezoneDropdownRef.current && !timezoneDropdownRef.current.contains(event.target as Node)) {
-        setIsTimezoneDropdownOpen(false);
-        setTimezoneSearchTerm('');
+      const target = event.target as Node;
+      
+      // Check if click is outside category dropdown
+      if (isCategoryDropdownOpen && categoryButtonRef.current && !categoryButtonRef.current.contains(target)) {
+        // Check if click is on the portal dropdown
+        const portalDropdown = document.querySelector('[data-portal-dropdown="category"]');
+        if (!portalDropdown?.contains(target)) {
+          setIsCategoryDropdownOpen(false);
+          setCategorySearchTerm('');
+        }
       }
-      if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target as Node)) {
+      
+      // Check if click is outside timezone dropdown
+      if (isTimezoneDropdownOpen && timezoneButtonRef.current && !timezoneButtonRef.current.contains(target)) {
+        // Check if click is on the portal dropdown
+        const portalDropdown = document.querySelector('[data-portal-dropdown="timezone"]');
+        if (!portalDropdown?.contains(target)) {
+          setIsTimezoneDropdownOpen(false);
+          setTimezoneSearchTerm('');
+          setDropdownPosition(null);
+        }
+      }
+      
+      // Check if click is outside time dropdowns
+      if (timeDropdownRef.current && !timeDropdownRef.current.contains(target)) {
         setOpenTimeDropdown(null);
       }
     };
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        setIsCategoryDropdownOpen(false);
         setIsTimezoneDropdownOpen(false);
         setOpenTimeDropdown(null);
+        setCategorySearchTerm('');
         setTimezoneSearchTerm('');
+        setDropdownPosition(null);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscapeKey);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleScroll);
+    
+    // Add scroll listener to modal container
+    if (modalContainerRef.current) {
+      modalContainerRef.current.addEventListener('scroll', handleScroll);
+    }
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscapeKey);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleScroll);
+      
+      // Remove scroll listener from modal container
+      if (modalContainerRef.current) {
+        modalContainerRef.current.removeEventListener('scroll', handleScroll);
+      }
     };
-  }, []);
+  }, [isTimezoneDropdownOpen, handleScroll]);
+
+  const handleCategorySelect = (categoryValue: string) => {
+    setFormData(prev => ({ ...prev, category: categoryValue }));
+    setIsCategoryDropdownOpen(false);
+    setCategorySearchTerm('');
+    
+    if (errors.category) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.category;
+        return newErrors;
+      });
+    }
+  };
 
   const handleTimezoneSelect = (timezoneValue: string) => {
     setFormData(prev => ({ ...prev, timezone: timezoneValue }));
     setIsTimezoneDropdownOpen(false);
     setTimezoneSearchTerm('');
+    setDropdownPosition(null);
     
     if (errors.timezone) {
       setErrors(prev => {
@@ -218,6 +313,22 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
     if (formData.credits <= 0) {
       newErrors.credits = 'Course credits must be greater than 0';
       missingFields.push('Course Credits');
+    }
+
+    // Check if at least one day is active in the weekly schedule
+    const hasActiveDay = formData.weeklySchedule.some(day => day.isActive);
+    if (!hasActiveDay) {
+      newErrors.weeklySchedule = 'At least one day must be selected for availability';
+      missingFields.push('Weekly Schedule');
+    }
+
+    // Check if active days have time slots
+    const activeDaysWithoutSlots = formData.weeklySchedule.filter(day => 
+      day.isActive && day.timeSlots.length === 0
+    );
+    if (activeDaysWithoutSlots.length > 0) {
+      newErrors.weeklySchedule = 'Active days must have at least one time slot';
+      missingFields.push('Time Slots');
     }
 
     setErrors(newErrors);
@@ -453,7 +564,7 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
       toast.success(
         <div className="flex items-center space-x-2">
           <FaCheck className="text-green-500" />
-          <span>Course created successfully!</span>
+          <span>{isEditing ? 'Course updated successfully!' : 'Course created successfully!'}</span>
         </div>,
         {
           position: "top-right",
@@ -487,8 +598,8 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
   };
 
     return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-hidden border border-gray-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9998] p-4">
+      <div ref={modalContainerRef} className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-visible border border-gray-100">
         {/* Header */}
         <div className="relative px-8 py-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center justify-between">
@@ -498,9 +609,11 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
               </div>
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
-                  Create New Course
+                  {isEditing ? 'Edit Course' : 'Create New Course'}
                 </h2>
-                <p className="text-gray-600 mt-1 font-medium">Design and launch your educational content</p>
+                <p className="text-gray-600 mt-1 font-medium">
+                  {isEditing ? 'Update your course details and content' : 'Design and launch your educational content'}
+                </p>
               </div>
             </div>
             <button
@@ -514,7 +627,10 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
         </div>
 
         {/* Form */}
-        <div className="overflow-y-auto max-h-[calc(95vh-140px)]">
+        <div 
+          className="overflow-y-auto max-h-[calc(95vh-140px)] overflow-x-visible"
+          onScroll={handleScroll}
+        >
           <form onSubmit={handleSubmit} className="p-8 space-y-10">
             {/* Basic Information Section */}
             <div className="space-y-8">
@@ -624,32 +740,98 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                       <span>Course Category</span>
                       <span className="text-red-500 text-lg font-bold">*</span>
                     </label>
-                    <div className="relative">
-                      <select
-                        value={formData.category}
-                        onChange={(e) => handleInputChange('category', e.target.value)}
-                        className={`w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white group-hover:border-gray-300 appearance-none ${
-                          errors.category ? 'border-red-300 focus:ring-red-100 focus:border-red-500' : ''
-                        }`}
-                        aria-label="Select course category"
-                      >
-                        <option value="">Select a category</option>
-                        <option value="programming">Programming & Development</option>
-                        <option value="design">Design & Creative</option>
-                        <option value="business">Business & Entrepreneurship</option>
-                        <option value="marketing">Marketing & Sales</option>
-                        <option value="languages">Languages & Communication</option>
-                        <option value="music">Music & Arts</option>
-                        <option value="fitness">Health & Fitness</option>
-                        <option value="cooking">Cooking & Culinary</option>
-                        <option value="academic">Academic & Test Prep</option>
-                        <option value="other">Other</option>
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                    <div className="relative" ref={categoryDropdownRef}>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-4">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                        </div>
+                        <button
+                          ref={categoryButtonRef}
+                          type="button"
+                          onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                          className={`w-full pl-8 pr-12 py-4 bg-gradient-to-r from-white to-gray-50 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all duration-300 text-left text-base font-medium shadow-sm ${
+                            isCategoryDropdownOpen 
+                              ? 'border-blue-500 ring-blue-100' 
+                              : 'border-gray-200 group-hover:border-gray-300 group-hover:from-white group-hover:to-blue-50'
+                          } ${errors.category ? 'border-red-300 focus:ring-red-100 focus:border-red-500' : ''}`}
+                          aria-label="Select course category"
+                        >
+                          {selectedCategory ? (
+                            <span className="text-gray-700 font-semibold">{selectedCategory.label}</span>
+                          ) : (
+                            <span className="text-gray-500">Choose a category for your course</span>
+                          )}
+                        </button>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center shadow-sm transition-all duration-200 ${
+                            isCategoryDropdownOpen 
+                              ? 'bg-gradient-to-br from-blue-600 to-blue-700 rotate-180' 
+                              : 'bg-gradient-to-br from-blue-500 to-blue-600'
+                          }`}>
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Category Dropdown */}
+                      {isCategoryDropdownOpen && createPortal(
+                        <div 
+                          data-portal-dropdown="category"
+                          className="fixed bg-white border-2 border-blue-200 rounded-xl shadow-xl z-[99999] min-w-[400px]"
+                          style={{
+                            top: categoryButtonRef.current ? Math.min(categoryButtonRef.current.getBoundingClientRect().bottom + 8, window.innerHeight - 300) : 0,
+                            left: categoryButtonRef.current ? categoryButtonRef.current.getBoundingClientRect().left : 0,
+                            width: categoryButtonRef.current ? categoryButtonRef.current.getBoundingClientRect().width : 'auto',
+                            maxHeight: '300px'
+                          }}
+                        >
+                          {/* Search Input */}
+                          <div className="p-4 border-b border-gray-100">
+                            <div className="relative">
+                                                             <input
+                                 type="text"
+                                 placeholder="Search categories..."
+                                 value={categorySearchTerm}
+                                 onChange={(e) => setCategorySearchTerm(e.target.value)}
+                                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                 autoFocus
+                               />
+                              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
+                            </div>
+                          </div>
+
+                          {/* Category Options */}
+                          <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                            {filteredCategories.map((category) => (
+                                                             <button
+                                 key={category.value}
+                                 type="button"
+                                 onClick={() => handleCategorySelect(category.value)}
+                                 className={`w-full p-3 text-left hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0 flex items-center justify-between ${
+                                   formData.category === category.value ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
+                                 }`}
+                               >
+                                 <span className="font-medium">{category.label}</span>
+                                 {formData.category === category.value && (
+                                   <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                   </svg>
+                                 )}
+                               </button>
+                            ))}
+                            {filteredCategories.length === 0 && (
+                              <div className="px-4 py-8 text-center text-gray-500">
+                                <p>No categories found matching "{categorySearchTerm}"</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>,
+                        document.body
+                      )}
                     </div>
                     {errors.category && (
                       <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -689,7 +871,7 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                   {/* Course Credits */}
                   <div className="group">
                                           <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
-                        <span>Course Price</span>
+                        <span>Course Credits</span>
                         <span className="text-red-500 text-lg font-bold">*</span>
                       </label>
                     <div className="relative">
@@ -885,7 +1067,7 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                 </div>
 
                 {/* Timezone Selection */}
-                <div className="mb-8 p-6 bg-white/90 backdrop-blur-sm rounded-xl border border-purple-200 shadow-sm">
+                <div className="mb-8 p-6 bg-white/90 backdrop-blur-sm rounded-xl border border-purple-200 shadow-sm relative">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -905,8 +1087,19 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                         <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
                       </div>
                       <button
+                        ref={timezoneButtonRef}
                         type="button"
-                        onClick={() => setIsTimezoneDropdownOpen(!isTimezoneDropdownOpen)}
+                        onClick={() => {
+                          if (!isTimezoneDropdownOpen && timezoneButtonRef.current) {
+                            const rect = timezoneButtonRef.current.getBoundingClientRect();
+                            setDropdownPosition({
+                              top: rect.bottom + window.scrollY + 8,
+                              left: rect.left + window.scrollX,
+                              width: rect.width
+                            });
+                          }
+                          setIsTimezoneDropdownOpen(!isTimezoneDropdownOpen);
+                        }}
                         className={`w-full pl-8 pr-12 py-4 bg-gradient-to-r from-white to-gray-50 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-100 transition-all duration-300 text-left text-base font-medium shadow-sm ${
                           isTimezoneDropdownOpen 
                             ? 'border-purple-500 ring-purple-100' 
@@ -937,8 +1130,16 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                     </div>
 
                     {/* Custom Dropdown */}
-                    {isTimezoneDropdownOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-purple-200 rounded-xl shadow-xl z-50 max-h-80 overflow-hidden">
+                    {isTimezoneDropdownOpen && dropdownPosition && createPortal(
+                      <div 
+                        data-portal-dropdown="timezone"
+                        className="fixed bg-white border-2 border-purple-200 rounded-xl shadow-xl z-[99999] max-h-80 overflow-hidden"
+                        style={{
+                          top: `${dropdownPosition.top}px`,
+                          left: `${dropdownPosition.left}px`,
+                          width: `${dropdownPosition.width}px`
+                        }}
+                      >
                         {/* Search Input */}
                         <div className="p-4 border-b border-gray-100">
                           <div className="relative">
@@ -989,7 +1190,8 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                             </div>
                           )}
                         </div>
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
                   {errors.timezone && (
@@ -1060,7 +1262,7 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                                           </button>
                                           
                                           {openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'start' && (
-                                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto min-w-[120px]">
+                                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto min-w-[120px]">
                                               {timeOptions.map(option => (
                                                 <button
                                                   key={option.value}
@@ -1094,7 +1296,7 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                                           </button>
                                           
                                           {openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'end' && (
-                                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto min-w-[120px]">
+                                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto min-w-[120px]">
                                               {timeOptions.map(option => (
                                                 <button
                                                   key={option.value}
@@ -1153,6 +1355,14 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                     ))}
                   </div>
                 </div>
+                {errors.weeklySchedule && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600 text-sm flex items-center space-x-2">
+                      <FaExclamationTriangle className="text-red-500" />
+                      <span>{errors.weeklySchedule}</span>
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1176,12 +1386,12 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit }
                   {isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>Creating Course...</span>
+                      <span>{isEditing ? 'Updating Course...' : 'Creating Course...'}</span>
                     </>
                   ) : (
                     <>
                       <FaBook className="text-lg" />
-                      <span>Create Course</span>
+                      <span>{isEditing ? 'Update Course' : 'Create Course'}</span>
                     </>
                   )}
                 </button>

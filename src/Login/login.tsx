@@ -255,6 +255,31 @@ const Login = () => {
       return;
     }
 
+    // Check for parent credentials
+    if (email === 'ruffesh@gmail.com' && password === '@Ruffesh123') {
+      // Store parent data in localStorage
+      const parentData = {
+        id: 'parent-001',
+        email: 'ruffesh@gmail.com',
+        name: 'Ruffesh',
+        role: 'PARENT',
+        isVerified: true,
+        children: [] // Start with empty children array - parents can add children in Profile
+      };
+      
+      localStorage.setItem('user', JSON.stringify(parentData));
+      localStorage.setItem('activeRole', 'PARENT');
+      
+      showSuccessToast('Parent login successful!');
+      
+      // Redirect to parent dashboard
+      setTimeout(() => {
+        window.location.href = '/parent/dashboard';
+      }, 1000);
+      
+      return;
+    }
+
     // Determine role based on path
     let role = '';
     if (location.pathname === '/loginAdmin') {

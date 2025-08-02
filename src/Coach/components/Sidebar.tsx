@@ -20,10 +20,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, showSidebar, onTabChange }
     { id: 'overview', label: 'Overview', icon: FaHome },
     { id: 'courses', label: 'Courses', icon: FaBook },
     { id: 'videos', label: 'Videos', icon: FaVideo },
-    { id: 'schedule', label: 'Schedule', icon: FaCalendarAlt },
-    { id: 'analytics', label: 'Analytics', icon: FaChartLine },
-    { id: 'profile', label: 'Profile', icon: FaUser },
-    { id: 'settings', label: 'Settings', icon: FaCog },
+    { id: 'schedule', label: 'Attendance', icon: FaCalendarAlt },
+    // { id: 'analytics', label: 'Analytics', icon: FaChartLine },
+    // { id: 'profile', label: 'Profile', icon: FaUser },
+    { id: 'settings', label: 'Profile', icon: FaCog },
   ];
 
   return (

@@ -33,11 +33,13 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   const languageDropdownRef = useRef<HTMLDivElement>(null);
 
   // File upload state and error handling
+  const [photoError, setPhotoError] = useState('');
   const [resumeError, setResumeError] = useState('');
   const [videoError, setVideoError] = useState('');
 
   // Uploaded files state
   const [uploadedFiles, setUploadedFiles] = useState({
+    photo: null as File | null,
     license: null as File | null,
     resume: null as File | null,
     video: null as File | null
@@ -356,6 +358,31 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit for photos
+        setPhotoError('Photo size must be less than 5MB');
+        showErrorToast('Photo size must be less than 5MB');
+        e.target.value = ''; // Clear the input
+        return;
+      }
+      
+      const allowedTypes = ['.jpg', '.jpeg', '.png', '.webp'];
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      
+      if (!allowedTypes.includes(fileExtension)) {
+        setPhotoError('Please upload a valid image file (JPG, PNG, WEBP)');
+        showErrorToast('Please upload a valid image file (JPG, PNG, WEBP)');
+        e.target.value = ''; // Clear the input
+        return;
+      }
+      
+      setPhotoError('');
+      setUploadedFiles(prev => ({ ...prev, photo: file }));
+    }
+  };
+
   const handleDriverLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -371,10 +398,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   };
 
   // Remove file functions
-  const removeFile = (fileType: 'license' | 'resume' | 'video') => {
+  const removeFile = (fileType: 'photo' | 'license' | 'resume' | 'video') => {
     setUploadedFiles(prev => ({ ...prev, [fileType]: null }));
     // Clear the file input
-    const inputId = fileType === 'license' ? 'license-upload' : 
+    const inputId = fileType === 'photo' ? 'photo-upload' :
+                   fileType === 'license' ? 'license-upload' : 
                    fileType === 'resume' ? 'resume-upload' : 'introVideo-upload';
     const input = document.getElementById(inputId) as HTMLInputElement;
     if (input) {
@@ -396,6 +424,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     if (!form.domain) errors.push('Domain is required');
     if (!form.experience) errors.push('Experience is required');
     if (!form.address) errors.push('Address is required');
+    if (!uploadedFiles.photo) errors.push('Profile photo is required');
     if (selectedLanguages.length === 0) {
       errors.push('At least one language is required');
       setLanguageError('At least one language is required');
@@ -476,6 +505,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
         <h1 className="text-center mb-6 text-gray-900 text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
           Join Luminary as Coach
         </h1>
+        
+
+        
         <div className="text-center mb-8">
           <p className="text-gray-700 text-base md:text-lg font-medium leading-relaxed max-w-2xl mx-auto mb-3">
             Share your expertise and help families find the perfect coaching experience.
@@ -486,6 +518,67 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
         </div>
         
         <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+
+                <div>
+            <label className="block mb-3 font-medium text-gray-700 text-sm">
+              Profile Photo <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              {!uploadedFiles.photo ? (
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
+                  <input 
+                    type="file" 
+                    name="photo" 
+                    id="photo-upload"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    title="Upload your profile photo"
+                    onChange={handlePhotoChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    multiple={false}
+                  />
+                  <div className="space-y-4">
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
+                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Click to upload your photo</p>
+                      <p className="text-xs text-gray-500 mt-1">JPG, PNG, WEBP up to 5MB</p>
+                      <p className="text-xs text-purple-600 mt-2 font-medium">This will be your profile picture</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-green-200 shadow-lg">
+                      <img 
+                        src={URL.createObjectURL(uploadedFiles.photo)} 
+                        alt="Profile preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile('photo')}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors duration-200 shadow-lg"
+                      title="Remove photo"
+                    >
+                      <FaTimes className="text-xs" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-green-600 font-medium">Profile photo uploaded successfully!</p>
+                </div>
+              )}
+            </div>
+            {photoError && (
+              <div className="text-red-500 text-xs mt-2 flex items-center gap-1.5">
+                <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                {photoError}
+              </div>
+            )}
+          </div>
           {/* Personal Information */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
@@ -625,6 +718,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
+          {/* Profile Photo Upload */}
+    
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <label className="block mb-2 font-medium text-gray-700 text-sm">
@@ -632,7 +728,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
               </label>
                           <input 
               name="domain" 
-              placeholder="e.g., Mathematics, Science, English, Computer Science" 
+              placeholder="e.g.,Cooking, Soccer, Violin, Swimming ... " 
               value={form.domain} 
               onChange={handleChange}
               className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"

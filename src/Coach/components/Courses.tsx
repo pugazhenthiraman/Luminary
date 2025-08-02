@@ -11,6 +11,21 @@ import {
 } from 'react-icons/fa';
 import CreateCourseForm from './CreateCourseForm';
 
+interface TimeSlot {
+  id: string;
+  startTime: string;
+  endTime: string;
+  sessions: number;
+  sessionDuration: number;
+  bufferTime: number;
+}
+
+interface DaySchedule {
+  day: string;
+  isActive: boolean;
+  timeSlots: TimeSlot[];
+}
+
 interface Course {
   id: number;
   title: string;
@@ -19,10 +34,12 @@ interface Course {
   rating: number;
   price: number;
   status: string;
-  progress: number;
   category: string;
   duration: string;
   lessons: number;
+  weeklySchedule?: DaySchedule[];
+  videoThumbnail?: string;
+  hasVideo?: boolean;
 }
 
 interface CoursesProps {
@@ -31,6 +48,8 @@ interface CoursesProps {
 
 const Courses: React.FC<CoursesProps> = ({ courses }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [localCourses, setLocalCourses] = useState<Course[]>(courses);
 
   // Function to generate modern text-based thumbnail
@@ -90,6 +109,13 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     return URL.createObjectURL(svgBlob);
   };
 
+  // Helper function to format time display
+  const formatTimeDisplay = (time: string) => {
+    const [hour] = time.split(':');
+    const hourNum = parseInt(hour);
+    return hourNum === 0 ? '12:00 AM' : hourNum < 12 ? `${hourNum}:00 AM` : hourNum === 12 ? '12:00 PM' : `${hourNum - 12}:00 PM`;
+  };
+
   const handleCreateCourse = async (courseData: any) => {
     const category = courseData.program.charAt(0).toUpperCase() + courseData.program.slice(1);
     
@@ -102,15 +128,104 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       rating: 0,
       price: courseData.credits,
       status: 'active',
-      progress: 0,
       category: category,
       duration: '12 weeks',
-      lessons: 24
+      lessons: 24,
+      weeklySchedule: courseData.weeklySchedule
     };
 
     // Add the new course to the local state
     setLocalCourses(prev => [newCourse, ...prev]);
     setShowCreateForm(false);
+  };
+
+  const handleEditCourse = (course: Course) => {
+    setEditingCourse(course);
+    setShowEditForm(true);
+  };
+
+  const handleUpdateCourse = async (courseData: any) => {
+    if (!editingCourse) return;
+
+    const category = courseData.program.charAt(0).toUpperCase() + courseData.program.slice(1);
+    
+    // Update the course object with the form data
+    const updatedCourse: Course = {
+      ...editingCourse,
+      title: courseData.title,
+      thumbnail: courseData.thumbnail ? URL.createObjectURL(courseData.thumbnail) : editingCourse.thumbnail,
+      price: courseData.credits,
+      category: category,
+      weeklySchedule: courseData.weeklySchedule
+    };
+
+    // Update the course in the local state
+    setLocalCourses(prev => prev.map(course => 
+      course.id === editingCourse.id ? updatedCourse : course
+    ));
+    
+    setShowEditForm(false);
+    setEditingCourse(null);
+  };
+
+  const handleAddVideo = (course: Course) => {
+    // Create a hidden file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'video/*';
+    fileInput.multiple = false;
+    fileInput.style.display = 'none';
+    
+    fileInput.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // Validate file size (100MB limit)
+        if (file.size > 100 * 1024 * 1024) {
+          alert('Video file size must be less than 100MB');
+          document.body.removeChild(fileInput);
+          return;
+        }
+        
+        // Validate file type
+        const allowedTypes = ['video/mp4', 'video/mov', 'video/avi', 'video/wmv', 'video/flv'];
+        if (!allowedTypes.includes(file.type)) {
+          alert('Please select a valid video file (MP4, MOV, AVI, WMV, FLV)');
+          document.body.removeChild(fileInput);
+          return;
+        }
+        
+        // Handle video upload - you can add your video upload logic here
+        console.log('Video uploaded for course:', course.title, file);
+        
+        // Create video thumbnail (you can replace this with actual video thumbnail generation)
+        const videoThumbnail = generateTextThumbnail('Video');
+        
+        // Update the course object to reflect the new video
+        setLocalCourses(prev => prev.map(c => 
+          c.id === course.id ? { 
+            ...c, 
+            hasVideo: true, 
+            videoThumbnail: videoThumbnail 
+          } : c
+        ));
+        
+        // Show success message with better UX
+        const successMessage = `✅ Video "${file.name}" uploaded successfully for course "${course.title}"`;
+        alert(successMessage);
+      }
+      // Clean up
+      document.body.removeChild(fileInput);
+    };
+    
+    // Add to DOM and trigger click
+    document.body.appendChild(fileInput);
+    fileInput.click();
+  };
+
+  const handleDeleteCourse = (course: Course) => {
+    if (window.confirm(`Are you sure you want to delete the course "${course.title}"? This action cannot be undone.`)) {
+      setLocalCourses(prev => prev.filter(c => c.id !== course.id));
+    }
   };
   return (
     <div className="space-y-6">
@@ -201,34 +316,78 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                 </div>
               </div>
               
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>{course.students} students</span>
-                  <span>{course.lessons} lessons</span>
-                </div>
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>{course.duration}</span>
-                  <span>{course.category}</span>
-                </div>
+                             <div className="space-y-2 mb-4">
+                 <div className="flex items-center justify-between text-sm text-gray-600">
+                   <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium">
+                     {course.category}
+                   </span>
+                 </div>
+                
+                                 {/* Schedule Information */}
+                 {course.weeklySchedule && course.weeklySchedule.some(day => day.isActive) && (
+                   <div className="mt-3 pt-3 border-t border-gray-100">
+                     <div className="flex items-center space-x-2 mb-2">
+                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                       </svg>
+                       <span className="text-xs font-medium text-gray-700">Schedule</span>
+                     </div>
+                     <div className="space-y-1">
+                       {course.weeklySchedule
+                         .filter(day => day.isActive && day.timeSlots.length > 0)
+                         .slice(0, 3) // Show only first 3 active days
+                         .map((day, index) => (
+                           <div key={day.day} className="flex items-center justify-between text-xs text-gray-600">
+                             <span className="font-medium">{day.day}</span>
+                             <div className="flex items-center space-x-1">
+                               {day.timeSlots.slice(0, 2).map((slot, slotIndex) => (
+                                 <span key={slotIndex} className="bg-gray-100 px-2 py-1 rounded text-xs">
+                                   {formatTimeDisplay(slot.startTime)} - {formatTimeDisplay(slot.endTime)}
+                                 </span>
+                               ))}
+                               {day.timeSlots.length > 2 && (
+                                 <span className="text-gray-400 text-xs">+{day.timeSlots.length - 2} more</span>
+                               )}
+                             </div>
+                           </div>
+                         ))}
+                       {course.weeklySchedule.filter(day => day.isActive && day.timeSlots.length > 0).length > 3 && (
+                         <div className="text-xs text-gray-400 text-center pt-1">
+                           +{course.weeklySchedule.filter(day => day.isActive && day.timeSlots.length > 0).length - 3} more days
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Video Thumbnail */}
+                 {course.hasVideo && course.videoThumbnail && (
+                   <div className="mt-3 pt-3 border-t border-gray-100">
+                     <div className="flex items-center space-x-2 mb-2">
+                       <FaVideo className="w-4 h-4 text-green-500" />
+                       <span className="text-xs font-medium text-gray-700">Course Video</span>
+                     </div>
+                     <div className="relative">
+                       <img
+                         src={course.videoThumbnail}
+                         alt="Course video thumbnail"
+                         className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                       />
+                       <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center">
+                         <div className="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
+                           <FaVideo className="w-4 h-4 text-green-600" />
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 )}
               </div>
 
-              {course.status === 'active' && (
-                <div className="mb-4">
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-gray-600">Progress</span>
-                    <span className="font-medium">{course.progress}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${course.progress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
+
 
               <div className="flex items-center space-x-2">
                 <button 
+                  onClick={() => handleEditCourse(course)}
                   className="flex-1 flex items-center justify-center space-x-2 bg-indigo-50 text-indigo-600 py-2 px-3 rounded-lg hover:bg-indigo-100 transition-colors duration-200"
                   title="Edit course"
                 >
@@ -236,18 +395,20 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                   <span className="text-sm font-medium">Edit</span>
                 </button>
                 <button 
+                  onClick={() => handleAddVideo(course)}
                   className="flex-1 flex items-center justify-center space-x-2 bg-green-50 text-green-600 py-2 px-3 rounded-lg hover:bg-green-100 transition-colors duration-200"
                   title="Add video to course"
                 >
                   <FaVideo className="text-sm" />
                   <span className="text-sm font-medium">Add Video</span>
                 </button>
-                <button 
-                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                  title="Delete course"
-                >
-                  <FaTrash className="text-sm" />
-                </button>
+                                 <button 
+                   onClick={() => handleDeleteCourse(course)}
+                   className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                   title="Delete course"
+                 >
+                   <FaTrash className="text-sm" />
+                 </button>
               </div>
             </div>
           </div>
@@ -259,6 +420,36 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
         <CreateCourseForm
           onClose={() => setShowCreateForm(false)}
           onSubmit={handleCreateCourse}
+        />
+      )}
+
+      {/* Edit Course Form Modal */}
+      {showEditForm && editingCourse && (
+        <CreateCourseForm
+          onClose={() => {
+            setShowEditForm(false);
+            setEditingCourse(null);
+          }}
+          onSubmit={handleUpdateCourse}
+          initialData={{
+            title: editingCourse.title,
+            description: editingCourse.title, // You might want to add description to Course interface
+            benefits: '', // You might want to add benefits to Course interface
+            category: editingCourse.category.toLowerCase().replace(' ', '-'),
+            program: 'morning' as const, // Default to morning since we don't store this in Course
+            credits: editingCourse.price,
+            timezone: '',
+            weeklySchedule: editingCourse.weeklySchedule || [
+              { day: 'SUNDAYS', isActive: false, timeSlots: [] },
+              { day: 'MONDAYS', isActive: false, timeSlots: [] },
+              { day: 'TUESDAYS', isActive: false, timeSlots: [] },
+              { day: 'WEDNESDAYS', isActive: false, timeSlots: [] },
+              { day: 'THURSDAYS', isActive: false, timeSlots: [] },
+              { day: 'FRIDAYS', isActive: false, timeSlots: [] },
+              { day: 'SATURDAYS', isActive: false, timeSlots: [] }
+            ]
+          }}
+          isEditing={true}
         />
       )}
     </div>

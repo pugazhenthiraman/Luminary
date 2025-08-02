@@ -241,7 +241,7 @@ const CustomPhoneInput: React.FC<PhoneInputProps> = ({
   const [isValid, setIsValid] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]); // Default to India
+  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[1]); // Default to United States
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
 

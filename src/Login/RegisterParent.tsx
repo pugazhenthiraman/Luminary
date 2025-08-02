@@ -192,23 +192,25 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      // Store parent data in localStorage
+      const parentData = {
+        id: 'parent-' + Date.now(),
+        email: formData.email,
+        name: `${formData.firstName} ${formData.lastName}`,
+        role: 'PARENT',
+        isVerified: true,
+        children: [] // Start with empty children array
+      };
+      
+      localStorage.setItem('user', JSON.stringify(parentData));
+      localStorage.setItem('activeRole', 'PARENT');
+      
       showSuccessToast('Registration successful! Welcome to Luminary');
       
-      // Reset form
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        password: '',
-        confirmPassword: ''
-      });
-      setLastEmailError('');
-      setLastPasswordError('');
-      setLastConfirmPasswordError('');
-      setLastPhoneError('');
-      setLastFirstNameError('');
-      setLastLastNameError('');
+      // Redirect to parent dashboard
+      setTimeout(() => {
+        window.location.href = '/parent/dashboard';
+      }, 1000);
       
     } catch (error) {
       showErrorToast('Registration failed. Please try again.');
@@ -236,13 +238,13 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       
-      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 min-w-80 md:min-w-96 max-w-2xl w-full mx-4 my-8 border border-gray-200">
+      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 min-w-80 md:min-w-96 max-w-4xl w-full mx-4 my-8 border border-gray-200">
         <h1 className="text-center mb-6 text-gray-900 text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
           Join Luminary as Parent
         </h1>
         <div className="text-center mb-8">
           <p className="text-gray-700 text-base md:text-lg font-medium leading-relaxed max-w-xl mx-auto mb-3">
-            Connect with certified coaches and find the perfect learning experience for your child.
+            Connect with certified coaches and find the perfect learning experience for your children.
           </p>
           <p className="text-indigo-600 text-sm font-semibold bg-gradient-to-r from-indigo-100 to-purple-100 px-4 py-2 rounded-full inline-block border border-indigo-200/50">
             Start your family's learning journey ✨

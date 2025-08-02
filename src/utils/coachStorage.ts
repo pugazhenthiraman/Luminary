@@ -83,6 +83,35 @@ class CoachStorage {
     }
   }
 
+  // Add coach with specific ID (for testing purposes)
+  addCoachWithId(coachData: Omit<CoachData, 'id' | 'status' | 'registrationDate'>, coachId: string): boolean {
+    try {
+      const coaches = this.getAllCoaches();
+      
+      // Check if email already exists
+      const existingCoach = coaches.find(coach => coach.email === coachData.email);
+      if (existingCoach) {
+        console.error('Coach with this email already exists');
+        return false;
+      }
+
+      const newCoach: CoachData = {
+        ...coachData,
+        id: coachId,
+        status: 'approved', // Set as approved for testing
+        registrationDate: new Date().toISOString()
+      };
+
+      coaches.push(newCoach);
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(coaches));
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding coach to storage:', error);
+      return false;
+    }
+  }
+
   // Update coach status (approve/reject)
   updateCoachStatus(coachId: string, status: 'approved' | 'rejected', adminNotes?: string): boolean {
     try {

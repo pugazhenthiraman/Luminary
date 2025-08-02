@@ -7,6 +7,7 @@ import Login from "./Login/login";
 import AdminLogin from "./Admin/AdminLogin";
 import AdminDashboard from "./Admin/AdminDashboard";
 import CoachDashboard from "./Coach/CoachDashboard";
+import ParentDashboard from "./Parent/ParentDashboard";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/coach/login" element={<Login />} />
         <Route path="/coach/dashboard" element={<CoachDashboard />} />
+        <Route path="/parent/dashboard" element={<ParentDashboard />} />
         {/* Add more routes as needed */}
       </Routes>
 

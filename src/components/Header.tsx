@@ -195,17 +195,7 @@ const Header = () => {
             </>
           ) : (
             <>
-              {/* Hide home button on admin dashboard */}
-              {!location.pathname.includes('/admin/dashboard') && (
-                <button 
-                  className="p-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105 relative group shadow-sm hover:shadow-lg border border-transparent hover:border-gray-200" 
-                  onClick={handleHomeClick} 
-                  title="Go to Dashboard" 
-                  aria-label="Go to Dashboard"
-                >
-                  <FaHome className="text-2xl transition-transform duration-300 group-hover:scale-105" />
-                </button>
-              )}
+
               <div className="relative" ref={profileRef}>
                 <button 
                   className="p-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105 relative group shadow-sm hover:shadow-lg border border-transparent hover:border-gray-200" 
