@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { USER_TYPE } from '../constants';
 import RegisterCoach from './RegisterCoach';
 import RegisterParent from './RegisterParent';
-import { FaEye, FaEyeSlash, FaSpinner } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaSpinner, FaArrowLeft, FaUser, FaGraduationCap, FaShieldAlt, FaEnvelope, FaLock, FaCheckCircle } from 'react-icons/fa';
 
 const Login = () => {
   const location = useLocation();
@@ -309,8 +309,6 @@ const Login = () => {
   };
 
       const handleRoleSelect = async (role: string) => {
-      // Removed info toast as requested
-      
       await selectRole(role);
     setShowRoleSelection(false);
   };
@@ -321,8 +319,6 @@ const Login = () => {
       showErrorToast('Verification code is required');
       return;
     }
-
-          // Removed info toast as requested
 
     const result = await verifyEmail(email, verificationCode);
     if (result.success && result.user) {
@@ -353,8 +349,6 @@ const Login = () => {
       showErrorToast('Invalid email address');
       return;
     }
-
-          // Removed info toast as requested
 
     // Determine role based on path
     let role = '';
@@ -395,8 +389,6 @@ const Login = () => {
       return;
     }
 
-          // Removed info toast as requested
-
     // Determine role based on path
     let role = '';
     if (location.pathname === '/loginAdmin') {
@@ -435,19 +427,68 @@ const Login = () => {
     clearError();
   };
 
+  // Get user type and styling based on current path
+  const getUserTypeInfo = () => {
+    if (location.pathname === '/loginAdmin') {
+      return {
+        title: 'Admin Login',
+        subtitle: 'Access the admin dashboard',
+        icon: <FaShieldAlt className="text-2xl" />,
+        iconBg: 'bg-purple-100',
+        iconColor: 'text-purple-600',
+        gradient: 'from-purple-600 to-purple-700',
+        hoverGradient: 'from-purple-700 to-purple-800',
+        focusColor: 'focus:border-purple-500',
+        bgGradient: 'from-purple-50 via-blue-50 to-indigo-50'
+      };
+    } else if (location.pathname === '/loginCoach') {
+      return {
+        title: 'Coach Login',
+        subtitle: 'Access your coaching dashboard',
+        icon: <FaGraduationCap className="text-2xl" />,
+        iconBg: 'bg-emerald-100',
+        iconColor: 'text-emerald-600',
+        gradient: 'from-emerald-600 to-emerald-700',
+        hoverGradient: 'from-emerald-700 to-emerald-800',
+        focusColor: 'focus:border-emerald-500',
+        bgGradient: 'from-emerald-50 via-blue-50 to-indigo-50'
+      };
+    } else {
+      return {
+        title: 'Parent Login',
+        subtitle: 'Access your family dashboard',
+        icon: <FaUser className="text-2xl" />,
+        iconBg: 'bg-blue-100',
+        iconColor: 'text-blue-600',
+        gradient: 'from-blue-600 to-blue-700',
+        hoverGradient: 'from-blue-700 to-blue-800',
+        focusColor: 'focus:border-blue-500',
+        bgGradient: 'from-blue-50 via-indigo-50 to-purple-50'
+      };
+    }
+  };
+
+  const userTypeInfo = getUserTypeInfo();
+
   // Inline role selection UI
   if (showRoleSelection) {
     return (
-      <div className="min-h-[75vh] flex items-center justify-center bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-purple-400/10"></div>
         <div className="absolute top-0 left-0 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
         
         <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 md:p-12 min-w-80 md:min-w-96 max-w-md text-center border border-gray-200">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800 mb-8 bg-gradient-to-r from-gray-800 to-blue-600 bg-clip-text text-transparent">
+          <div className="flex justify-center mb-6">
+            <div className="p-4 bg-blue-100 rounded-full">
+              <FaCheckCircle className="text-blue-600 text-3xl" />
+            </div>
+          </div>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800 mb-4 bg-gradient-to-r from-gray-800 to-blue-600 bg-clip-text text-transparent">
             Select Your Role
           </h2>
+          <p className="text-gray-600 mb-8">Choose how you'd like to access the platform</p>
           <div className="flex flex-col gap-4">
             {availableRoles.map((role) => (
               <button 
@@ -473,32 +514,55 @@ const Login = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2"></div>
         
-        <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 mx-4 md:mx-8 my-8 border border-gray-200">
-          <h1 className="text-center mb-6 text-gray-900 text-2xl md:text-3xl font-bold">
+        <div className="relative z-10 w-full max-w-sm sm:max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 mx-4 md:mx-8 my-2 sm:my-4 border border-gray-200">
+          {/* Back button */}
+          <div className="mb-3 sm:mb-4">
+            <button
+              onClick={() => setShowForgotPassword(false)}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+            >
+              <FaArrowLeft className="text-sm" />
+              <span className="text-sm font-medium">Back to Login</span>
+            </button>
+          </div>
+
+          {/* Header */}
+          <div className="text-center mb-4 sm:mb-6">
+            <div className="flex justify-center mb-2 sm:mb-3">
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-full">
+                <FaEnvelope className="text-blue-600 text-xl sm:text-2xl" />
+              </div>
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
             Forgot Password
           </h1>
-          <p className="text-center mb-6 text-gray-600 text-sm leading-relaxed">
+            <p className="text-gray-600 text-xs sm:text-sm mt-1">
             Enter your email address and we'll send you a reset token.
           </p>
+          </div>
+
           <form onSubmit={handleForgotPasswordSubmit} role="form">
-            <div className="mb-5">
-              <label htmlFor="forgotEmail" className="block mb-2 font-medium text-gray-700 text-sm">
+            <div className="mb-3 sm:mb-4">
+              <label htmlFor="forgotEmail" className="block mb-1 sm:mb-1.5 font-medium text-gray-700 text-xs sm:text-sm">
                 Email Address
               </label>
+              <div className="relative">
               <input
                 type="email"
                 name="forgotEmail"
                 id="forgotEmail"
                 placeholder="Enter your email address"
-                className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
                 value={forgotPasswordEmail}
                 onChange={(e) => {
                   setForgotPasswordEmail(e.target.value);
                   clearError();
                 }}
               />
+                <FaEnvelope className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs sm:text-sm" />
+              </div>
               {error && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {error}
                 </div>
@@ -507,12 +571,12 @@ const Login = () => {
 
             <button 
               type="submit" 
-              className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-none rounded-lg text-sm font-medium cursor-pointer mb-4 shadow-md transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:-translate-y-0.5 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-blue-500/20 hover:border-blue-400/30" 
+              className="w-full py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-none rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold cursor-pointer mb-2 sm:mb-3 shadow-lg transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-blue-500/20 hover:border-blue-400/30" 
               disabled={isLoading}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
-                  <FaSpinner className="animate-spin text-sm" />
+                  <FaSpinner className="animate-spin text-xs sm:text-sm" />
                   Sending Reset Email...
                 </div>
               ) : (
@@ -520,16 +584,6 @@ const Login = () => {
               )}
             </button>
           </form>
-          <div className="text-center mt-6 text-sm">
-            <span className="text-gray-600">Remember your password? </span>
-            <button
-              type="button"
-              className="bg-transparent border-none text-blue-600 font-medium cursor-pointer text-sm transition-all duration-300 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-              onClick={() => setShowForgotPassword(false)}
-            >
-              Back to Login
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -545,12 +599,35 @@ const Login = () => {
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2"></div>
         
         <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 mx-4 md:mx-8 my-8 border border-gray-200">
-          <h1 className="text-center mb-6 text-gray-900 text-2xl md:text-3xl font-bold">
+          {/* Back button */}
+          <div className="mb-3 sm:mb-4">
+            <button
+              onClick={() => {
+                setShowResetPassword(false);
+                setShowForgotPassword(false);
+              }}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+            >
+              <FaArrowLeft className="text-sm" />
+              <span className="text-sm font-medium">Back to Login</span>
+            </button>
+          </div>
+
+          {/* Header */}
+          <div className="text-center mb-4 sm:mb-6">
+            <div className="flex justify-center mb-2 sm:mb-3">
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-full">
+                <FaLock className="text-blue-600 text-xl sm:text-2xl" />
+              </div>
+            </div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
             Reset Password
           </h1>
-          <p className="text-center mb-6 text-gray-600 text-sm leading-relaxed">
+            <p className="text-gray-600 text-xs sm:text-sm mt-1">
             Enter the reset token from your email and your new password.
           </p>
+          </div>
+
           <form onSubmit={handleResetPasswordSubmit} role="form">
             <div className="mb-5">
               <label htmlFor="resetToken" className="block mb-2 font-medium text-gray-700 text-sm">
@@ -561,7 +638,7 @@ const Login = () => {
                 name="resetToken"
                 id="resetToken"
                 placeholder="Enter reset token from email"
-                className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
                 value={resetToken}
                 onChange={(e) => {
                   setResetToken(e.target.value);
@@ -574,38 +651,44 @@ const Login = () => {
               <label htmlFor="newPassword" className="block mb-2 font-medium text-gray-700 text-sm">
                 New Password
               </label>
+              <div className="relative">
               <input
                 type="password"
                 name="newPassword"
                 id="newPassword"
                 placeholder="Enter new password"
-                className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
+                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
                 value={newPassword}
                 onChange={(e) => {
                   setNewPassword(e.target.value);
                   clearError();
                 }}
               />
+                <FaLock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+              </div>
             </div>
 
-            <div className="mb-5">
+            <div className="mb-6">
               <label htmlFor="confirmPassword" className="block mb-2 font-medium text-gray-700 text-sm">
                 Confirm Password
               </label>
+              <div className="relative">
               <input
                 type="password"
                 name="confirmPassword"
                 id="confirmPassword"
                 placeholder="Confirm new password"
-                className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
+                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
                 value={confirmPassword}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                   clearError();
                 }}
               />
+                <FaLock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+              </div>
               {error && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-2 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {error}
                 </div>
@@ -614,7 +697,7 @@ const Login = () => {
 
             <button 
               type="submit" 
-              className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-none rounded-lg text-sm font-medium cursor-pointer mb-4 shadow-md transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:-translate-y-0.5 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-blue-500/20 hover:border-blue-400/30" 
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-none rounded-xl text-sm font-semibold cursor-pointer mb-4 shadow-lg transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-blue-500/20 hover:border-blue-400/30" 
               disabled={isLoading}
             >
               {isLoading ? (
@@ -627,19 +710,6 @@ const Login = () => {
               )}
             </button>
           </form>
-          <div className="text-center mt-6 text-sm">
-            <span className="text-gray-600">Remember your password? </span>
-            <button
-              type="button"
-              className="bg-transparent border-none text-blue-600 font-medium cursor-pointer text-sm transition-all duration-300 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-              onClick={() => {
-                setShowResetPassword(false);
-                setShowForgotPassword(false);
-              }}
-            >
-              Back to Login
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -654,20 +724,45 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${userTypeInfo.bgGradient} relative overflow-hidden`}>
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-400/5 to-purple-400/5"></div>
       <div className="absolute top-0 left-0 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       
-      <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 md:p-10 mx-4 md:mx-8 my-8 border border-gray-200">
-        <h1 className="text-center mb-8 text-gray-900 text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-800 to-blue-600 bg-clip-text text-transparent">
-          {showVerification ? 'Verify Email' : 'Welcome Back'}
+      <div className="relative z-10 w-full max-w-sm sm:max-w-md bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 mx-4 md:mx-8 my-2 sm:my-4 border border-gray-200">
+        {/* Back to home button */}
+        <div className="mb-3 sm:mb-4">
+          <Link 
+            to="/"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+          >
+            <FaArrowLeft className="text-sm" />
+            <span className="text-sm font-medium">Back to Home</span>
+          </Link>
+        </div>
+
+        {/* Header */}
+        <div className="text-center mb-4 sm:mb-6">
+          <div className="flex justify-center mb-2 sm:mb-3">
+            <div className={`p-2 sm:p-3 ${userTypeInfo.iconBg} rounded-full`}>
+              <div className={userTypeInfo.iconColor}>
+                {userTypeInfo.icon}
+              </div>
+            </div>
+          </div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 bg-gradient-to-r from-gray-800 to-blue-600 bg-clip-text text-transparent">
+            {showVerification ? 'Verify Email' : userTypeInfo.title}
         </h1>
+          <p className="text-gray-600 text-xs sm:text-sm mt-1">
+            {showVerification ? 'Enter the verification code sent to your email' : userTypeInfo.subtitle}
+          </p>
+        </div>
+
         {!showVerification ? (
           <form onSubmit={handleSubmit} role="form" noValidate>
-            <div className="mb-5">
-              <label htmlFor="email" className="block mb-2 font-medium text-gray-700 text-sm">
+            <div className="mb-3 sm:mb-4">
+              <label htmlFor="email" className="block mb-1 sm:mb-1.5 font-medium text-gray-700 text-xs sm:text-sm">
                 Email Address
               </label>
               <div className="relative">
@@ -676,22 +771,23 @@ const Login = () => {
                   name="email"
                   id="email"
                   placeholder="Enter your email address"
-                  className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 pl-8 sm:pl-10 border-2 rounded-lg sm:rounded-xl text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
                     lastEmailError 
                       ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
-                      : 'border-gray-200 focus:border-blue-500'
+                      : `border-gray-200 ${userTypeInfo.focusColor}`
                   }`}
                   value={email}
                   onChange={handleEmailChange}
                   autoComplete="email"
                 />
+                <FaEnvelope className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs sm:text-sm" />
                 {isValidating && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-blue-500 text-sm" />
+                  <div className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2">
+                    <FaSpinner className="animate-spin text-blue-500 text-xs sm:text-sm" />
                   </div>
                 )}
                 {lastEmailError && (
-                  <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                  <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                     <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                     {lastEmailError}
                   </div>
@@ -699,8 +795,8 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="mb-5">
-              <label htmlFor="password" className="block mb-2 font-medium text-gray-700 text-sm">
+            <div className="mb-3 sm:mb-4">
+              <label htmlFor="password" className="block mb-1 sm:mb-1.5 font-medium text-gray-700 text-xs sm:text-sm">
                 Password
               </label>
               <div className="relative">
@@ -709,24 +805,25 @@ const Login = () => {
                   name="password"
                   id="password"
                   placeholder="Enter your password"
-                  className={`w-full px-3 py-2.5 pr-10 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 pl-8 sm:pl-10 pr-8 sm:pr-10 border-2 rounded-lg sm:rounded-xl text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
                     lastPasswordError 
                       ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
-                      : 'border-gray-200 focus:border-blue-500'
+                      : `border-gray-200 ${userTypeInfo.focusColor}`
                   }`}
                   value={password}
                   onChange={handlePasswordChange}
                   autoComplete="current-password"
                 />
+                <FaLock className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs sm:text-sm" />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                  className="absolute right-2.5 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
+                  {showPassword ? <FaEyeSlash className="text-xs sm:text-sm" /> : <FaEye className="text-xs sm:text-sm" />}
                 </button>
                 {lastPasswordError && (
-                  <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                  <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                     <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                     {lastPasswordError}
                   </div>
@@ -736,12 +833,12 @@ const Login = () => {
 
             <button 
               type="submit" 
-              className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-none rounded-lg text-sm font-medium cursor-pointer mb-4 shadow-md transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:-translate-y-0.5 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-blue-500/20 hover:border-blue-400/30" 
+              className={`w-full py-2 sm:py-2.5 bg-gradient-to-r ${userTypeInfo.gradient} text-white border-none rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold cursor-pointer mb-2 sm:mb-3 shadow-lg transition-all duration-300 hover:${userTypeInfo.hoverGradient} hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-blue-500/20 hover:border-blue-400/30`}
               disabled={isLoading}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
-                  <FaSpinner className="animate-spin text-sm" />
+                  <FaSpinner className="animate-spin text-xs sm:text-sm" />
                   Signing In...
                 </div>
               ) : (
@@ -749,10 +846,10 @@ const Login = () => {
               )}
             </button>
 
-            <div className="text-center mb-6">
+            <div className="text-center mb-3 sm:mb-4">
               <button
                 type="button"
-                className="bg-transparent border-none text-blue-600 font-medium cursor-pointer text-sm transition-all duration-300 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+                className="bg-transparent border-none text-blue-600 font-medium cursor-pointer text-xs sm:text-sm transition-all duration-300 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
                 onClick={() => setShowForgotPassword(true)}
               >
                 Forgot Password?
@@ -761,12 +858,13 @@ const Login = () => {
           </form>
         ) : (
           <form onSubmit={handleVerificationSubmit} noValidate>
-            <div className="mb-5">
-              <label className="block mb-2 font-medium text-blue-800 text-sm" htmlFor="verificationCode">
+            <div className="mb-3 sm:mb-4">
+              <label className="block mb-1 sm:mb-1.5 font-medium text-blue-800 text-xs sm:text-sm" htmlFor="verificationCode">
                 Verification Code
               </label>
+              <div className="relative">
               <input
-                className="w-full px-3 py-2.5 border-2 border-blue-200 rounded-lg bg-blue-50 outline-none text-sm text-gray-800 transition-all duration-300 focus:border-blue-500 focus:bg-white focus:shadow-md"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pl-8 sm:pl-10 border-2 border-blue-200 rounded-lg sm:rounded-xl bg-blue-50 outline-none text-xs sm:text-sm text-gray-800 transition-all duration-300 focus:border-blue-500 focus:bg-white focus:shadow-md"
                 type="text"
                 name="verificationCode"
                 id="verificationCode"
@@ -774,8 +872,10 @@ const Login = () => {
                 value={verificationCode}
                 onChange={handleVerificationChange}
               />
+                <FaCheckCircle className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-blue-400 text-xs sm:text-sm" />
+              </div>
               {error && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {error}
                 </div>
@@ -783,12 +883,12 @@ const Login = () => {
             </div>
             <button 
               type="submit" 
-              className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-none rounded-lg text-sm font-medium cursor-pointer mb-4 shadow-md transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:-translate-y-0.5 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-blue-500/20 hover:border-blue-400/30" 
+              className={`w-full py-2 sm:py-2.5 bg-gradient-to-r ${userTypeInfo.gradient} text-white border-none rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold cursor-pointer mb-2 sm:mb-3 shadow-lg transition-all duration-300 hover:${userTypeInfo.hoverGradient} hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-blue-500/20 hover:border-blue-400/30`}
               disabled={isLoading}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
-                  <FaSpinner className="animate-spin text-sm" />
+                  <FaSpinner className="animate-spin text-xs sm:text-sm" />
                   Verifying Email...
                 </div>
               ) : (
@@ -797,13 +897,14 @@ const Login = () => {
             </button>
           </form>
         )}
+        
         {/* Only show register link if registerLink is not empty */}
         {registerRoleBtn && (
-          <div className="text-center text-sm">
+          <div className="text-center text-xs sm:text-sm">
             <span className="text-gray-600">Don't have an account? </span>
             <button
               type="button"
-              className="bg-transparent border-none text-blue-600 font-medium cursor-pointer text-sm transition-all duration-300 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+              className="bg-transparent border-none text-blue-600 font-medium cursor-pointer text-xs sm:text-sm transition-all duration-300 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
               onClick={() => {
                 setShowRegister(true);
                 setRegisterRole(registerRoleBtn);

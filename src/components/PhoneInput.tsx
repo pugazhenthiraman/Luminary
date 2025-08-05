@@ -360,7 +360,7 @@ const CustomPhoneInput: React.FC<PhoneInputProps> = ({
   return (
     <div className={`phone-input-container ${className}`}>
       {label && (
-        <label className="block mb-2 font-medium text-gray-700 text-sm">
+        <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -372,10 +372,12 @@ const CustomPhoneInput: React.FC<PhoneInputProps> = ({
             type="button"
             onClick={() => setShowDropdown(!showDropdown)}
             disabled={disabled}
-            className="flex items-center gap-2 px-3 py-2 bg-transparent border-none cursor-pointer z-10 hover:bg-gray-50 rounded-l-lg transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 bg-transparent border-none cursor-pointer z-10 hover:bg-gray-50 rounded-l-lg transition-colors"
+            title="Select country"
+            aria-label="Select country for phone number"
           >
-            <span className="text-lg leading-none">{selectedCountry.flag}</span>
-            <span className="text-sm font-medium text-gray-700">{selectedCountry.dialCode}</span>
+            <span className="text-base sm:text-lg leading-none">{selectedCountry.flag}</span>
+            <span className="text-xs sm:text-sm font-medium text-gray-700">{selectedCountry.dialCode}</span>
             <FaChevronDown className={`text-xs text-gray-400 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
           </button>
         </div>
@@ -387,7 +389,7 @@ const CustomPhoneInput: React.FC<PhoneInputProps> = ({
           onChange={handlePhoneChange}
           placeholder={placeholder}
           disabled={disabled}
-          className={`w-full pl-24 pr-10 py-2.5 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:shadow-md ${
+          className={`w-full pl-20 sm:pl-24 pr-10 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:shadow-md ${
             error || !isValid
               ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50'
               : 'border-gray-200 focus:border-blue-500 hover:border-gray-300'
@@ -399,22 +401,22 @@ const CustomPhoneInput: React.FC<PhoneInputProps> = ({
 
         {/* Phone Icon */}
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-          <FaPhone className="text-sm" />
+          <FaPhone className="text-xs sm:text-sm" />
         </div>
 
         {/* Country Dropdown */}
         {showDropdown && (
           <div className="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-2xl max-h-80 overflow-hidden backdrop-blur-sm">
             {/* Search */}
-            <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="p-3 sm:p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
               <div className="relative">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs sm:text-sm" />
                 <input
                   type="text"
                   placeholder="Search countries..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-8 sm:pl-10 pr-3 py-2.5 sm:py-3 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   autoFocus
                 />
               </div>
@@ -423,8 +425,8 @@ const CustomPhoneInput: React.FC<PhoneInputProps> = ({
             {/* Country List */}
             <div className="max-h-64 overflow-y-auto">
               {filteredCountries.length === 0 ? (
-                <div className="p-4 text-gray-500 text-sm text-center">
-                  <FaGlobe className="mx-auto mb-2 text-2xl text-gray-300" />
+                <div className="p-3 sm:p-4 text-gray-500 text-xs sm:text-sm text-center">
+                  <FaGlobe className="mx-auto mb-2 text-xl sm:text-2xl text-gray-300" />
                   No countries found
                 </div>
               ) : (
@@ -433,13 +435,13 @@ const CustomPhoneInput: React.FC<PhoneInputProps> = ({
                     key={country.code}
                     type="button"
                     onClick={() => handleCountrySelect(country)}
-                    className={`w-full flex items-center gap-3 p-3 text-left hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 ${
+                    className={`w-full flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 text-left hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 ${
                       selectedCountry.code === country.code ? 'bg-gradient-to-r from-blue-100 to-indigo-100 border-l-4 border-blue-500' : ''
                     }`}
                   >
-                    <span className="text-xl leading-none">{country.flag}</span>
+                    <span className="text-lg sm:text-xl leading-none">{country.flag}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 text-sm truncate">{country.name}</div>
+                      <div className="font-medium text-gray-900 text-xs sm:text-sm truncate">{country.name}</div>
                       <div className="text-gray-500 text-xs">{country.dialCode} • {country.minLength}-{country.maxLength} digits</div>
                     </div>
                     {selectedCountry.code === country.code && (
@@ -457,7 +459,7 @@ const CustomPhoneInput: React.FC<PhoneInputProps> = ({
       {(error || !isValid) && (
         <div 
           id="phone-error"
-          className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5"
+          className="text-red-500 text-xs mt-1 flex items-center gap-1.5"
         >
           <span className="w-1 h-1 bg-red-500 rounded-full"></span>
           {error || errorMessage}

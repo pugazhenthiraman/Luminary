@@ -10,7 +10,9 @@ import {
   FaEye,
   FaCalendarAlt,
   FaStar,
-  FaDollarSign
+  FaDollarSign,
+  FaCheck,
+  FaClipboardList
 } from 'react-icons/fa';
 
 interface DashboardMetric {
@@ -133,194 +135,203 @@ const Overview: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening with your platform.</p>
-        </div>
-        <div className="mt-4 sm:mt-0 flex items-center space-x-3">
-          <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg">
-            <span className="text-sm font-medium">Last updated: {new Date().toLocaleTimeString()}</span>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Welcome back! Here's what's happening with your platform.</p>
         </div>
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {metrics.map((metric, index) => {
           const Icon = metric.icon;
           return (
-            <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-lg transition-shadow duration-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{metric.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{metric.value}</p>
+            <div key={index} className="bg-white rounded-xl shadow-md p-3 sm:p-6 border border-gray-200">
+              <div className="flex items-center">
+                <div className={`p-2 sm:p-3 ${metric.color} rounded-lg`}>
+                  <Icon className="text-white text-lg sm:text-xl" />
                 </div>
-                <div className={`w-12 h-12 ${metric.color} rounded-lg flex items-center justify-center`}>
-                  <Icon className="text-white text-xl" />
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">{metric.title}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{metric.value}</p>
+                  <div className="flex items-center mt-1">
+                    {metric.changeType === 'increase' ? (
+                      <FaArrowUp className="text-green-500 text-xs" />
+                    ) : (
+                      <FaArrowDown className="text-red-500 text-xs" />
+                    )}
+                    <span className={`text-xs font-medium ml-1 ${
+                      metric.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {Math.abs(metric.change)}%
+                    </span>
+                    <span className="text-xs text-gray-500 ml-1">from last month</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center mt-4">
-                {metric.changeType === 'increase' ? (
-                  <FaArrowUp className="text-green-500 text-sm mr-1" />
-                ) : (
-                  <FaArrowDown className="text-red-500 text-sm mr-1" />
-                )}
-                <span className={`text-sm font-medium ${
-                  metric.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {Math.abs(metric.change)}%
-                </span>
-                <span className="text-sm text-gray-500 ml-1">from last month</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Charts and Analytics Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
-            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-              View All
-            </button>
-          </div>
-          <div className="space-y-4">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className={`p-4 rounded-lg border ${getActivityColor(activity.type)}`}>
-                <div className="flex items-start space-x-3">
+      {/* Recent Activities and Quick Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Recent Activities */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-md border border-gray-200">
+          <div className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Recent Activities</h2>
+              <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                View All
+              </button>
+            </div>
+            
+            <div className="space-y-3 sm:space-y-4">
+              {recentActivities.map((activity) => (
+                <div key={activity.id} className={`flex items-start space-x-3 p-3 sm:p-4 rounded-lg border ${getActivityColor(activity.type)}`}>
                   <div className="flex-shrink-0 mt-1">
                     {getActivityIcon(activity.type)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                    <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-gray-500">{activity.timestamp}</span>
-                      {activity.user && (
-                        <span className="text-xs text-gray-500">by {activity.user}</span>
-                      )}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 truncate">{activity.title}</h3>
+                      <span className="text-xs text-gray-500 flex-shrink-0">{activity.timestamp}</span>
                     </div>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{activity.description}</p>
+                    {activity.user && (
+                      <p className="text-xs text-gray-500 mt-1">by {activity.user}</p>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Quick Stats */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Stats</h2>
-          <div className="space-y-6">
-            {/* Approval Rate */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <FaUserCheck className="text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Approval Rate</p>
-                  <p className="text-xs text-gray-500">Last 30 days</p>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Quick Stats</h2>
+            
+            <div className="space-y-4 sm:space-y-6">
+              {/* Today's Approvals */}
+              <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-blue-900">Today's Approvals</p>
+                    <p className="text-2xl font-bold text-blue-600">8</p>
+                  </div>
+                  <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                    <FaCheck className="text-blue-600 text-lg" />
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-gray-900">87.5%</p>
-                <p className="text-xs text-green-600">+2.3%</p>
-              </div>
-            </div>
 
-            {/* Average Rating */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <FaStar className="text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Avg. Course Rating</p>
-                  <p className="text-xs text-gray-500">All courses</p>
+              {/* Pending Reviews */}
+              <div className="bg-yellow-50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-yellow-900">Pending Reviews</p>
+                    <p className="text-2xl font-bold text-yellow-600">15</p>
+                  </div>
+                  <div className="p-2 bg-yellow-100 rounded-lg flex-shrink-0">
+                    <FaClock className="text-yellow-600 text-lg" />
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-gray-900">4.6</p>
-                <p className="text-xs text-green-600">+0.2</p>
-              </div>
-            </div>
 
-            {/* Active Sessions */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <FaCalendarAlt className="text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Active Sessions</p>
-                  <p className="text-xs text-gray-500">Currently running</p>
+              {/* Average Rating */}
+              <div className="bg-green-50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-green-900">Average Rating</p>
+                    <div className="flex items-center mt-1">
+                      <p className="text-2xl font-bold text-green-600 mr-2">4.8</p>
+                      <div className="flex items-center">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <FaStar key={star} className="text-yellow-400 text-sm" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
+                    <FaStar className="text-green-600 text-lg" />
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-gray-900">156</p>
-                <p className="text-xs text-green-600">+12</p>
-              </div>
-            </div>
 
-            {/* Revenue Growth */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <FaChartLine className="text-purple-600" />
+              {/* Revenue This Month */}
+              <div className="bg-purple-50 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-purple-900">Revenue This Month</p>
+                    <p className="text-2xl font-bold text-purple-600">$12,450</p>
+                  </div>
+                  <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                    <FaDollarSign className="text-purple-600 text-lg" />
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Revenue Growth</p>
-                  <p className="text-xs text-gray-500">This month</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-gray-900">+15.3%</p>
-                <p className="text-xs text-green-600">$6,420</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Section - Quick Actions */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 group">
-            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-200">
-              <FaUserCheck className="text-white" />
+      {/* Additional Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        {/* Active Coaches */}
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-600">Active Coaches</p>
+              <p className="text-2xl font-bold text-gray-900">1,156</p>
             </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-900">Review Coach Applications</p>
-              <p className="text-sm text-gray-600">12 pending approvals</p>
+            <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
+              <FaUsers className="text-green-600 text-xl" />
             </div>
-          </button>
+          </div>
+        </div>
 
-          <button className="flex items-center space-x-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors duration-200 group">
-            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center group-hover:bg-green-600 transition-colors duration-200">
-              <FaBook className="text-white" />
+        {/* Total Courses */}
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-600">Total Courses</p>
+              <p className="text-2xl font-bold text-gray-900">892</p>
             </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-900">Review Course Submissions</p>
-              <p className="text-sm text-gray-600">8 pending reviews</p>
+            <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
+              <FaBook className="text-blue-600 text-xl" />
             </div>
-          </button>
+          </div>
+        </div>
 
-          <button className="flex items-center space-x-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors duration-200 group">
-            <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center group-hover:bg-purple-600 transition-colors duration-200">
-              <FaChartLine className="text-white" />
+        {/* Completion Rate */}
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-600">Completion Rate</p>
+              <p className="text-2xl font-bold text-gray-900">87%</p>
             </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-900">View Analytics</p>
-              <p className="text-sm text-gray-600">Detailed insights</p>
+            <div className="p-3 bg-purple-100 rounded-lg flex-shrink-0">
+              <FaChartLine className="text-purple-600 text-xl" />
             </div>
-          </button>
+          </div>
+        </div>
+
+        {/* Support Tickets */}
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-600">Support Tickets</p>
+              <p className="text-2xl font-bold text-gray-900">23</p>
+            </div>
+            <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
+              <FaClipboardList className="text-orange-600 text-xl" />
+            </div>
+          </div>
         </div>
       </div>
     </div>

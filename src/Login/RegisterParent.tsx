@@ -238,24 +238,35 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       
-      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 min-w-80 md:min-w-96 max-w-4xl w-full mx-4 my-8 border border-gray-200">
-        <h1 className="text-center mb-6 text-gray-900 text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 min-w-80 md:min-w-96 max-w-4xl w-full mx-4 my-4 sm:my-6 md:my-8 border border-gray-200">
+        {/* Back button */}
+        <div className="mb-4 sm:mb-6">
+          <button 
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+            onClick={onBack}
+          >
+            <FaArrowLeft className="text-sm" />
+            <span className="text-sm font-medium">Back to Login</span>
+          </button>
+        </div>
+
+        <h1 className="text-center mb-4 sm:mb-6 text-gray-900 text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
           Join Luminary as Parent
         </h1>
-        <div className="text-center mb-8">
-          <p className="text-gray-700 text-base md:text-lg font-medium leading-relaxed max-w-xl mx-auto mb-3">
+        <div className="text-center mb-6 sm:mb-8">
+          <p className="text-gray-700 text-sm sm:text-base md:text-lg font-medium leading-relaxed max-w-xl mx-auto mb-3">
             Connect with certified coaches and find the perfect learning experience for your children.
           </p>
-          <p className="text-indigo-600 text-sm font-semibold bg-gradient-to-r from-indigo-100 to-purple-100 px-4 py-2 rounded-full inline-block border border-indigo-200/50">
+          <p className="text-indigo-600 text-xs sm:text-sm font-semibold bg-gradient-to-r from-indigo-100 to-purple-100 px-3 sm:px-4 py-2 rounded-full inline-block border border-indigo-200/50">
             Start your family's learning journey ✨
           </p>
         </div>
         
-        <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4 sm:space-y-6">
           {/* Personal Information */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 First Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -264,7 +275,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                   placeholder="Enter your first name" 
                   value={formData.firstName} 
                   onChange={handleFirstNameChange}
-                  className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  className={`w-full px-3 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
                     lastFirstNameError 
                       ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
                       : 'border-gray-200 focus:border-indigo-500'
@@ -272,19 +283,19 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                 />
                 {isValidating && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-blue-500 text-sm" />
+                    <FaSpinner className="animate-spin text-blue-500 text-xs sm:text-sm" />
                   </div>
                 )}
               </div>
               {lastFirstNameError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {lastFirstNameError}
                 </div>
               )}
             </div>
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Last Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -293,7 +304,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                   placeholder="Enter your last name" 
                   value={formData.lastName} 
                   onChange={handleLastNameChange}
-                  className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  className={`w-full px-3 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
                     lastLastNameError 
                       ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
                       : 'border-gray-200 focus:border-indigo-500'
@@ -301,12 +312,12 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                 />
                 {isValidating && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-blue-500 text-sm" />
+                    <FaSpinner className="animate-spin text-blue-500 text-xs sm:text-sm" />
                   </div>
                 )}
               </div>
               {lastLastNameError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {lastLastNameError}
                 </div>
@@ -314,9 +325,9 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Email Address <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -326,7 +337,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                   placeholder="Enter your email address" 
                   value={formData.email} 
                   onChange={handleEmailChange}
-                  className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  className={`w-full px-3 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
                     lastEmailError 
                       ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
                       : 'border-gray-200 focus:border-indigo-500'
@@ -334,12 +345,12 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                 />
                 {isValidating && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-blue-500 text-sm" />
+                    <FaSpinner className="animate-spin text-blue-500 text-xs sm:text-sm" />
                   </div>
                 )}
               </div>
               {lastEmailError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {lastEmailError}
                 </div>
@@ -362,9 +373,9 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -374,7 +385,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                   placeholder="Create a strong password" 
                   value={formData.password} 
                   onChange={handlePasswordChange}
-                  className={`w-full px-3 py-2.5 pr-10 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  className={`w-full px-3 py-2 sm:py-2.5 pr-10 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
                     lastPasswordError 
                       ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
                       : 'border-gray-200 focus:border-indigo-500'
@@ -385,23 +396,23 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
+                  {showPassword ? <FaEyeSlash className="text-xs sm:text-sm" /> : <FaEye className="text-xs sm:text-sm" />}
                 </button>
                 {isValidating && (
                   <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-blue-500 text-sm" />
+                    <FaSpinner className="animate-spin text-blue-500 text-xs sm:text-sm" />
                   </div>
                 )}
               </div>
               {lastPasswordError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {lastPasswordError}
                 </div>
               )}
             </div>
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Confirm Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -411,7 +422,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                   placeholder="Confirm your password" 
                   value={formData.confirmPassword} 
                   onChange={handleConfirmPasswordChange}
-                  className={`w-full px-3 py-2.5 pr-10 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  className={`w-full px-3 py-2 sm:py-2.5 pr-10 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
                     lastConfirmPasswordError 
                       ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
                       : 'border-gray-200 focus:border-indigo-500'
@@ -422,11 +433,11 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  {showConfirmPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
+                  {showConfirmPassword ? <FaEyeSlash className="text-xs sm:text-sm" /> : <FaEye className="text-xs sm:text-sm" />}
                 </button>
               </div>
               {lastConfirmPasswordError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {lastConfirmPasswordError}
                 </div>
@@ -435,13 +446,13 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
           </div>
 
           <button 
-            className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none rounded-lg text-base font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-indigo-500/20 hover:border-indigo-400/30" 
+            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none rounded-lg text-sm sm:text-base font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-indigo-500/20 hover:border-indigo-400/30" 
             type="submit"
             disabled={isLoading}
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
-                <FaSpinner className="animate-spin text-base" />
+                <FaSpinner className="animate-spin text-sm sm:text-base" />
                 Creating Account...
               </div>
             ) : (
@@ -451,7 +462,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
 
           <div className="text-center">
             <button 
-              className="bg-transparent border-none text-indigo-600 font-medium cursor-pointer text-sm transition-all duration-300 hover:text-indigo-800 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded flex items-center justify-center gap-2 mx-auto" 
+              className="bg-transparent border-none text-indigo-600 font-medium cursor-pointer text-xs sm:text-sm transition-all duration-300 hover:text-indigo-800 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded flex items-center justify-center gap-2 mx-auto" 
               type="button" 
               onClick={onBack}
             >

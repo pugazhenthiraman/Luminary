@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
-import { FaEye, FaEyeSlash, FaSpinner, FaShieldAlt, FaArrowLeft } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaSpinner, FaShieldAlt, FaArrowLeft, FaEnvelope, FaLock } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
 const AdminLogin = () => {
@@ -48,18 +48,18 @@ const AdminLogin = () => {
         }
       }
       
-             if (field === 'password' && value) {
-         // Remove password validation for admin login - just check if it's not empty
-         if (value.trim() === '') {
-           const errorMsg = 'Password is required';
-           if (lastPasswordError !== errorMsg) {
-             setLastPasswordError(errorMsg);
-             showErrorToast(errorMsg);
-           }
-         } else {
-           setLastPasswordError('');
-         }
-       }
+      if (field === 'password' && value) {
+        // Remove password validation for admin login - just check if it's not empty
+        if (value.trim() === '') {
+          const errorMsg = 'Password is required';
+          if (lastPasswordError !== errorMsg) {
+            setLastPasswordError(errorMsg);
+            showErrorToast(errorMsg);
+          }
+        } else {
+          setLastPasswordError('');
+        }
+      }
       
       setIsValidating(false);
     }, 1500);
@@ -146,41 +146,41 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 relative overflow-hidden px-4 sm:px-6">
       {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-400/5 to-purple-400/5"></div>
-      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-400/5 to-blue-400/5"></div>
+      <div className="absolute top-0 left-0 w-72 h-72 bg-purple-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       
-      <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 md:p-10 mx-4 md:mx-8 my-8 border border-gray-200">
+      <div className="relative z-10 w-full max-w-sm sm:max-w-md bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 mx-2 sm:mx-4 md:mx-8 my-2 sm:my-4 border border-gray-200">
         {/* Back to home button */}
-        <div className="mb-6">
+        <div className="mb-3 sm:mb-4">
           <Link 
             to="/"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200 text-sm"
           >
             <FaArrowLeft className="text-sm" />
-            <span className="text-sm font-medium">Back to Home</span>
+            <span className="font-medium">Back to Home</span>
           </Link>
         </div>
 
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-purple-100 rounded-full">
-              <FaShieldAlt className="text-purple-600 text-2xl" />
+        <div className="text-center mb-4 sm:mb-6">
+          <div className="flex justify-center mb-2 sm:mb-3">
+            <div className="p-2 sm:p-3 bg-purple-100 rounded-full">
+              <FaShieldAlt className="text-purple-600 text-lg sm:text-2xl" />
             </div>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 bg-gradient-to-r from-gray-800 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 bg-gradient-to-r from-gray-800 to-purple-600 bg-clip-text text-transparent">
             Admin Login
           </h1>
-          <p className="text-gray-600 text-sm mt-2">
+          <p className="text-gray-600 text-xs sm:text-sm mt-1">
             Access the admin dashboard
           </p>
         </div>
 
         <form onSubmit={handleSubmit} role="form" noValidate>
-          <div className="mb-5">
+          <div className="mb-4 sm:mb-5">
             <label htmlFor="email" className="block mb-2 font-medium text-gray-700 text-sm">
               Email Address
             </label>
@@ -190,7 +190,7 @@ const AdminLogin = () => {
                 name="email"
                 id="email"
                 placeholder="Enter admin email"
-                className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                className={`w-full px-4 py-3 pl-10 border-2 rounded-xl text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
                   lastEmailError 
                     ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
                     : 'border-gray-200 focus:border-purple-500'
@@ -199,13 +199,14 @@ const AdminLogin = () => {
                 onChange={handleEmailChange}
                 autoComplete="email"
               />
+              <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
               {isValidating && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <FaSpinner className="animate-spin text-purple-500 text-sm" />
                 </div>
               )}
               {lastEmailError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-2 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {lastEmailError}
                 </div>
@@ -213,7 +214,7 @@ const AdminLogin = () => {
             </div>
           </div>
 
-          <div className="mb-5">
+          <div className="mb-6 sm:mb-8">
             <label htmlFor="password" className="block mb-2 font-medium text-gray-700 text-sm">
               Password
             </label>
@@ -223,7 +224,7 @@ const AdminLogin = () => {
                 name="password"
                 id="password"
                 placeholder="Enter admin password"
-                className={`w-full px-3 py-2.5 pr-10 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                className={`w-full px-4 py-3 pl-10 pr-10 border-2 rounded-xl text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
                   lastPasswordError 
                     ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
                     : 'border-gray-200 focus:border-purple-500'
@@ -232,15 +233,16 @@ const AdminLogin = () => {
                 onChange={handlePasswordChange}
                 autoComplete="current-password"
               />
+              <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
               </button>
               {lastPasswordError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-2 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {lastPasswordError}
                 </div>
@@ -250,12 +252,12 @@ const AdminLogin = () => {
 
           <button 
             type="submit" 
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-none rounded-lg text-base font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-purple-700 hover:to-purple-800 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-purple-500/20 hover:border-purple-400/30" 
+            className="w-full py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-none rounded-xl text-sm font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-purple-700 hover:to-purple-800 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-purple-500/20 hover:border-purple-400/30" 
             disabled={isLoading}
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
-                <FaSpinner className="animate-spin text-base" />
+                <FaSpinner className="animate-spin text-sm" />
                 Signing In...
               </div>
             ) : (
@@ -265,7 +267,7 @@ const AdminLogin = () => {
         </form>
 
         {/* Footer */}
-        <div className="text-center mt-8 pt-6 border-t border-gray-200">
+        <div className="text-center mt-6 sm:mt-8 pt-4 border-t border-gray-200">
           <p className="text-gray-500 text-xs">
             This login is restricted to authorized administrators only.
           </p>

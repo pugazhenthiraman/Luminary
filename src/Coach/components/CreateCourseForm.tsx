@@ -598,67 +598,67 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
   };
 
     return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9998] p-4">
-      <div ref={modalContainerRef} className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-visible border border-gray-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9998] p-1 sm:p-2 lg:p-4">
+      <div ref={modalContainerRef} className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-2xl max-w-full sm:max-w-4xl lg:max-w-5xl w-full max-h-[98vh] sm:max-h-[95vh] overflow-visible border border-gray-100">
         {/* Header */}
-        <div className="relative px-8 py-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <FaBook className="text-white text-xl" />
+        <div className="relative px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg">
+                <FaBook className="text-white text-lg sm:text-xl" />
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">
                   {isEditing ? 'Edit Course' : 'Create New Course'}
                 </h2>
-                <p className="text-gray-600 mt-1 font-medium">
+                <p className="text-sm sm:text-base text-gray-600 mt-1 font-medium">
                   {isEditing ? 'Update your course details and content' : 'Design and launch your educational content'}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 flex items-center justify-center"
+              className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center self-end sm:self-auto"
               aria-label="Close form"
             >
-              <FaTimes className="text-xl" />
+              <FaTimes className="text-lg sm:text-xl" />
             </button>
           </div>
         </div>
 
         {/* Form */}
         <div 
-          className="overflow-y-auto max-h-[calc(95vh-140px)] overflow-x-visible"
+          className="overflow-y-auto max-h-[calc(98vh-140px)] sm:max-h-[calc(95vh-140px)] overflow-x-visible"
           onScroll={handleScroll}
         >
-          <form onSubmit={handleSubmit} className="p-8 space-y-10">
+          <form onSubmit={handleSubmit} className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 lg:space-y-8">
             {/* Basic Information Section */}
-            <div className="space-y-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-                  <h3 className="text-xl font-bold text-gray-900">Course Details</h3>
+            <div className="space-y-6 sm:space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="w-2 h-6 sm:h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Course Details</h3>
                 </div>
-                <div className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+                <div className="text-xs sm:text-sm text-gray-500 bg-gray-50 px-2 sm:px-3 py-1 rounded-full self-start sm:self-auto">
                   Step 1 of 3
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                 {/* Left Column */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Course Title */}
                   <div className="group">
-                                          <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
-                        <span>Course Title</span>
-                        <span className="text-red-500 text-lg font-bold">*</span>
-                      </label>
+                    <label className="block text-sm font-semibold text-gray-800 mb-2 sm:mb-3 flex items-center justify-between">
+                      <span>Course Title</span>
+                      <span className="text-red-500 text-lg font-bold">*</span>
+                    </label>
                     <div className="relative">
                       <input
                         type="text"
                         value={formData.title}
                         onChange={(e) => handleInputChange('title', e.target.value)}
-                        className={`w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white group-hover:border-gray-300 ${
+                        className={`w-full px-3 sm:px-4 lg:px-5 py-3 sm:py-4 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-sm sm:text-base bg-white group-hover:border-gray-300 ${
                           errors.title ? 'border-red-300 focus:ring-red-100 focus:border-red-500' : ''
                         }`}
                         placeholder="e.g., Advanced JavaScript Mastery"
@@ -1204,12 +1204,12 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                   )}
                 </div>
                 
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-purple-200 shadow-sm">
-                  <div className="space-y-4">
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 border border-purple-200 shadow-sm">
+                  <div className="space-y-2 sm:space-y-3 lg:space-y-4">
                     {formData.weeklySchedule.map((daySchedule, dayIndex) => (
-                      <div key={daySchedule.day} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div key={daySchedule.day} className="flex flex-col space-y-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
                         {/* Day Toggle and Name */}
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-3 sm:space-x-4">
                           <button
                             type="button"
                             onClick={() => toggleDayActive(dayIndex)}
@@ -1225,18 +1225,18 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                               }`}
                             />
                           </button>
-                          <span className="font-semibold text-gray-800">{daySchedule.day}</span>
+                          <span className="font-semibold text-gray-800 text-sm sm:text-base">{daySchedule.day}</span>
                         </div>
 
                         {/* Day Content */}
-                        <div className="flex-1 ml-6">
+                        <div className="flex-1">
                           {daySchedule.isActive ? (
                             <div className="space-y-3">
                               {daySchedule.timeSlots.length === 0 ? (
                                 <button
                                   type="button"
                                   onClick={() => addTimeSlot(dayIndex)}
-                                  className="flex items-center space-x-2 text-purple-600 hover:text-purple-700 font-medium bg-purple-50 hover:bg-purple-100 px-4 py-2 rounded-lg transition-all duration-200 border border-purple-200 hover:border-purple-300"
+                                  className="flex items-center space-x-2 text-purple-600 hover:text-purple-700 font-medium bg-purple-50 hover:bg-purple-100 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 border border-purple-200 hover:border-purple-300 text-sm"
                                 >
                                   <FaPlus className="text-sm" />
                                   <span>Add Time Slot</span>
@@ -1244,15 +1244,15 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                               ) : (
                                 <div className="space-y-3">
                                   {daySchedule.timeSlots.map((timeSlot, slotIndex) => (
-                                    <div key={timeSlot.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                                    <div key={timeSlot.id} className="flex flex-col space-y-3 p-3 sm:p-4 bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
                                       {/* Time Range */}
-                                      <div className="flex items-center space-x-3">
+                                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
                                         {/* Start Time Dropdown */}
                                         <div className="relative" ref={timeDropdownRef}>
                                           <button
                                             type="button"
                                             onClick={() => setOpenTimeDropdown(openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'start' ? null : { dayIndex, slotId: timeSlot.id, type: 'start' })}
-                                            className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 min-w-[100px] shadow-sm hover:border-gray-300 flex items-center justify-between"
+                                            className="appearance-none bg-white border border-gray-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 w-full sm:min-w-[100px] shadow-sm hover:border-gray-300 flex items-center justify-between"
                                             aria-label="Start time"
                                           >
                                             <span>{formatTimeDisplay(timeSlot.startTime)}</span>
@@ -1262,7 +1262,7 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                                           </button>
                                           
                                           {openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'start' && (
-                                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto min-w-[120px]">
+                                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto w-full sm:min-w-[120px]">
                                               {timeOptions.map(option => (
                                                 <button
                                                   key={option.value}
@@ -1279,14 +1279,14 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                                           )}
                                         </div>
                                         
-                                        <span className="text-gray-400 font-medium">to</span>
+                                        <span className="text-gray-400 font-medium text-center sm:text-left">to</span>
                                         
                                         {/* End Time Dropdown */}
                                         <div className="relative">
                                           <button
                                             type="button"
                                             onClick={() => setOpenTimeDropdown(openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'end' ? null : { dayIndex, slotId: timeSlot.id, type: 'end' })}
-                                            className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 min-w-[100px] shadow-sm hover:border-gray-300 flex items-center justify-between"
+                                            className="appearance-none bg-white border border-gray-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 w-full sm:min-w-[100px] shadow-sm hover:border-gray-300 flex items-center justify-between"
                                             aria-label="End time"
                                           >
                                             <span>{formatTimeDisplay(timeSlot.endTime)}</span>
@@ -1296,7 +1296,7 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                                           </button>
                                           
                                           {openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'end' && (
-                                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto min-w-[120px]">
+                                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto w-full sm:min-w-[120px]">
                                               {timeOptions.map(option => (
                                                 <button
                                                   key={option.value}
@@ -1314,24 +1314,25 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                                         </div>
                                       </div>
 
-                                      {/* Session Details */}
-                                      <div className="flex items-center space-x-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg">
-                                        <FaClock className="text-gray-400 text-xs" />
-                                        <span className="font-medium">
-                                          {calculateSessions(timeSlot.startTime, timeSlot.endTime, timeSlot.sessionDuration, timeSlot.bufferTime)} sessions • {timeSlot.sessionDuration} min + {timeSlot.bufferTime} min buffer
-                                        </span>
+                                      {/* Session Details and Remove Button */}
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600 bg-gray-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
+                                          <FaClock className="text-gray-400 text-xs" />
+                                          <span className="font-medium">
+                                            {calculateSessions(timeSlot.startTime, timeSlot.endTime, timeSlot.sessionDuration, timeSlot.bufferTime)} sessions • {timeSlot.sessionDuration} min + {timeSlot.bufferTime} min buffer
+                                          </span>
+                                        </div>
+                                        
+                                        <button
+                                          type="button"
+                                          onClick={() => removeTimeSlot(dayIndex, timeSlot.id)}
+                                          className="w-6 h-6 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors"
+                                          aria-label="Remove time slot"
+                                          title="Remove time slot"
+                                        >
+                                          <FaTimes className="text-xs" />
+                                        </button>
                                       </div>
-
-                                      {/* Remove Button */}
-                                      <button
-                                        type="button"
-                                        onClick={() => removeTimeSlot(dayIndex, timeSlot.id)}
-                                        className="w-6 h-6 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors"
-                                        aria-label="Remove time slot"
-                                        title="Remove time slot"
-                                      >
-                                        <FaTimes className="text-xs" />
-                                      </button>
                                     </div>
                                   ))}
                                   
@@ -1339,7 +1340,7 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                                   <button
                                     type="button"
                                     onClick={() => addTimeSlot(dayIndex)}
-                                    className="flex items-center space-x-2 text-purple-600 hover:text-purple-700 font-medium"
+                                    className="flex items-center space-x-2 text-purple-600 hover:text-purple-700 font-medium text-sm"
                                   >
                                     <FaPlus className="text-sm" />
                                     <span>Add Time Slot</span>
@@ -1348,7 +1349,7 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                               )}
                             </div>
                           ) : (
-                            <span className="text-gray-500">Unavailable</span>
+                            <span className="text-gray-500 text-sm sm:text-base">Unavailable</span>
                           )}
                         </div>
                       </div>
@@ -1367,21 +1368,20 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
             </div>
 
             {/* Action Buttons */}
-                         <div className="flex items-center justify-center pt-10 border-t border-gray-200">
-               
-               
-               <div className="flex items-center space-x-8">
+            <div className="flex items-center justify-center pt-6 sm:pt-8 lg:pt-10 border-t border-gray-200">
+              
+              <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 lg:space-x-8 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-8 py-4 text-red-600 hover:text-red-800 hover:bg-red-500 rounded-xl transition-all duration-300 font-semibold border border-red-200 hover:border-red-600"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg sm:rounded-xl transition-all duration-300 font-semibold border border-red-200 hover:border-red-600 text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-10 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                  className="w-full sm:w-auto px-6 sm:px-8 lg:px-10 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg sm:rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 sm:space-x-3 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base"
                 >
                   {isSubmitting ? (
                     <>

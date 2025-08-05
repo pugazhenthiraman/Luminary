@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaBars, FaUser, FaSignOutAlt } from 'react-icons/fa';
+import { FaBars } from 'react-icons/fa';
 
 interface ParentUser {
   id: string;
@@ -22,25 +22,37 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ user, onLogout, onToggleSidebar }) => {
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
-      <div className="flex items-center justify-between">
-        {/* Left side - Menu button and title */}
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={onToggleSidebar}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-            aria-label="Toggle sidebar"
-          >
-            <FaBars className="text-gray-600 text-xl" />
-          </button>
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">Parent Dashboard</h1>
-            <p className="text-sm text-gray-500">Welcome back, {user.name}</p>
+    <header className="bg-white shadow-lg border-b-2 border-gray-100 sticky top-0 z-40">
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 lg:h-20">
+          {/* Left side - Menu button and title */}
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <button
+              onClick={onToggleSidebar}
+              className="p-2 rounded-xl hover:bg-gray-100 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label="Toggle sidebar"
+              title="Toggle sidebar"
+            >
+              <FaBars className="text-gray-600 text-lg sm:text-xl" />
+            </button>
+            
+            <div className="hidden sm:flex items-center space-x-3">
+              <div className="hidden sm:block">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 bg-gradient-to-r from-gray-800 to-blue-600 bg-clip-text text-transparent">
+                  Parent Dashboard
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-600 font-medium">
+                  Welcome back, {user.name}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right side - Empty for now */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Future: Add notifications or other header actions here if needed */}
           </div>
         </div>
-
-        {/* Right side - User menu */}
-
       </div>
     </header>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { FaUserCircle, FaUser, FaSignOutAlt, FaExchangeAlt, FaHome } from 'react-icons/fa';
+import { FaUserCircle, FaUser, FaSignOutAlt, FaExchangeAlt, FaHome, FaBars, FaTimes } from 'react-icons/fa';
 
 const isLoggedIn = () => {
   return !!localStorage.getItem('user');
@@ -28,7 +28,10 @@ const Header = () => {
   const location = useLocation();
   const [showRoleSwitch, setShowRoleSwitch] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
 
   const loggedIn = isLoggedIn();
   const roles = getAvailableRoles();
@@ -39,6 +42,9 @@ const Header = () => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setShowProfileDropdown(false);
       }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setShowMobileMenu(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -47,10 +53,16 @@ const Header = () => {
     };
   }, []);
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setShowMobileMenu(false);
+  }, [location.pathname]);
+
   // Ensure dropdown is closed on mount and login status changes
   useEffect(() => {
     setShowProfileDropdown(false);
     setShowRoleSwitch(false);
+    setShowMobileMenu(false);
   }, [loggedIn]);
 
   const handleLogout = () => {
@@ -61,10 +73,18 @@ const Header = () => {
   const handleSwitchRole = () => {
     setShowRoleSwitch(true);
     setShowProfileDropdown(false);
+    setShowMobileMenu(false);
   };
 
   const handleProfileToggle = () => {
     setShowProfileDropdown(!showProfileDropdown);
+    setShowRoleSwitch(false);
+    setShowMobileMenu(false);
+  };
+
+  const handleMobileMenuToggle = () => {
+    setShowMobileMenu(!showMobileMenu);
+    setShowProfileDropdown(false);
     setShowRoleSwitch(false);
   };
 
@@ -90,6 +110,7 @@ const Header = () => {
 
   const handleProfileClick = () => {
     setShowProfileDropdown(false);
+    setShowMobileMenu(false);
 
     // Get current active role to determine profile route
     const activeRole = localStorage.getItem('activeRole');
@@ -114,6 +135,7 @@ const Header = () => {
     localStorage.setItem('activeRole', role);
     setShowRoleSwitch(false);
     setShowProfileDropdown(false);
+    setShowMobileMenu(false);
     // Redirect to selected role's dashboard
     if (role === 'EXPERT') {
       navigate('/expert/dashboard');
@@ -128,39 +150,39 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 w-full bg-white z-50 shadow-xl border-b-2 border-gray-200">
-      <div className="w-full h-20 flex items-center justify-between px-6">
+      <div className="w-full h-16 md:h-20 flex items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo - Left Side */}
         <div className="flex-shrink-0">
           {location.pathname.includes('/admin/dashboard') ? (
             // Show icon and name without link when on admin dashboard
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 md:space-x-3">
               <img 
                 src="/src/assets/icon.png" 
                 alt="Luminary Learning Center" 
-                className="h-12 w-auto object-contain drop-shadow-lg"
+                className="h-8 w-auto md:h-12 object-contain drop-shadow-lg"
               />
-              <span className="text-2xl font-extrabold text-blue-600">Luminary</span>
+              <span className="text-lg md:text-2xl font-extrabold text-blue-600">Luminary</span>
             </div>
           ) : (
             // Show icon and name with link when not on admin dashboard
-            <NavLink to="/" className="flex items-center space-x-3 transition-all duration-300 hover:scale-105">
+            <NavLink to="/" className="flex items-center space-x-2 md:space-x-3 transition-all duration-300 hover:scale-105">
               <img 
                 src="/src/assets/icon.png" 
                 alt="Luminary Learning Center" 
-                className="h-12 w-auto object-contain drop-shadow-lg"
+                className="h-8 w-auto md:h-12 object-contain drop-shadow-lg"
               />
-              <span className="text-2xl font-extrabold text-blue-600 hover:text-blue-700">Luminary</span>
+              <span className="text-lg md:text-2xl font-extrabold text-blue-600 hover:text-blue-700">Luminary</span>
             </NavLink>
           )}
         </div>
         
-        {/* Navigation - Right Side */}
-        <nav className="flex items-center space-x-2 md:space-x-6" aria-label="Main navigation">
+        {/* Desktop Navigation - Hidden on mobile */}
+        <nav className="hidden md:flex items-center space-x-2 lg:space-x-6" aria-label="Main navigation">
           {!loggedIn ? (
             <>
               <NavLink 
                 to="/" 
-                className={({ isActive }) => `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`} 
+                className={({ isActive }) => `flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`} 
                 end
               >
                 <FaHome className="text-base transition-transform duration-300 group-hover:scale-110" /> 
@@ -170,7 +192,7 @@ const Header = () => {
               </NavLink>
               <NavLink 
                 to="/loginParent" 
-                className={({ isActive }) => `px-4 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
+                className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
               >
                 <span className="relative">
                   For Parents
@@ -178,7 +200,7 @@ const Header = () => {
               </NavLink>
               <NavLink 
                 to="/loginCoach" 
-                className={({ isActive }) => `px-4 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
+                className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
               >
                 <span className="relative">
                   For Coaches
@@ -186,7 +208,7 @@ const Header = () => {
               </NavLink>
               <NavLink 
                 to="/admin/login" 
-                className={({ isActive }) => `px-4 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-purple-600 bg-purple-50 shadow-md scale-105' : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-purple-500 after:to-purple-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-purple-500 after:to-purple-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
+                className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-purple-600 bg-purple-50 shadow-md scale-105' : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-purple-500 after:to-purple-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-purple-500 after:to-purple-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
               >
                 <span className="relative">
                   Admin
@@ -194,49 +216,171 @@ const Header = () => {
               </NavLink>
             </>
           ) : (
-            <>
-
-              <div className="relative" ref={profileRef}>
-                <button 
-                  className="p-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105 relative group shadow-sm hover:shadow-lg border border-transparent hover:border-gray-200" 
-                  onClick={handleProfileToggle} 
-                  title="Profile Menu" 
-                  aria-label="Profile Menu"
-                >
-                  <FaUserCircle className="text-3xl transition-transform duration-300 group-hover:scale-105" />
-                </button>
-                {showProfileDropdown && (
-                  <div className="absolute top-full right-0 bg-white rounded-xl shadow-2xl p-2 min-w-48 z-50 mt-2 border-2 border-gray-200 animate-in slide-in-from-top-2 duration-200">
+            <div className="relative" ref={profileRef}>
+              <button 
+                className="p-2 md:p-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105 relative group shadow-sm hover:shadow-lg border border-transparent hover:border-gray-200" 
+                onClick={handleProfileToggle} 
+                title="Profile Menu" 
+                aria-label="Profile Menu"
+              >
+                <FaUserCircle className="text-2xl md:text-3xl transition-transform duration-300 group-hover:scale-105" />
+              </button>
+              {showProfileDropdown && (
+                <div className="absolute top-full right-0 bg-white rounded-xl shadow-2xl p-2 min-w-48 z-50 mt-2 border-2 border-gray-200 animate-in slide-in-from-top-2 duration-200">
+                  <button 
+                    className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
+                    onClick={handleProfileClick}
+                  >
+                    <FaUser className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
+                    Profile
+                  </button>
+                  {roles.length > 1 && (
                     <button 
                       className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
-                      onClick={handleProfileClick}
+                      onClick={handleSwitchRole}
                     >
-                      <FaUser className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
-                      Profile
+                      <FaExchangeAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
+                      Switch Role
                     </button>
-                    {roles.length > 1 && (
-                      <button 
-                        className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
-                        onClick={handleSwitchRole}
-                      >
-                        <FaExchangeAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
-                        Switch Role
-                      </button>
-                    )}
-                    <button 
-                      className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-red-600 cursor-pointer transition-all duration-200 text-left hover:bg-red-50 rounded-lg hover:scale-105 group" 
-                      onClick={handleLogout}
-                    >
-                      <FaSignOutAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
+                  )}
+                  <button 
+                    className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-red-600 cursor-pointer transition-all duration-200 text-left hover:bg-red-50 rounded-lg hover:scale-105 group" 
+                    onClick={handleLogout}
+                  >
+                    <FaSignOutAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </nav>
+
+        {/* Mobile Menu Button */}
+        <div className="md:hidden flex items-center space-x-2">
+          {loggedIn && (
+            <div className="relative" ref={profileRef}>
+              <button 
+                className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105 relative group shadow-sm hover:shadow-lg border border-transparent hover:border-gray-200" 
+                onClick={handleProfileToggle} 
+                title="Profile Menu" 
+                aria-label="Profile Menu"
+              >
+                <FaUserCircle className="text-2xl transition-transform duration-300 group-hover:scale-105" />
+              </button>
+              {showProfileDropdown && (
+                <div className="absolute top-full right-0 bg-white rounded-xl shadow-2xl p-2 min-w-48 z-50 mt-2 border-2 border-gray-200 animate-in slide-in-from-top-2 duration-200">
+                  <button 
+                    className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
+                    onClick={handleProfileClick}
+                  >
+                    <FaUser className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
+                    Profile
+                  </button>
+                  {roles.length > 1 && (
+                    <button 
+                      className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
+                      onClick={handleSwitchRole}
+                    >
+                      <FaExchangeAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
+                      Switch Role
+                    </button>
+                  )}
+                  <button 
+                    className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-red-600 cursor-pointer transition-all duration-200 text-left hover:bg-red-50 rounded-lg hover:scale-105 group" 
+                    onClick={handleLogout}
+                  >
+                    <FaSignOutAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            ref={hamburgerRef}
+            onClick={handleMobileMenuToggle}
+            className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105"
+            aria-label={showMobileMenu ? "Close mobile menu" : "Open mobile menu"}
+            aria-expanded={showMobileMenu ? "true" : "false"}
+            aria-controls="mobile-menu"
+          >
+            {showMobileMenu ? (
+              <FaTimes className="text-xl" />
+            ) : (
+              <FaBars className="text-xl" />
+            )}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {showMobileMenu && (
+        <div 
+          ref={mobileMenuRef}
+          id="mobile-menu"
+          className="md:hidden bg-white border-t border-gray-200 shadow-lg animate-in slide-in-from-top-2 duration-200"
+        >
+          <nav className="px-4 py-4 space-y-2">
+            {!loggedIn ? (
+              <>
+                <NavLink 
+                  to="/" 
+                  className={({ isActive }) => `flex items-center gap-3 px-4 py-3 text-base font-medium transition-all duration-300 rounded-xl group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'}`} 
+                  end
+                >
+                  <FaHome className="text-lg" /> 
+                  <span>Home</span>
+                </NavLink>
+                <NavLink 
+                  to="/loginParent" 
+                  className={({ isActive }) => `flex items-center gap-3 px-4 py-3 text-base font-medium transition-all duration-300 rounded-xl ${isActive ? 'text-blue-600 bg-blue-50 shadow-md' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'}`}
+                >
+                  <span>For Parents</span>
+                </NavLink>
+                <NavLink 
+                  to="/loginCoach" 
+                  className={({ isActive }) => `flex items-center gap-3 px-4 py-3 text-base font-medium transition-all duration-300 rounded-xl ${isActive ? 'text-blue-600 bg-blue-50 shadow-md' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'}`}
+                >
+                  <span>For Coaches</span>
+                </NavLink>
+                <NavLink 
+                  to="/admin/login" 
+                  className={({ isActive }) => `flex items-center gap-3 px-4 py-3 text-base font-medium transition-all duration-300 rounded-xl ${isActive ? 'text-purple-600 bg-purple-50 shadow-md' : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50'}`}
+                >
+                  <span>Admin</span>
+                </NavLink>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <button 
+                  className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-300 text-left" 
+                  onClick={handleProfileClick}
+                >
+                  <FaUser className="text-lg" />
+                  Profile
+                </button>
+                {roles.length > 1 && (
+                  <button 
+                    className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-300 text-left" 
+                    onClick={handleSwitchRole}
+                  >
+                    <FaExchangeAlt className="text-lg" />
+                    Switch Role
+                  </button>
+                )}
+                <button 
+                  className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-300 text-left" 
+                  onClick={handleLogout}
+                >
+                  <FaSignOutAlt className="text-lg" />
+                  Logout
+                </button>
+              </div>
+            )}
+          </nav>
+        </div>
+      )}
       
       {/* Role selection modal/dropdown */}
       {showRoleSwitch && (

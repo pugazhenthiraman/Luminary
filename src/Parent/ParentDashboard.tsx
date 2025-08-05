@@ -23,7 +23,9 @@ interface ParentUser {
 }
 
 const ParentDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('parentActiveTab') || 'overview';
+  });
   const [parentData, setParentData] = useState<ParentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSidebar, setShowSidebar] = useState(true);
@@ -69,6 +71,11 @@ const ParentDashboard: React.FC = () => {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('parentActiveTab', activeTab);
+  }, [activeTab]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -128,14 +135,14 @@ const ParentDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <Header
         user={parentData}
         onLogout={handleLogout}
         onToggleSidebar={handleToggleSidebar}
       />
 
-      <div className="flex h-[calc(100vh-64px)]">
+      <div className="flex h-[calc(100vh-64px)] lg:h-[calc(100vh-80px)]">
         <Sidebar
           activeTab={activeTab}
           onTabChange={handleTabChange}
@@ -143,9 +150,13 @@ const ParentDashboard: React.FC = () => {
         />
 
         {/* Main Content */}
-        <main className="flex-1 transition-all duration-300">
-          <div className="p-4 h-full overflow-y-auto flex justify-center">
-            <div className="w-full max-w-6xl">{renderContent()}</div>
+        <main className="flex-1 transition-all duration-500 ease-in-out overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <div className="p-4 sm:p-6 lg:p-8">
+              <div className="w-full max-w-7xl mx-auto">
+                {renderContent()}
+              </div>
+            </div>
           </div>
         </main>
       </div>

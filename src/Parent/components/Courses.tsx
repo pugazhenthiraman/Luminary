@@ -74,6 +74,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
+  const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -244,9 +245,32 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
   // Price range options
   const priceRanges = [
     { value: 'all', label: 'All Prices' },
-    { value: 'low', label: 'Low Price ($100-200)' },
-    { value: 'medium', label: 'Medium Price ($200-300)' },
-    { value: 'high', label: 'High Price ($300+)' }
+    { value: 'free', label: 'Free ($0)' },
+    { value: 'low', label: 'Low ($1-50)' },
+    { value: 'medium', label: 'Medium ($51-150)' },
+    { value: 'high', label: 'High ($151-300)' },
+    { value: 'premium', label: 'Premium ($300+)' }
+  ];
+
+  // Date range options
+  const dateRanges = [
+    { value: 'all', label: 'All Dates' },
+    { value: 'today', label: 'Today' },
+    { value: 'week', label: 'This Week' },
+    { value: 'month', label: 'This Month' },
+    { value: 'quarter', label: 'This Quarter' },
+    { value: 'year', label: 'This Year' }
+  ];
+
+  // Sort options
+  const sortOptions = [
+    { value: 'newest', label: 'Newest First' },
+    { value: 'oldest', label: 'Oldest First' },
+    { value: 'price-low-high', label: 'Price: Low to High' },
+    { value: 'price-high-low', label: 'Price: High to Low' },
+    { value: 'title', label: 'Sort by Title' },
+    { value: 'category', label: 'Sort by Category' },
+    { value: 'rating', label: 'Sort by Rating' }
   ];
 
   // Filter and sort courses
@@ -259,47 +283,83 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
       const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
       
       // Price range filtering (using credits as proxy for price)
-      const coursePrice = course.credits * 100; // Mock price calculation
+      const coursePrice = course.credits * 99; // Mock price calculation
       let matchesPriceRange = true;
       if (selectedPriceRange !== 'all') {
         switch (selectedPriceRange) {
+          case 'free':
+            matchesPriceRange = coursePrice === 0;
+            break;
           case 'low':
-            matchesPriceRange = coursePrice >= 100 && coursePrice <= 200;
+            matchesPriceRange = coursePrice >= 1 && coursePrice <= 50;
             break;
           case 'medium':
-            matchesPriceRange = coursePrice > 200 && coursePrice <= 300;
+            matchesPriceRange = coursePrice >= 51 && coursePrice <= 150;
             break;
           case 'high':
+            matchesPriceRange = coursePrice >= 151 && coursePrice <= 300;
+            break;
+          case 'premium':
             matchesPriceRange = coursePrice > 300;
             break;
         }
       }
 
-      return matchesSearch && matchesCategory && matchesPriceRange;
+      // Date range filtering (mock implementation)
+      const courseDate = new Date(course.id); // Using course ID as creation date
+      const now = new Date();
+      let matchesDateRange = true;
+      if (selectedDateRange !== 'all') {
+        switch (selectedDateRange) {
+          case 'today':
+            matchesDateRange = courseDate.toDateString() === now.toDateString();
+            break;
+          case 'week':
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            matchesDateRange = courseDate >= weekAgo;
+            break;
+          case 'month':
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            matchesDateRange = courseDate >= monthAgo;
+            break;
+          case 'quarter':
+            const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            matchesDateRange = courseDate >= quarterAgo;
+            break;
+          case 'year':
+            const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+            matchesDateRange = courseDate >= yearAgo;
+            break;
+        }
+      }
+
+      return matchesSearch && matchesCategory && matchesPriceRange && matchesDateRange;
     });
 
     // Sort courses
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'newest':
-          return new Date(b.id).getTime() - new Date(a.id).getTime(); // Mock newest first
+          return new Date(b.id).getTime() - new Date(a.id).getTime();
         case 'oldest':
-          return new Date(a.id).getTime() - new Date(b.id).getTime(); // Mock oldest first
-        case 'rating-high-low':
-          return (b.credits * 0.8) - (a.credits * 0.8); // Mock rating based on credits
-        case 'rating-low-high':
-          return (a.credits * 0.8) - (b.credits * 0.8); // Mock rating based on credits
+          return new Date(a.id).getTime() - new Date(b.id).getTime();
+        case 'price-low-high':
+          return (a.credits * 99) - (b.credits * 99);
+        case 'price-high-low':
+          return (b.credits * 99) - (a.credits * 99);
         case 'title':
           return a.title.localeCompare(b.title);
         case 'category':
           return a.category.localeCompare(b.category);
+        case 'rating':
+          return (b.credits * 0.8) - (a.credits * 0.8); // Mock rating based on credits
         default:
           return 0;
       }
     });
 
     return filtered;
-  }, [courses, searchTerm, selectedCategory, selectedPriceRange, sortBy]);
+  }, [courses, searchTerm, selectedCategory, selectedPriceRange, selectedDateRange, sortBy]);
 
   const formatTime = (timeString: string) => {
     const [hours, minutes] = timeString.split(':');
@@ -316,17 +376,49 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
   const clearAllFilters = () => {
     setSelectedCategory('all');
     setSelectedPriceRange('all');
+    setSelectedDateRange('all');
     setSearchTerm('');
     setSortBy('newest');
+  };
+
+  const clearFilter = (filterType: 'category' | 'price' | 'date' | 'search' | 'sort') => {
+    switch (filterType) {
+      case 'category':
+        setSelectedCategory('all');
+        break;
+      case 'price':
+        setSelectedPriceRange('all');
+        break;
+      case 'date':
+        setSelectedDateRange('all');
+        break;
+      case 'search':
+        setSearchTerm('');
+        break;
+      case 'sort':
+        setSortBy('newest');
+        break;
+    }
   };
 
   const getActiveFiltersCount = () => {
     let count = 0;
     if (selectedCategory !== 'all') count++;
     if (selectedPriceRange !== 'all') count++;
+    if (selectedDateRange !== 'all') count++;
     if (searchTerm) count++;
     if (sortBy !== 'newest') count++;
     return count;
+  };
+
+  const getActiveFilters = () => {
+    const filters: Array<{ type: string; label: string; value: string }> = [];
+    if (selectedCategory !== 'all') filters.push({ type: 'category', label: selectedCategory, value: selectedCategory });
+    if (selectedPriceRange !== 'all') filters.push({ type: 'price', label: priceRanges.find(p => p.value === selectedPriceRange)?.label || selectedPriceRange, value: selectedPriceRange });
+    if (selectedDateRange !== 'all') filters.push({ type: 'date', label: dateRanges.find(d => d.value === selectedDateRange)?.label || selectedDateRange, value: selectedDateRange });
+    if (searchTerm) filters.push({ type: 'search', label: `"${searchTerm}"`, value: searchTerm });
+    if (sortBy !== 'newest') filters.push({ type: 'sort', label: sortOptions.find(s => s.value === sortBy)?.label || sortBy, value: sortBy });
+    return filters;
   };
 
   // Calculate age from date of birth
@@ -449,7 +541,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
     const matches = v.match(/\d{4,16}/g);
     const match = matches && matches[0] || '';
-    const parts = [];
+    const parts: string[] = [];
     for (let i = 0, len = match.length; i < len; i += 4) {
       parts.push(match.substring(i, i + 4));
     }
@@ -508,49 +600,60 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Available Courses</h1>
-          <p className="text-gray-600 mt-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 bg-gradient-to-r from-gray-800 to-blue-600 bg-clip-text text-transparent">
+            Available Courses
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
             Browse courses created by our expert coaches and enroll your children.
           </p>
         </div>
         <div className="mt-4 sm:mt-0">
-          <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
+          <span className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-xs sm:text-sm font-medium px-3 py-1 rounded-full border border-green-200">
             {courses.length} Courses Available
           </span>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm sm:text-base" />
             <input
               type="text"
               placeholder="Search courses, coaches, or topics..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             />
+            {searchTerm && (
+              <button
+                onClick={() => clearFilter('search')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                aria-label="Clear search"
+              >
+                <FaTimes className="text-sm" />
+              </button>
+            )}
           </div>
 
           {/* Filter Toggle and Sort */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center space-x-2 px-4 py-2 border rounded-lg transition-colors duration-200 ${
+              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 border rounded-lg transition-all duration-200 text-sm sm:text-base ${
                 getActiveFiltersCount() > 0 
                   ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100' 
                   : 'border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <FaFilter className="text-gray-600" />
-              <span>Filters</span>
+              <FaFilter className="text-gray-600 text-sm sm:text-base" />
+              <span className="hidden sm:inline">Filters</span>
               {getActiveFiltersCount() > 0 && (
                 <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
                   {getActiveFiltersCount()}
@@ -562,30 +665,61 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               aria-label="Sort courses"
             >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="rating-high-low">Rating: High to Low</option>
-              <option value="rating-low-high">Rating: Low to High</option>
-              <option value="title">Sort by Title</option>
-              <option value="category">Sort by Category</option>
+              {sortOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
 
+        {/* Active Filters Display */}
+        {getActiveFiltersCount() > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-700">Active Filters:</h3>
+              <button
+                onClick={clearAllFilters}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors duration-200"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {getActiveFilters().map((filter, index) => (
+                <div
+                  key={index}
+                  className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs sm:text-sm border border-blue-200"
+                >
+                  <span>{filter.label}</span>
+                  <button
+                    onClick={() => clearFilter(filter.type as any)}
+                    className="text-blue-500 hover:text-blue-700 transition-colors duration-200"
+                    aria-label={`Clear ${filter.type} filter`}
+                  >
+                    <FaTimes className="text-xs" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Filters Panel */}
         {showFilters && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Category Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Category</label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                   aria-label="Filter by category"
                 >
                   {categories.map(category => (
@@ -598,11 +732,11 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
 
               {/* Price Range Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Price Range</label>
                 <select
                   value={selectedPriceRange}
                   onChange={(e) => setSelectedPriceRange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                   aria-label="Filter by price range"
                 >
                   {priceRanges.map(range => (
@@ -613,11 +747,28 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                 </select>
               </div>
 
-              {/* Clear Filters */}
+              {/* Date Range Filter */}
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Date Range</label>
+                <select
+                  value={selectedDateRange}
+                  onChange={(e) => setSelectedDateRange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                  aria-label="Filter by date range"
+                >
+                  {dateRanges.map(range => (
+                    <option key={range.value} value={range.value}>
+                      {range.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Clear All Filters */}
               <div className="flex items-end">
                 <button
                   onClick={clearAllFilters}
-                  className="w-full px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                  className="w-full px-4 py-2 text-xs sm:text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
                 >
                   Clear All Filters
                 </button>
@@ -629,61 +780,65 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
 
       {/* Results Count */}
       <div className="flex items-center justify-between">
-        <p className="text-gray-600">
+        <p className="text-xs sm:text-sm text-gray-600">
           Showing {filteredCourses.length} of {courses.length} courses
         </p>
       </div>
 
       {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCourses.map((course) => (
-          <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-shadow duration-200 overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {filteredCourses.map((course, index) => (
+          <div 
+            key={course.id} 
+            className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden hover:scale-[1.02] animate-in slide-in-from-bottom duration-500"
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
             {/* Course Thumbnail */}
-            <div className="relative h-48 bg-gray-200">
+            <div className="relative h-40 sm:h-48 bg-gray-200">
               <img
                 src={course.thumbnail}
                 alt={course.title}
                 className="w-full h-full object-cover"
               />
               {course.introVideo && (
-                <div className="absolute top-3 left-3">
+                <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
                   <div className="bg-black bg-opacity-50 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
                     <FaPlay className="text-xs" />
-                    Intro Video
+                    <span className="hidden sm:inline">Intro Video</span>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Course Content */}
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* Course Title and Coach */}
-              <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 line-clamp-2">
                 {course.title}
               </h3>
               <div className="flex items-center space-x-2 mb-3">
                 <img
                   src={course.coach.avatar}
                   alt={course.coach.name}
-                  className="w-6 h-6 rounded-full"
+                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full"
                 />
-                <span className="text-sm text-gray-600">{course.coach.name}</span>
+                <span className="text-xs sm:text-sm text-gray-600 truncate">{course.coach.name}</span>
                 <button
                   onClick={() => handleViewCoachDetails(course.coach.id)}
-                  className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                  className="text-blue-600 hover:text-blue-700 text-xs font-medium hover:scale-105 transition-all duration-200"
                 >
                   View Profile
                 </button>
               </div>
 
               {/* Course Description */}
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+              <p className="text-gray-600 text-xs sm:text-sm mb-4 line-clamp-2">
                 {course.description}
               </p>
 
               {/* Key Info Row */}
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
                   <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
                     {course.category}
                   </span>
@@ -698,9 +853,9 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
 
               {/* Schedule Preview */}
               <div className="mb-4">
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <FaCalendarAlt className="text-indigo-600" />
-                  <span>
+                <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
+                  <FaCalendarAlt className="text-indigo-600 text-xs sm:text-sm" />
+                  <span className="truncate">
                     {course.weeklySchedule
                       .filter(day => day.isActive)
                       .slice(0, 2)
@@ -721,16 +876,17 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
               <div className="flex space-x-2">
                 <button
                   onClick={() => setSelectedCourse(course)}
-                  className="flex-1 px-3 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors duration-200"
+                  className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 hover:scale-105"
                 >
-                  <FaEye className="inline mr-1" />
-                  View Details
+                  <FaEye className="inline mr-1 text-xs sm:text-sm" />
+                  <span className="hidden sm:inline">View Details</span>
+                  <span className="sm:hidden">Details</span>
                 </button>
                 <button
                   onClick={() => handleEnroll(course)}
-                  className="flex-1 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                  className="flex-1 px-2 sm:px-4 py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md"
                 >
-                  <FaGraduationCap className="inline mr-1" />
+                  <FaGraduationCap className="inline mr-1 text-xs sm:text-sm" />
                   Enroll
                 </button>
               </div>
@@ -741,19 +897,20 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
 
       {/* No Results */}
       {filteredCourses.length === 0 && (
-        <div className="text-center py-12">
-          <FaBook className="text-gray-300 text-6xl mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No courses found</h3>
-          <p className="text-gray-500 mb-4">
+        <div className="text-center py-8 sm:py-12">
+          <FaBook className="text-gray-300 text-4xl sm:text-6xl mx-auto mb-4" />
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No courses found</h3>
+          <p className="text-xs sm:text-sm text-gray-500 mb-4">
             Try adjusting your search terms or filters to find more courses.
           </p>
           <button
             onClick={() => {
               setSearchTerm('');
               setSelectedCategory('all');
-              setSelectedProgram('all');
+              setSelectedPriceRange('all');
+              setSelectedDateRange('all');
             }}
-            className="text-blue-600 hover:text-blue-700 font-medium"
+            className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base hover:scale-105 transition-all duration-200"
           >
             Clear all filters
           </button>
@@ -762,46 +919,46 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
 
       {/* Coach Details Modal */}
       {showCoachModal && selectedCoach && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[95vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-xl">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <FaUser className="text-white text-xl" />
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <FaUser className="text-white text-lg sm:text-xl" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Coach Profile</h2>
-                    <p className="text-gray-600">Complete information about this coach</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Coach Profile</h2>
+                    <p className="text-xs sm:text-sm text-gray-600">Complete information about this coach</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCoachModal(false)}
-                  className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  className="p-2 sm:p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                   aria-label="Close modal"
                 >
-                  <FaTimes className="text-xl" />
+                  <FaTimes className="text-lg sm:text-xl" />
                 </button>
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* Coach Hero Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
                 {/* Coach Avatar */}
                 <div className="lg:col-span-1">
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-8 text-center">
-                    <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 sm:p-8 text-center">
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl sm:text-4xl font-bold">
                       {selectedCoach.firstName.charAt(0)}{selectedCoach.lastName.charAt(0)}
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                       {selectedCoach.firstName} {selectedCoach.lastName}
                     </h1>
-                    <p className="text-gray-600 mb-4">Professional Coach</p>
+                    <p className="text-sm sm:text-base text-gray-600 mb-4">Professional Coach</p>
                     
                     {/* Status Badge */}
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                       selectedCoach.status === 'approved' 
                         ? 'bg-green-100 text-green-800' 
                         : selectedCoach.status === 'pending'
@@ -821,40 +978,40 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                 </div>
 
                 {/* Coach Info */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                   {/* Contact Information */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FaEnvelope className="text-blue-600" />
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-100">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FaEnvelope className="text-blue-600 text-sm sm:text-base" />
                       Contact Information
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="flex items-center space-x-3">
-                        <FaEnvelope className="text-blue-600" />
+                        <FaEnvelope className="text-blue-600 text-sm sm:text-base" />
                         <div>
-                          <p className="text-sm text-gray-600">Email</p>
-                          <p className="font-semibold text-gray-900">{selectedCoach.email}</p>
+                          <p className="text-xs sm:text-sm text-gray-600">Email</p>
+                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <FaPhone className="text-blue-600" />
+                        <FaPhone className="text-blue-600 text-sm sm:text-base" />
                         <div>
-                          <p className="text-sm text-gray-600">Phone</p>
-                          <p className="font-semibold text-gray-900">{selectedCoach.phone}</p>
+                          <p className="text-xs sm:text-sm text-gray-600">Phone</p>
+                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.phone}</p>
                         </div>
                       </div>
-                                             <div className="flex items-center space-x-3">
-                         <FaMapMarkerAlt className="text-blue-600" />
+                      <div className="flex items-center space-x-3 sm:col-span-2">
+                        <FaMapMarkerAlt className="text-blue-600 text-sm sm:text-base" />
                          <div>
-                           <p className="text-sm text-gray-600">Address</p>
-                           <p className="font-semibold text-gray-900">{selectedCoach.address}</p>
+                          <p className="text-xs sm:text-sm text-gray-600">Address</p>
+                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.address}</p>
                          </div>
                        </div>
                       <div className="flex items-center space-x-3">
-                        <FaCalendarAlt className="text-blue-600" />
+                        <FaCalendarAlt className="text-blue-600 text-sm sm:text-base" />
                         <div>
-                          <p className="text-sm text-gray-600">Member Since</p>
-                          <p className="font-semibold text-gray-900">
+                          <p className="text-xs sm:text-sm text-gray-600">Member Since</p>
+                          <p className="font-semibold text-gray-900 text-sm sm:text-base">
                             {new Date(selectedCoach.registrationDate).toLocaleDateString()}
                           </p>
                         </div>
@@ -863,35 +1020,34 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                   </div>
 
                   {/* Professional Information */}
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FaBriefcase className="text-green-600" />
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FaBriefcase className="text-green-600 text-sm sm:text-base" />
                       Professional Information
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Experience</p>
-                        <p className="font-semibold text-gray-900">{selectedCoach.experience}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Experience</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.experience}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Duration</p>
-                        <p className="font-semibold text-gray-900">{selectedCoach.duration}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Duration</p>
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.duration}</p>
                       </div>
-                      
                     </div>
                   </div>
 
                   {/* Languages */}
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FaLanguage className="text-purple-600" />
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 sm:p-6 border border-purple-100">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FaLanguage className="text-purple-600 text-sm sm:text-base" />
                       Languages Spoken
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedCoach.languages.map((language, index) => (
                         <span
                           key={index}
-                          className="bg-white px-3 py-1 rounded-full text-sm font-medium text-purple-700 border border-purple-200"
+                          className="bg-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium text-purple-700 border border-purple-200"
                         >
                           {language}
                         </span>
@@ -902,53 +1058,53 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
               </div>
 
               {/* Additional Information */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* Courses Taught */}
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaBook className="text-indigo-600" />
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-indigo-100">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <FaBook className="text-indigo-600 text-sm sm:text-base" />
                     Courses Taught
                   </h3>
                   <div className="space-y-3">
                     {selectedCoach.courses.length > 0 ? (
                       selectedCoach.courses.map((course, index) => (
-                        <div key={index} className="bg-white rounded-lg p-4 shadow-sm">
-                          <div className="font-semibold text-gray-900">{course}</div>
+                        <div key={index} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                          <div className="font-semibold text-gray-900 text-sm sm:text-base">{course}</div>
                         </div>
                       ))
                     ) : (
-                      <p className="text-gray-600 italic">No courses listed yet</p>
+                      <p className="text-gray-600 italic text-sm sm:text-base">No courses listed yet</p>
                     )}
                   </div>
                 </div>
 
                 {/* Statistics */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaUsers className="text-green-600" />
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <FaUsers className="text-green-600 text-sm sm:text-base" />
                     Statistics
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white rounded-lg p-4 shadow-sm text-center">
-                      <div className="text-2xl font-bold text-blue-600">5.0</div>
-                      <div className="text-sm text-gray-600">Average Rating</div>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
+                      <div className="text-xl sm:text-2xl font-bold text-blue-600">5.0</div>
+                      <div className="text-xs sm:text-sm text-gray-600">Average Rating</div>
                       <div className="flex justify-center mt-1">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <FaStar key={star} className="text-yellow-400 text-sm" />
+                          <FaStar key={star} className="text-yellow-400 text-xs sm:text-sm" />
                         ))}
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 shadow-sm text-center">
-                      <div className="text-2xl font-bold text-green-600">150+</div>
-                      <div className="text-sm text-gray-600">Students Taught</div>
+                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
+                      <div className="text-xl sm:text-2xl font-bold text-green-600">150+</div>
+                      <div className="text-xs sm:text-sm text-gray-600">Students Taught</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 shadow-sm text-center">
-                      <div className="text-2xl font-bold text-purple-600">25+</div>
-                      <div className="text-sm text-gray-600">Courses Created</div>
+                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
+                      <div className="text-xl sm:text-2xl font-bold text-purple-600">25+</div>
+                      <div className="text-xs sm:text-sm text-gray-600">Courses Created</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 shadow-sm text-center">
-                      <div className="text-2xl font-bold text-orange-600">98%</div>
-                      <div className="text-sm text-gray-600">Success Rate</div>
+                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
+                      <div className="text-xl sm:text-2xl font-bold text-orange-600">98%</div>
+                      <div className="text-xs sm:text-sm text-gray-600">Success Rate</div>
                     </div>
                   </div>
                 </div>
@@ -956,12 +1112,12 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
 
               {/* Admin Notes (if any) */}
               {selectedCoach.adminNotes && (
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-100 mt-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaUser className="text-yellow-600" />
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 sm:p-6 border border-yellow-100 mt-4 sm:mt-6">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <FaUser className="text-yellow-600 text-sm sm:text-base" />
                     Admin Notes
                   </h3>
-                  <p className="text-gray-700 leading-relaxed">{selectedCoach.adminNotes}</p>
+                  <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{selectedCoach.adminNotes}</p>
                 </div>
               )}
             </div>
@@ -971,33 +1127,33 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
 
       {/* Course Detail Modal */}
       {selectedCourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
           <div className="bg-white rounded-xl max-w-6xl w-full max-h-[95vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-xl z-10">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <FaBook className="text-white text-xl" />
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <FaBook className="text-white text-lg sm:text-xl" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Course Details</h2>
-                    <p className="text-gray-600">Complete information about this course</p>
+                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Course Details</h2>
+                    <p className="text-xs sm:text-sm text-gray-600">Complete information about this course</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setSelectedCourse(null)}
-                  className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  className="p-2 sm:p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                   aria-label="Close modal"
                 >
-                  <FaTimes className="text-xl" />
+                  <FaTimes className="text-lg sm:text-xl" />
                 </button>
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* Hero Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
                 {/* Course Thumbnail/Video */}
                 <div className="lg:col-span-1">
                   <div className="relative">
@@ -1006,7 +1162,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                         <img
                           src={selectedCourse.thumbnail}
                           alt={selectedCourse.title}
-                          className="w-full h-80 object-cover rounded-xl shadow-lg"
+                          className="w-full h-48 sm:h-60 lg:h-80 object-cover rounded-xl shadow-lg"
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-40 rounded-xl flex items-center justify-center">
                           <button 
@@ -1014,10 +1170,11 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                               // In a real app, this would open the video player
                               window.open(selectedCourse.introVideo, '_blank');
                             }}
-                            className="bg-white bg-opacity-90 hover:bg-opacity-100 text-gray-900 px-6 py-3 rounded-lg flex items-center gap-3 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                            className="bg-white bg-opacity-90 hover:bg-opacity-100 text-gray-900 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg flex items-center gap-2 sm:gap-3 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
                           >
-                            <FaPlay className="text-lg" />
-                            Watch Introduction Video
+                            <FaPlay className="text-sm sm:text-lg" />
+                            <span className="hidden sm:inline">Watch Introduction Video</span>
+                            <span className="sm:hidden">Watch Video</span>
                           </button>
                         </div>
                       </div>
@@ -1025,40 +1182,40 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                       <img
                         src={selectedCourse.thumbnail}
                         alt={selectedCourse.title}
-                        className="w-full h-80 object-cover rounded-xl shadow-lg"
+                        className="w-full h-48 sm:h-60 lg:h-80 object-cover rounded-xl shadow-lg"
                       />
                     )}
                   </div>
                 </div>
 
                 {/* Course Info */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-3">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
                       {selectedCourse.title}
                     </h1>
-                    <p className="text-gray-600 text-lg leading-relaxed">
+                    <p className="text-gray-600 text-sm sm:text-base lg:text-lg leading-relaxed">
                       {selectedCourse.description}
                     </p>
                   </div>
 
                   {/* Coach Info */}
-                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-indigo-100">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                      <div className="flex items-center space-x-3 sm:space-x-4">
                         <img
                           src={selectedCourse.coach.avatar}
                           alt={selectedCourse.coach.name}
-                          className="w-16 h-16 rounded-full border-4 border-white shadow-lg"
+                          className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-white shadow-lg"
                         />
                         <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">{selectedCourse.coach.name}</h3>
-                          <p className="text-gray-600">Course Instructor</p>
+                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">{selectedCourse.coach.name}</h3>
+                          <p className="text-sm sm:text-base text-gray-600">Course Instructor</p>
                         </div>
                       </div>
                       <button
                         onClick={() => handleViewCoachDetails(selectedCourse.coach.id)}
-                        className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors duration-200 font-medium"
+                        className="px-3 sm:px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors duration-200 font-medium text-sm sm:text-base"
                       >
                         <FaUser className="inline mr-1" />
                         View Profile
@@ -1067,12 +1224,12 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                   </div>
 
                   {/* Course Benefits */}
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
-                      <FaBook className="text-green-600" />
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <FaBook className="text-green-600 text-sm sm:text-base" />
                       What Your Child Will Gain
                     </h3>
-                    <p className="text-gray-700 leading-relaxed text-lg">
+                    <p className="text-gray-700 leading-relaxed text-sm sm:text-base lg:text-lg">
                       {selectedCourse.benefits}
                     </p>
                   </div>
@@ -1080,54 +1237,54 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
               </div>
 
               {/* Course Details Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
                 {/* Course Overview */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaBook className="text-blue-600" />
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-100">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <FaBook className="text-blue-600 text-sm sm:text-base" />
                     Course Overview
                   </h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white rounded-lg p-4 shadow-sm">
-                        <div className="text-sm text-blue-600 font-medium mb-1">Category</div>
-                        <div className="font-semibold text-gray-900">{selectedCourse.category}</div>
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                        <div className="text-xs sm:text-sm text-blue-600 font-medium mb-1">Category</div>
+                        <div className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCourse.category}</div>
                       </div>
-                      <div className="bg-white rounded-lg p-4 shadow-sm">
-                        <div className="text-sm text-green-600 font-medium mb-1">Program</div>
-                        <div className="font-semibold text-gray-900">{formatProgram(selectedCourse.program)}</div>
+                      <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                        <div className="text-xs sm:text-sm text-green-600 font-medium mb-1">Program</div>
+                        <div className="font-semibold text-gray-900 text-sm sm:text-base">{formatProgram(selectedCourse.program)}</div>
                       </div>
-                      <div className="bg-white rounded-lg p-4 shadow-sm">
-                        <div className="text-sm text-purple-600 font-medium mb-1">Credits</div>
-                        <div className="font-semibold text-gray-900">{selectedCourse.credits}</div>
+                      <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                        <div className="text-xs sm:text-sm text-purple-600 font-medium mb-1">Credits</div>
+                        <div className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCourse.credits}</div>
                       </div>
-                      <div className="bg-white rounded-lg p-4 shadow-sm">
-                        <div className="text-sm text-orange-600 font-medium mb-1">Timezone</div>
-                        <div className="font-semibold text-gray-900">{selectedCourse.timezone}</div>
+                      <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                        <div className="text-xs sm:text-sm text-orange-600 font-medium mb-1">Timezone</div>
+                        <div className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCourse.timezone}</div>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Weekly Schedule */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaCalendarAlt className="text-green-600" />
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <FaCalendarAlt className="text-green-600 text-sm sm:text-base" />
                     Weekly Schedule
                   </h3>
                   <div className="space-y-3">
                     {selectedCourse.weeklySchedule
                       .filter(day => day.isActive)
                       .map((day, index) => (
-                        <div key={index} className="bg-white rounded-lg p-4 shadow-sm border border-green-100">
+                        <div key={index} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-green-100">
                           <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                              <FaCalendarAlt className="text-green-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
+                              <FaCalendarAlt className="text-green-600 text-sm sm:text-base" />
                             </div>
                             <div className="flex-1">
-                              <div className="font-semibold text-gray-900">{day.day.slice(0, -1)}</div>
+                              <div className="font-semibold text-gray-900 text-sm sm:text-base">{day.day.slice(0, -1)}</div>
                               {day.timeSlots.map((slot, slotIndex) => (
-                                <div key={slotIndex} className="text-sm text-gray-600">
+                                <div key={slotIndex} className="text-xs sm:text-sm text-gray-600">
                                   {formatTime(slot.startTime)} - {formatTime(slot.endTime)} ({slot.sessionDuration} min)
                                 </div>
                               ))}
@@ -1140,32 +1297,38 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
               </div>
 
               {/* Course Description */}
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100 mb-8">
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <FaBook className="text-indigo-600" />
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-indigo-100 mb-6 sm:mb-8">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <FaBook className="text-indigo-600 text-sm sm:text-base" />
                   Course Description
                 </h3>
-                <p className="text-gray-700 leading-relaxed text-lg">
+                <p className="text-gray-700 leading-relaxed text-sm sm:text-base lg:text-lg">
                   {selectedCourse.description}
                 </p>
               </div>
 
               {/* Enrollment CTA */}
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-indigo-100">
                 <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to Enroll?</h3>
-                    <p className="text-gray-600">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Ready to Enroll?</h3>
+                    <p className="text-sm sm:text-base text-gray-600">
                       Join this amazing course and help your child develop new skills
                     </p>
                   </div>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <button
+                      onClick={() => setSelectedCourse(null)}
+                      className="px-4 sm:px-6 py-2 sm:py-3 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium text-sm sm:text-base"
+                    >
+                      Cancel
+                    </button>
                     <button
                       onClick={() => {
                         handleEnroll(selectedCourse);
                         setSelectedCourse(null);
                       }}
-                      className="px-8 py-4 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
+                      className="px-6 sm:px-8 py-3 sm:py-4 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl flex items-center gap-2 text-sm sm:text-base"
                     >
                       <FaGraduationCap />
                       Enroll Now
@@ -1180,37 +1343,37 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
 
       {/* Enrollment Modal */}
       {showEnrollmentModal && selectedCourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div className="p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                    <FaGraduationCap className="text-indigo-600" />
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3 truncate">
+                    <FaGraduationCap className="text-indigo-600 text-lg sm:text-xl flex-shrink-0" />
                     Enroll in Course
                   </h2>
-                  <p className="text-gray-600 mt-2">{paymentSteps.find(step => step.step === currentStep)?.description}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2 truncate">{paymentSteps.find(step => step.step === currentStep)?.description}</p>
                 </div>
                 <button
                   onClick={resetEnrollmentFlow}
-                  className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-2 hover:bg-white rounded-lg"
+                  className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-2 hover:bg-white rounded-lg flex-shrink-0 ml-2"
                   aria-label="Close enrollment modal"
                 >
-                  <FaTimes className="text-xl" />
+                  <FaTimes className="text-lg sm:text-xl" />
                 </button>
               </div>
               
               {/* Progress Steps */}
-              <div className="mt-6">
+              <div className="mt-4 sm:mt-6">
                 <div className="flex items-center justify-between">
                   {paymentSteps.map((step, index) => {
                     const isActive = step.step === currentStep;
                     const isCompleted = paymentSteps.findIndex(s => s.step === currentStep) > index;
                     
                     return (
-                      <div key={step.step} className="flex items-center">
-                        <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                      <div key={step.step} className="flex flex-col items-center space-y-1 flex-1">
+                        <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium flex-shrink-0 ${
                           isActive 
                             ? 'bg-indigo-600 text-white' 
                             : isCompleted 
@@ -1219,15 +1382,15 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                         }`}>
                           {isCompleted ? <FaCheck className="text-xs" /> : index + 1}
                         </div>
-                        <div className="ml-3">
-                          <p className={`text-sm font-medium ${
+                        <div className="text-center min-w-0 flex-1">
+                          <p className={`text-xs sm:text-sm font-medium truncate ${
                             isActive ? 'text-indigo-600' : 'text-gray-500'
                           }`}>
                             {step.title}
                           </p>
                         </div>
                         {index < paymentSteps.length - 1 && (
-                          <div className={`w-16 h-0.5 mx-4 ${
+                          <div className={`w-8 h-0.5 mx-2 flex-shrink-0 ${
                             isCompleted ? 'bg-green-500' : 'bg-gray-200'
                           }`} />
                         )}
@@ -1239,13 +1402,13 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* Course Info */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-gray-900 mb-2">{selectedCourse.title}</h3>
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Coach: {selectedCourse.coach.name}</span>
-                  <span className="font-semibold text-blue-600">Course Credits: {selectedCourse.credits}</span>
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+                <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base break-words">{selectedCourse.title}</h3>
+                <div className="flex flex-col space-y-1 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm text-gray-600">
+                  <span className="break-words">Coach: {selectedCourse.coach.name}</span>
+                  <span className="font-semibold text-blue-600 flex-shrink-0">Course Credits: {selectedCourse.credits}</span>
                 </div>
               </div>
 
@@ -1253,7 +1416,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
               {currentStep === 'children' && (
                 <div className="mb-6">
                   <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaChild className="text-indigo-600" />
+                    <FaChild className="text-indigo-600 flex-shrink-0" />
                     Select Children to Enroll
                   </h4>
                   
@@ -1270,19 +1433,19 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                           return (
                             <label
                               key={child.id}
-                              className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                              className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors duration-200"
                             >
                               <input
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => handleChildSelection(child.id)}
-                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 flex-shrink-0 mt-0.5"
                               />
-                              <div className="flex-1">
-                                <span className="font-medium text-gray-900">
+                              <div className="flex-1 min-w-0">
+                                <span className="font-medium text-gray-900 text-sm sm:text-base block break-words">
                                   {child.firstName} {child.lastName}
                                 </span>
-                                <span className="text-sm text-gray-500 ml-2">
+                                <span className="text-xs sm:text-sm text-gray-500 block break-words">
                                   ({age} years old • {child.currentGrade})
                                 </span>
                               </div>
@@ -1302,7 +1465,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                     <div className="text-center py-8">
                       <FaChild className="text-gray-300 text-4xl mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No children found</h3>
-                      <p className="text-gray-500">
+                      <p className="text-gray-500 text-sm">
                         Please add children to your profile before enrolling in courses.
                       </p>
                     </div>
@@ -1312,24 +1475,24 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
 
               {/* Enrollment Summary */}
               {enrollmentData.selectedChildren.length > 0 && (
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mb-6 border border-indigo-200">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 mb-6 border border-indigo-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                    <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <FaChild className="text-indigo-600 text-sm" />
                         </div>
-                        <p className="text-sm font-medium text-gray-700">
+                        <p className="text-sm font-medium text-gray-700 break-words">
                           {enrollmentData.selectedChildren.length} child{enrollmentData.selectedChildren.length !== 1 ? 'ren' : ''} selected
                         </p>
                       </div>
-                      <p className="text-sm text-gray-600 ml-10">
+                      <p className="text-sm text-gray-600 ml-10 break-words">
                         Course Credits: {selectedCourse.credits} per child
                       </p>
                     </div>
-                    <div className="text-right">
-                      <div className="bg-white rounded-lg p-4 shadow-sm">
-                        <p className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    <div className="flex justify-center sm:justify-end flex-shrink-0">
+                      <div className="bg-white rounded-lg p-4 shadow-sm text-center">
+                        <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                           {enrollmentData.selectedChildren.length * selectedCourse.credits} Credits
                         </p>
                         <p className="text-sm text-gray-600 font-medium">Total Credits</p>
@@ -1350,30 +1513,23 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                   {/* Stripe-like Payment Form */}
                   <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                     {/* Payment Header */}
-                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
-                      <div className="flex items-center justify-between">
+                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                             <FaShieldAlt className="text-green-600 text-sm" />
                           </div>
                           <div>
-                            <h5 className="font-semibold text-gray-900">Secure Payment</h5>
-                            <p className="text-sm text-gray-600">Powered by Stripe</p>
+                            <h5 className="font-semibold text-gray-900 text-sm sm:text-base">Secure Payment</h5>
+                            <p className="text-xs sm:text-sm text-gray-600">Powered by Stripe</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-6 bg-gray-200 rounded flex items-center justify-center">
-                            <span className="text-xs font-mono text-gray-600">••••</span>
-                          </div>
-                          <div className="w-8 h-6 bg-gray-200 rounded flex items-center justify-center">
-                            <span className="text-xs font-mono text-gray-600">••••</span>
-                          </div>
-                        </div>
+                    
                       </div>
                     </div>
 
                     {/* Payment Form */}
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                       {/* Card Number */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1390,7 +1546,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                             placeholder="1234 5678 9012 3456"
                             value={enrollmentData.paymentMethod?.cardNumber || ''}
                             onChange={(e) => handlePaymentMethodChange('cardNumber', formatCardNumber(e.target.value))}
-                            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-lg"
+                            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-base sm:text-lg"
                             maxLength={19}
                           />
                         </div>
@@ -1484,7 +1640,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                     Confirm Enrollment
                   </h4>
                   
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 mb-6">
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100 mb-6">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                         <FaCheck className="text-green-600 text-xl" />
@@ -1496,11 +1652,11 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     {/* Course Details */}
-                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
                       <h5 className="font-semibold text-gray-900 mb-3">Course Information</h5>
-                      <div className="space-y-2">
+                      <div className="space-y-2 text-sm sm:text-base">
                         <p><span className="text-gray-600">Course:</span> {selectedCourse.title}</p>
                         <p><span className="text-gray-600">Coach:</span> {selectedCourse.coach.name}</p>
                         <p><span className="text-gray-600">Credits:</span> {selectedCourse.credits} per child</p>
@@ -1509,9 +1665,9 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                     </div>
 
                     {/* Payment Details */}
-                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                    <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
                       <h5 className="font-semibold text-gray-900 mb-3">Payment Details</h5>
-                      <div className="space-y-2">
+                      <div className="space-y-2 text-sm sm:text-base">
                         <p><span className="text-gray-600">Card:</span> **** **** **** {enrollmentData.paymentMethod?.cardNumber?.slice(-4)}</p>
                         <p><span className="text-gray-600">Name:</span> {enrollmentData.paymentMethod?.cardholderName}</p>
                         <p><span className="text-gray-600">Total:</span> ${(enrollmentData.selectedChildren.length * selectedCourse.credits * 99).toFixed(2)}</p>
@@ -1523,11 +1679,11 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-between">
+            <div className="p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
+              <div className="flex flex-row items-center justify-between space-x-3">
                 <button
                   onClick={currentStep === 'children' ? resetEnrollmentFlow : handlePreviousStep}
-                  className="px-6 py-3 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors duration-200 font-medium flex items-center gap-2"
+                  className="px-4 sm:px-6 py-2 sm:py-3 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors duration-200 font-medium flex items-center gap-2 text-sm sm:text-base"
                 >
                   <FaArrowLeft />
                   {currentStep === 'children' ? 'Cancel' : 'Back'}
@@ -1537,7 +1693,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                   <button
                     onClick={handleNextStep}
                     disabled={enrollmentData.selectedChildren.length === 0}
-                    className="px-6 py-3 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl"
+                    className="px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
                     Next
                     <FaArrowRight />
@@ -1548,7 +1704,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                   <button
                     onClick={handleNextStep}
                     disabled={!enrollmentData.paymentMethod?.cardNumber || !enrollmentData.paymentMethod?.expiryDate || !enrollmentData.paymentMethod?.cvv || !enrollmentData.paymentMethod?.cardholderName}
-                    className="px-6 py-3 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl"
+                    className="px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
                     Review
                     <FaArrowRight />
@@ -1559,7 +1715,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                   <button
                     onClick={processPayment}
                     disabled={isProcessingPayment}
-                    className="px-6 py-3 text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl"
+                    className="px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
                     {isProcessingPayment ? (
                       <>

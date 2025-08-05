@@ -19,7 +19,9 @@ interface CoachUser {
 }
 
 const CoachDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('coachActiveTab') || 'overview';
+  });
   const [coachData, setCoachData] = useState<CoachUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSidebar, setShowSidebar] = useState(true);
@@ -66,6 +68,11 @@ const CoachDashboard: React.FC = () => {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('coachActiveTab', activeTab);
+  }, [activeTab]);
 
   // Show loading state
   if (isLoading || !coachData) {

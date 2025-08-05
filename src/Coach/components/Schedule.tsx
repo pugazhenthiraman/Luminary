@@ -288,7 +288,7 @@ const Schedule: React.FC = () => {
       
       // Add empty cells for days before the first day of the month
       for (let i = 0; i < startingDay; i++) {
-        days.push(<div key={`empty-${i}`} className="h-20 p-1 border border-gray-200 bg-gray-50"></div>);
+        days.push(<div key={`empty-${i}`} className="h-16 sm:h-20 p-1 border border-gray-200 bg-gray-50"></div>);
       }
       
       // Add days of the month
@@ -302,7 +302,7 @@ const Schedule: React.FC = () => {
         days.push(
           <div
             key={day}
-            className={`h-20 p-1 border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors duration-200 ${
+            className={`h-16 sm:h-20 p-1 border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors duration-200 ${
               isToday ? 'bg-blue-50 border-blue-300' : ''
             } ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
             onClick={() => setSelectedDate(date)}
@@ -345,15 +345,15 @@ const Schedule: React.FC = () => {
     const weekDays = getWeekDays(currentDate);
     
     return (
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {weekDays.map(day => {
           const dateStr = formatDate(day);
           const daySessions = getSessionsForDate(dateStr);
           const isToday = formatDate(new Date()) === dateStr;
           
           return (
-            <div key={dateStr} className={`border rounded-lg p-2 ${isToday ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}>
-              <div className="text-center mb-2">
+            <div key={dateStr} className={`border rounded-lg p-1 sm:p-2 ${isToday ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}>
+              <div className="text-center mb-1 sm:mb-2">
                 <div className="text-xs font-medium text-gray-600">
                   {day.toLocaleDateString('en-US', { weekday: 'short' })}
                 </div>
@@ -381,81 +381,83 @@ const Schedule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
         <div>
-          <h2 className="text-xl font-bold text-gray-800">Schedule</h2>
-          <p className="text-sm text-gray-600">Manage your teaching sessions</p>
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">Schedule</h2>
+          <p className="text-sm sm:text-base text-gray-600">Manage your teaching sessions</p>
         </div>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setShowAvailability(true)}
-            className="flex items-center space-x-2 bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-600 transition-colors duration-200 text-sm"
+            className="flex items-center space-x-2 bg-green-500 text-white px-2 sm:px-3 py-2 rounded-lg hover:bg-green-600 transition-colors duration-200 text-xs sm:text-sm"
           >
             <FaCog className="text-xs" />
-            <span>Availability</span>
+            <span className="hidden sm:inline">Availability</span>
+            <span className="sm:hidden">Avail</span>
           </button>
           <button
             onClick={() => setShowAddSession(true)}
-            className="flex items-center space-x-2 bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
+            className="flex items-center space-x-2 bg-blue-500 text-white px-2 sm:px-3 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 text-xs sm:text-sm"
           >
             <FaPlus className="text-xs" />
-          <span>Add Session</span>
-        </button>
+            <span className="hidden sm:inline">Add Session</span>
+            <span className="sm:hidden">Add</span>
+          </button>
         </div>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-4 gap-3">
-        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="bg-white rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600">Today</p>
-              <p className="text-lg font-bold text-gray-800">{todaySessions.length}</p>
+              <p className="text-base sm:text-lg font-bold text-gray-800">{todaySessions.length}</p>
             </div>
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FaCalendarDay className="text-blue-600 text-sm" />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FaCalendarDay className="text-blue-600 text-xs sm:text-sm" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600">This Week</p>
-              <p className="text-lg font-bold text-gray-800">{upcomingSessions.length}</p>
+              <p className="text-base sm:text-lg font-bold text-gray-800">{upcomingSessions.length}</p>
             </div>
-            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <FaCalendarWeek className="text-green-600 text-sm" />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-lg flex items-center justify-center">
+              <FaCalendarWeek className="text-green-600 text-xs sm:text-sm" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600">Completed</p>
-              <p className="text-lg font-bold text-gray-800">
+              <p className="text-base sm:text-lg font-bold text-gray-800">
                 {sessions.filter(s => s.status === 'completed').length}
               </p>
             </div>
-            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-              <FaCheck className="text-purple-600 text-sm" />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+              <FaCheck className="text-purple-600 text-xs sm:text-sm" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600">Pending</p>
-              <p className="text-lg font-bold text-gray-800">
+              <p className="text-base sm:text-lg font-bold text-gray-800">
                 {sessions.filter(s => s.status === 'scheduled').length}
               </p>
             </div>
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-              <FaClockIcon className="text-orange-600 text-sm" />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+              <FaClockIcon className="text-orange-600 text-xs sm:text-sm" />
             </div>
           </div>
         </div>
@@ -465,7 +467,7 @@ const Schedule: React.FC = () => {
       <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
         <button
           onClick={() => setActiveTab('calendar')}
-          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+          className={`flex-1 px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
             activeTab === 'calendar' 
               ? 'bg-white text-blue-600 shadow-sm' 
               : 'text-gray-600 hover:text-gray-800'
@@ -475,7 +477,7 @@ const Schedule: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('list')}
-          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+          className={`flex-1 px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors duration-200 ${
             activeTab === 'list' 
               ? 'bg-white text-blue-600 shadow-sm' 
               : 'text-gray-600 hover:text-gray-800'
@@ -486,9 +488,9 @@ const Schedule: React.FC = () => {
       </div>
 
       {activeTab === 'calendar' && (
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200">
           {/* Calendar Controls */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => {
@@ -501,11 +503,13 @@ const Schedule: React.FC = () => {
                   setCurrentDate(newDate);
                 }}
                 className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors duration-200"
+                title="Previous period"
+                aria-label="Go to previous period"
               >
                 <FaChevronLeft className="text-sm" />
               </button>
               
-              <h3 className="text-sm font-semibold text-gray-800">
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-800">
                 {currentDate.toLocaleDateString('en-US', { 
                   month: 'long', 
                   year: 'numeric'
@@ -523,6 +527,8 @@ const Schedule: React.FC = () => {
                   setCurrentDate(newDate);
                 }}
                 className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors duration-200"
+                title="Next period"
+                aria-label="Go to next period"
               >
                 <FaChevronRight className="text-sm" />
               </button>
@@ -560,9 +566,9 @@ const Schedule: React.FC = () => {
       )}
 
       {activeTab === 'list' && (
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200">
           {/* List Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-3 sm:mb-4">
             <h3 className="text-sm font-semibold text-gray-800">All Sessions</h3>
             
             <div className="flex items-center space-x-2">
@@ -596,19 +602,19 @@ const Schedule: React.FC = () => {
           {/* Sessions List */}
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {filteredSessions.map(session => (
-              <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
+              <div key={session.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 space-y-2 sm:space-y-0">
+                <div className="flex items-start sm:items-center space-x-3">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
                     {getTypeIcon(session.type)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-1">
                       <h4 className="text-sm font-semibold text-gray-800 truncate">{session.student}</h4>
-                      <span className="text-xs text-gray-500">{session.studentEmail}</span>
+                      <span className="text-xs text-gray-500 truncate">{session.studentEmail}</span>
                     </div>
                     
-                    <div className="flex items-center space-x-3 text-xs text-gray-600">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 text-xs text-gray-600 space-y-1 sm:space-y-0">
                       <span className="flex items-center space-x-1">
                         <FaBook className="text-xs" />
                         <span className="truncate">{session.course}</span>
@@ -630,10 +636,10 @@ const Schedule: React.FC = () => {
                     {session.notes && (
                       <p className="text-xs text-gray-500 mt-1 italic truncate">"{session.notes}"</p>
                     )}
-        </div>
-      </div>
+                  </div>
+                </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-between sm:justify-end space-x-2">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(session.status)}`}>
                     {session.status}
                   </span>
@@ -682,11 +688,11 @@ const Schedule: React.FC = () => {
 
       {/* Add Session Modal */}
       {showAddSession && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Add New Session</h3>
             
-        <div className="space-y-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
                 <input
@@ -696,6 +702,7 @@ const Schedule: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter student name"
                   title="Student name"
+                  aria-label="Student name"
                 />
               </div>
               
@@ -721,7 +728,7 @@ const Schedule: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                   <input
@@ -732,7 +739,6 @@ const Schedule: React.FC = () => {
                   />
                 </div>
                 
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
                   <input
@@ -744,7 +750,7 @@ const Schedule: React.FC = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
                   <input
@@ -815,19 +821,19 @@ const Schedule: React.FC = () => {
 
       {/* Availability Modal */}
       {showAvailability && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Manage Availability</h3>
             
             <div className="space-y-4">
               {availability.map((day) => (
-                <div key={day.day} className="border border-gray-200 rounded-lg p-4">
+                <div key={day.day} className="border border-gray-200 rounded-lg p-3 sm:p-4">
                   <h4 className="font-medium text-gray-800 mb-3">{day.day}</h4>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {day.slots.map((slot, index) => (
                       <button
                         key={index}
-                        className={`p-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                        className={`p-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 ${
                           slot.isAvailable
                             ? 'bg-green-100 text-green-800 hover:bg-green-200'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -836,9 +842,9 @@ const Schedule: React.FC = () => {
                         {slot.start} - {slot.end}
                       </button>
                     ))}
-              </div>
-            </div>
-          ))}
+                  </div>
+                </div>
+              ))}
             </div>
             
             <div className="flex items-center justify-end space-x-3 mt-6">

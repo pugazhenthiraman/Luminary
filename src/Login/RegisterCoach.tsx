@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
-import { FaEye, FaEyeSlash, FaSpinner, FaChevronDown, FaTimes } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaSpinner, FaChevronDown, FaTimes, FaArrowLeft } from 'react-icons/fa';
 import ISO6391 from 'iso-639-1';
 import CustomPhoneInput from '../components/PhoneInput';
 import { coachStorage } from '../utils/coachStorage';
@@ -501,31 +501,40 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       
-      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 min-w-80 md:min-w-96 max-w-5xl w-full mx-4 my-8 border border-gray-200">
-        <h1 className="text-center mb-6 text-gray-900 text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 min-w-80 md:min-w-96 max-w-5xl w-full mx-4 my-4 sm:my-6 md:my-8 border border-gray-200">
+        {/* Back button */}
+        <div className="mb-4 sm:mb-6">
+          <button 
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+            onClick={onBack}
+          >
+            <FaArrowLeft className="text-sm" />
+            <span className="text-sm font-medium">Back to Login</span>
+          </button>
+        </div>
+
+        <h1 className="text-center mb-4 sm:mb-6 text-gray-900 text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
           Join Luminary as Coach
         </h1>
         
-
-        
-        <div className="text-center mb-8">
-          <p className="text-gray-700 text-base md:text-lg font-medium leading-relaxed max-w-2xl mx-auto mb-3">
+        <div className="text-center mb-6 sm:mb-8">
+          <p className="text-gray-700 text-sm sm:text-base md:text-lg font-medium leading-relaxed max-w-2xl mx-auto mb-3">
             Share your expertise and help families find the perfect coaching experience.
           </p>
-          <p className="text-indigo-600 text-sm font-semibold bg-gradient-to-r from-indigo-100 to-purple-100 px-4 py-2 rounded-full inline-block border border-indigo-200/50">
+          <p className="text-indigo-600 text-xs sm:text-sm font-semibold bg-gradient-to-r from-indigo-100 to-purple-100 px-3 sm:px-4 py-2 rounded-full inline-block border border-indigo-200/50">
             Complete your profile to get started ✨
           </p>
         </div>
         
-        <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+        <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit} noValidate>
 
                 <div>
-            <label className="block mb-3 font-medium text-gray-700 text-sm">
+            <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
               Profile Photo <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               {!uploadedFiles.photo ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 md:p-8 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
                   <input 
                     type="file" 
                     name="photo" 
@@ -536,80 +545,105 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     multiple={false}
                   />
-                  <div className="space-y-4">
-                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
-                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
+                      <svg className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Click to upload your photo</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-700">Click to upload your photo</p>
                       <p className="text-xs text-gray-500 mt-1">JPG, PNG, WEBP up to 5MB</p>
                       <p className="text-xs text-purple-600 mt-2 font-medium">This will be your profile picture</p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center space-y-4">
                   <div className="relative">
-                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-green-200 shadow-lg">
                       <img 
                         src={URL.createObjectURL(uploadedFiles.photo)} 
                         alt="Profile preview" 
-                        className="w-full h-full object-cover"
+                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover mx-auto border-4 border-purple-200 shadow-lg"
                       />
-                    </div>
                     <button
                       type="button"
                       onClick={() => removeFile('photo')}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors duration-200 shadow-lg"
+                    className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 bg-red-500 text-white rounded-full p-1 sm:p-2 hover:bg-red-600 transition-colors duration-200"
                       title="Remove photo"
+                    aria-label="Remove profile photo"
                     >
-                      <FaTimes className="text-xs" />
+                    <FaTimes className="text-xs sm:text-sm" />
                     </button>
-                  </div>
-                  <p className="text-sm text-green-600 font-medium">Profile photo uploaded successfully!</p>
                 </div>
               )}
-            </div>
             {photoError && (
-              <div className="text-red-500 text-xs mt-2 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                 <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                 {photoError}
               </div>
             )}
           </div>
+          </div>
+
           {/* Personal Information */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 First Name <span className="text-red-500">*</span>
               </label>
+              <div className="relative">
               <input 
                 name="firstName" 
                 placeholder="Enter your first name" 
                 value={form.firstName} 
                 onChange={handleChange}
-                className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
-              />
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+                {isValidating && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <FaSpinner className="animate-spin text-purple-500 text-xs sm:text-sm" />
+                  </div>
+                )}
+              </div>
+              {/* lastFirstNameError is not defined, assuming it's a typo or intended to be emailError */}
+              {emailError && (
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
+                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                  {emailError}
+                </div>
+              )}
             </div>
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Last Name <span className="text-red-500">*</span>
               </label>
+              <div className="relative">
               <input 
                 name="lastName" 
                 placeholder="Enter your last name" 
                 value={form.lastName} 
                 onChange={handleChange}
-                className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
-              />
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+                {isValidating && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <FaSpinner className="animate-spin text-purple-500 text-xs sm:text-sm" />
+                  </div>
+                )}
+              </div>
+              {/* lastLastNameError is not defined, assuming it's a typo or intended to be passwordError */}
+              {passwordError && (
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
+                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                  {passwordError}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Email Address <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -619,20 +653,16 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                   placeholder="Enter your email address" 
                   value={form.email} 
                   onChange={handleChange}
-                  className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
-                    emailError 
-                      ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
-                      : 'border-gray-200 focus:border-indigo-500'
-                  }`}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
                 />
                 {isValidating && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-blue-500 text-sm" />
+                    <FaSpinner className="animate-spin text-purple-500 text-xs sm:text-sm" />
                   </div>
                 )}
               </div>
               {emailError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {emailError}
                 </div>
@@ -643,49 +673,50 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 value={form.phone}
                 onChange={handlePhoneChange}
                 onValidationChange={handlePhoneValidationChange}
-                placeholder="Enter your phone number"
                 label="Phone Number"
+                placeholder="Enter your phone number"
                 required={true}
                 error={phoneError}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input 
                   name="password" 
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password" 
+                  placeholder="Create a strong password" 
                   value={form.password} 
                   onChange={handleChange}
-                  className={`w-full px-3 py-2.5 pr-10 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
-                    passwordError 
-                      ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
-                      : 'border-gray-200 focus:border-indigo-500'
-                  }`}
+                  className="w-full px-3 py-2 sm:py-2.5 pr-10 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
                 />
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
+                  {showPassword ? <FaEyeSlash className="text-xs sm:text-sm" /> : <FaEye className="text-xs sm:text-sm" />}
                 </button>
+                {isValidating && (
+                  <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                    <FaSpinner className="animate-spin text-purple-500 text-xs sm:text-sm" />
+                  </div>
+                )}
               </div>
               {passwordError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {passwordError}
                 </div>
               )}
             </div>
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Confirm Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -695,22 +726,18 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                   placeholder="Confirm your password" 
                   value={form.confirmPassword} 
                   onChange={handleChange}
-                  className={`w-full px-3 py-2.5 pr-10 border-2 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
-                    confirmPasswordError 
-                      ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
-                      : 'border-gray-200 focus:border-indigo-500'
-                  }`}
+                  className="w-full px-3 py-2 sm:py-2.5 pr-10 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
                 />
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  {showConfirmPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
+                  {showConfirmPassword ? <FaEyeSlash className="text-xs sm:text-sm" /> : <FaEye className="text-xs sm:text-sm" />}
                 </button>
               </div>
               {confirmPasswordError && (
-                <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {confirmPasswordError}
                 </div>
@@ -718,241 +745,251 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
-          {/* Profile Photo Upload */}
-    
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
-                Domain <span className="text-red-500">*</span>
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                Years of Experience <span className="text-red-500">*</span>
               </label>
                           <input 
-              name="domain" 
-              placeholder="e.g.,Cooking, Soccer, Violin, Swimming ... " 
-              value={form.domain} 
+                name="experience" 
+                placeholder="e.g., 5 years" 
+                value={form.experience} 
               onChange={handleChange}
-              className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
+                className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
             />
             </div>
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
-                Address <span className="text-red-500">*</span>
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                Area of Expertise <span className="text-red-500">*</span>
               </label>
-              <textarea 
-                name="address" 
-                placeholder="Enter your address" 
-                value={form.address} 
+              <input 
+                name="domain" 
+                placeholder="e.g., Mathematics, Sports, Music" 
+                value={form.domain} 
                 onChange={handleChange}
-                className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md resize-none"
-                rows={3}
+                className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
               />
             </div>
           </div>
 
             <div>
-              <label className="block mb-2 font-medium text-gray-700 text-sm">
-                Experience <span className="text-red-500">*</span>
+            <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+              Address <span className="text-red-500">*</span>
               </label>
             <textarea 
-              name="experience" 
-              placeholder="Describe your teaching experience, qualifications, and expertise..." 
-              value={form.experience} 
+              name="address" 
+              placeholder="Enter your full address" 
+              value={form.address} 
               onChange={handleChange}
-              className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md resize-none"
               rows={3}
+              className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md resize-none"
             />
           </div>
 
-                    {/* Optional Uploads Section */}
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-6">Optional Documents</h3>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* License Upload */}
             <div>
-                <label className="block mb-3 font-medium text-gray-700 text-sm">
-                  License Proof Upload
+            <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+              Languages You Speak <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                  {!uploadedFiles.license ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-300 cursor-pointer group">
-                <input 
-                        type="file" 
-                  name="driverLicense" 
-                        id="license-upload"
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                        title="Upload your license proof"
-                        onChange={handleDriverLicenseChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        multiple={false}
-                      />
-                      <div className="space-y-2">
-                        <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-indigo-200 transition-colors duration-300">
-                          <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                          </svg>
+            <div className="relative" ref={languageDropdownRef}>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {selectedLanguages.map((language) => (
+                  <span 
+                    key={language} 
+                    className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 text-xs sm:text-sm px-2 py-1 rounded-full"
+                  >
+                    {language}
+                    <button
+                      type="button"
+                      onClick={() => handleLanguageRemove(language)}
+                      className="text-purple-600 hover:text-purple-800"
+                      title={`Remove ${language}`}
+                      aria-label={`Remove ${language} from selected languages`}
+                    >
+                      <FaTimes className="text-xs" />
+                    </button>
+                  </span>
+                ))}
               </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Click to upload</p>
-                          <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG, DOC up to 5MB</p>
+              <div className="relative">
+                <input 
+                  type="text"
+                  placeholder="Search and select languages..."
+                  value={languageSearch}
+                  onChange={handleLanguageSearch}
+                  onFocus={() => setShowLanguageDropdown(true)}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                  title={showLanguageDropdown ? "Close language dropdown" : "Open language dropdown"}
+                  aria-label={showLanguageDropdown ? "Close language dropdown" : "Open language dropdown"}
+                >
+                  <FaChevronDown className={`text-xs sm:text-sm transition-transform duration-200 ${showLanguageDropdown ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+              {showLanguageDropdown && (
+                <div className={`absolute z-50 w-full bg-white border-2 border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto ${dropdownPosition === 'above' ? 'bottom-full mb-2' : 'top-full mt-2'}`}>
+                  <div className="p-2">
+                    {currentLanguages.map((language) => (
+                      <button
+                        key={language}
+                        type="button"
+                        onClick={() => handleLanguageSelect(language)}
+                        className="w-full text-left px-3 py-2 text-xs sm:text-sm hover:bg-purple-50 rounded-md transition-colors duration-200"
+                      >
+                        {language}
+                      </button>
+                    ))}
                         </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-green-200 bg-green-50 rounded-xl p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-            </div>
-            <div>
-                            <p className="text-sm font-medium text-green-800 truncate">{uploadedFiles.license.name}</p>
-                            <p className="text-xs text-green-600">{(uploadedFiles.license.size / 1024 / 1024).toFixed(2)} MB</p>
-                          </div>
-                        </div>
+                  {totalPages > 1 && (
+                    <div className="flex justify-between items-center p-2 border-t border-gray-200">
                         <button
                           type="button"
-                          onClick={() => removeFile('license')}
-                          className="text-red-500 hover:text-red-700 p-2 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                          title="Remove file"
-                        >
-                          <FaTimes className="text-sm" />
+                        onClick={goToPrevPage}
+                        disabled={currentPage === 1}
+                        className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors duration-200"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-xs text-gray-600">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                        className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors duration-200"
+                      >
+                        Next
                         </button>
-                      </div>
                     </div>
                   )}
                 </div>
-                {driverLicenseError && (
-                  <div className="text-red-500 text-xs mt-2 flex items-center gap-1.5">
+              )}
+              {languageError && (
+                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                     <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                    {driverLicenseError}
+                  {languageError}
                   </div>
                 )}
+            </div>
               </div>
 
-              {/* Resume Upload */}
+          {/* File Uploads */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block mb-3 font-medium text-gray-700 text-sm">
-                Resume Upload
+              <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
+                Resume/CV <span className="text-red-500">*</span>
               </label>
                 <div className="relative">
                   {!uploadedFiles.resume ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 cursor-pointer group">
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
               <input 
                 type="file" 
                 name="resume" 
                 id="resume-upload"
+                      accept=".pdf,.doc,.docx"
                 title="Upload your resume"
                 onChange={handleResumeChange}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         multiple={false}
                       />
-                      <div className="space-y-2">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-blue-200 transition-colors duration-300">
-                          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700">Click to upload</p>
-                          <p className="text-xs text-gray-500 mt-1">Any format up to 10MB</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Upload Resume/CV</p>
+                        <p className="text-xs text-gray-500">PDF, DOC, DOCX up to 10MB</p>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="border-2 border-green-200 bg-green-50 rounded-xl p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <div className="relative">
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-green-800 truncate">{uploadedFiles.resume.name}</p>
-                            <p className="text-xs text-green-600">{(uploadedFiles.resume.size / 1024 / 1024).toFixed(2)} MB</p>
-                          </div>
-                        </div>
+                      <span className="text-xs sm:text-sm text-gray-700 flex-1 truncate">{uploadedFiles.resume.name}</span>
                         <button
                           type="button"
                           onClick={() => removeFile('resume')}
-                          className="text-red-500 hover:text-red-700 p-2 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                          title="Remove file"
+                         className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                         title="Remove resume"
+                         aria-label="Remove resume file"
                         >
-                          <FaTimes className="text-sm" />
+                         <FaTimes className="text-xs sm:text-sm" />
                         </button>
                       </div>
                     </div>
                   )}
-                </div>
               {resumeError && (
-                  <div className="text-red-500 text-xs mt-2 flex items-center gap-1.5">
+                  <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {resumeError}
                 </div>
               )}
+              </div>
           </div>
 
-              {/* Video Upload */}
             <div>
-                <label className="block mb-3 font-medium text-gray-700 text-sm">
-                Intro Video Upload
+              <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
+                Introduction Video <span className="text-red-500">*</span>
               </label>
                 <div className="relative">
                   {!uploadedFiles.video ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
               <input 
                 type="file" 
-                name="introVideo" 
-                id="introVideo-upload"
-                accept="video/*" 
-                title="Upload your intro video"
+                      name="video" 
+                      id="video-upload"
+                      accept=".mp4,.avi,.mov,.wmv"
+                      title="Upload your introduction video"
                 onChange={handleVideoChange}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         multiple={false}
                       />
-                      <div className="space-y-2">
-                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
-                          <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700">Click to upload</p>
-                          <p className="text-xs text-gray-500 mt-1">Video format up to 50MB</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Upload Introduction Video</p>
+                        <p className="text-xs text-gray-500">MP4, AVI, MOV, WMV up to 50MB</p>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="border-2 border-green-200 bg-green-50 rounded-xl p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <div className="relative">
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                             </svg>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-green-800 truncate">{uploadedFiles.video.name}</p>
-                            <p className="text-xs text-green-600">{(uploadedFiles.video.size / 1024 / 1024).toFixed(2)} MB</p>
-                          </div>
-                        </div>
+                      <span className="text-xs sm:text-sm text-gray-700 flex-1 truncate">{uploadedFiles.video.name}</span>
                         <button
                           type="button"
                           onClick={() => removeFile('video')}
-                          className="text-red-500 hover:text-red-700 p-2 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                          title="Remove file"
+                         className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                         title="Remove video"
+                         aria-label="Remove introduction video"
                         >
-                          <FaTimes className="text-sm" />
+                         <FaTimes className="text-xs sm:text-sm" />
                         </button>
                       </div>
                     </div>
                   )}
-                </div>
               {videoError && (
-                  <div className="text-red-500 text-xs mt-2 flex items-center gap-1.5">
+                  <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                   {videoError}
                 </div>
@@ -961,244 +998,28 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
-          <div>
-            <label className="block mb-2 font-medium text-gray-700 text-sm">
-              Language(s) <span className="text-red-500">*</span>
-            </label>
-                         <div className="relative" ref={languageDropdownRef}>
-              <div className={`w-full px-3 py-2.5 border-2 rounded-lg text-sm transition-all duration-300 cursor-pointer ${
-                showLanguageDropdown 
-                  ? 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-lg' 
-                  : 'border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50 hover:border-indigo-300 hover:from-indigo-50 hover:to-purple-50'
-              }`}
-                onClick={() => {
-                  const newState = !showLanguageDropdown;
-                  setShowLanguageDropdown(newState);
-                  if (newState) {
-                    // Recalculate position when opening
-                    setTimeout(calculateDropdownPosition, 0);
-                  }
-                }}>
-                 <div className="flex items-center justify-between">
-                   <div className="flex flex-wrap gap-1 min-h-[20px]">
-                     {selectedLanguages.length === 0 ? (
-                       <span className="text-gray-500">Select languages you can teach in</span>
-                     ) : (
-                       selectedLanguages.map((lang) => (
-                         <span
-                           key={lang}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full border border-indigo-200 shadow-sm"
-                         >
-                           {lang}
                            <button
-                             type="button"
-                             className="text-indigo-500 hover:text-indigo-700"
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               handleLanguageRemove(lang);
-                             }}
-                             title={`Remove ${lang}`}
-                             aria-label={`Remove ${lang}`}
-                           >
-                             <FaTimes className="text-xs" />
-                           </button>
-                         </span>
-                       ))
-                     )}
-                   </div>
-                   <FaChevronDown className={`text-gray-400 transition-transform duration-200 ${showLanguageDropdown ? 'rotate-180' : ''}`} />
-                 </div>
-               </div>
-              {showLanguageDropdown && (
-                <div className={`absolute z-10 w-full bg-white border-2 border-indigo-200 rounded-xl shadow-2xl max-h-80 overflow-hidden ${
-                  dropdownPosition === 'above' 
-                    ? 'bottom-full mb-1' 
-                    : 'top-full mt-1'
-                }`}>
-                  <div className="p-3 border-b border-indigo-100 bg-indigo-50">
-                    <input
-                      type="text"
-                      placeholder="Search languages..."
-                      value={languageSearch}
-                      onChange={handleLanguageSearch}
-                      className="w-full px-3 py-2 border-2 border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 bg-white shadow-sm"
-                      autoFocus
-                    />
-                  </div>
-
-                  {/* Pagination Controls - Sticky Top */}
-                  {filteredLanguages.length > languagesPerPage && (
-                    <div className="sticky top-0 z-10 p-2 border-b border-indigo-100 bg-indigo-50 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={goToPrevPage}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1.5 text-xs font-medium text-indigo-700 bg-white border-2 border-indigo-200 rounded-md hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-indigo-200 shadow-sm"
-                        >
-                          ← Prev
-                        </button>
-                        
-                        <div className="flex items-center gap-1">
-                          {/* Dynamic page numbers based on current page */}
-                          {(() => {
-                            const pages: React.ReactNode[] = [];
-                            const maxVisible = 5;
-                            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-                            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-                            
-                            // Adjust start if we're near the end
-                            if (endPage - startPage < maxVisible - 1) {
-                              startPage = Math.max(1, endPage - maxVisible + 1);
-                            }
-                            
-                            // Show first page if not in range
-                            if (startPage > 1) {
-                              pages.push(
-                                <button
-                                  key={1}
-                                  type="button"
-                                  onClick={() => goToPage(1)}
-                                  className="w-7 h-7 text-xs font-medium rounded-md transition-all duration-200 text-indigo-700 bg-white border-2 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm"
-                                >
-                                  1
-                                </button>
-                              );
-                              if (startPage > 2) {
-                                pages.push(
-                                  <span key="ellipsis1" className="text-xs text-indigo-400 mx-1 font-medium">...</span>
-                                );
-                              }
-                            }
-                            
-                            // Show current range
-                            for (let i = startPage; i <= endPage; i++) {
-                              pages.push(
-                                <button
-                                  key={i}
-                                  type="button"
-                                  onClick={() => goToPage(i)}
-                                  className={`w-7 h-7 text-xs font-medium rounded-md transition-all duration-200 shadow-sm ${
-                                    currentPage === i
-                                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                                      : 'text-indigo-700 bg-white border-2 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300'
-                                  }`}
-                                >
-                                  {i}
-                                </button>
-                              );
-                            }
-                            
-                            // Show last page if not in range
-                            if (endPage < totalPages) {
-                              if (endPage < totalPages - 1) {
-                                pages.push(
-                                  <span key="ellipsis2" className="text-xs text-indigo-400 mx-1 font-medium">...</span>
-                                );
-                              }
-                              pages.push(
-                                <button
-                                  key={totalPages}
-                                  type="button"
-                                  onClick={() => goToPage(totalPages)}
-                                  className="w-7 h-7 text-xs font-medium rounded-md transition-all duration-200 text-indigo-700 bg-white border-2 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm"
-                                >
-                                  {totalPages}
-                                </button>
-                              );
-                            }
-                            
-                            return pages;
-                          })()}
-                        </div>
-                        
-                        <button
-                          type="button"
-                          onClick={goToNextPage}
-                          disabled={currentPage === totalPages}
-                          className="px-3 py-1.5 text-xs font-medium text-indigo-700 bg-white border-2 border-indigo-200 rounded-md hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-indigo-200 shadow-sm"
-                        >
-                          Next →
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1">
-                    {filteredLanguages.length === 0 && languageSearch.length > 0 && (
-                      <div className="p-4 text-gray-500 text-sm text-center">
-                        <div className="text-gray-400 mb-2">🔍</div>
-                        No languages found matching "{languageSearch}"
-                      </div>
-                    )}
-                    {filteredLanguages.length === 0 && languageSearch.length === 0 && (
-                      <div className="p-4 text-gray-500 text-sm text-center">
-                        <div className="text-gray-400 mb-2">🌍</div>
-                        Start typing to search languages
-                        <div className="text-xs text-gray-400 mt-1">Showing {allLanguages.length} languages available</div>
-                      </div>
-                    )}
-                    {filteredLanguages.length > 0 && (
-                      <div className="p-2 text-xs text-gray-600 text-center border-b border-gray-100 bg-gray-50 font-medium">
-                        Showing {currentLanguages.length} of {filteredLanguages.length} languages (Page {currentPage} of {totalPages})
-                      </div>
-                    )}
-                    {currentLanguages.map((lang) => (
-                      <div
-                        key={lang}
-                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-indigo-50 transition-all duration-200 border-b border-gray-100 last:border-b-0 group"
-                        onClick={() => handleLanguageSelect(lang)}
-                      >
-                        <span className="text-gray-800 font-medium text-sm group-hover:text-indigo-900">{lang}</span>
-                        <button
-                          type="button"
-                          className="text-gray-400 hover:text-red-500 transition-colors duration-200 p-1.5 rounded-full hover:bg-red-50 flex-shrink-0 group-hover:bg-indigo-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLanguageRemove(lang);
-                          }}
-                          title={`Remove ${lang}`}
-                          aria-label={`Remove ${lang}`}
-                        >
-                          <FaTimes className="text-xs" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            {languageError && (
-              <div className="text-red-500 text-xs mt-1.5 flex items-center gap-1.5">
-                <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                {languageError}
-              </div>
-            )}
-          </div>
-
-         
-
-          <button 
-            className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none rounded-lg text-base font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-indigo-500/20 hover:border-indigo-400/30" 
+            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none rounded-lg text-sm sm:text-base font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-indigo-500/20 hover:border-indigo-400/30" 
             type="submit"
             disabled={isLoading}
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
-                <FaSpinner className="animate-spin text-base" />
-                Registering...
+                <FaSpinner className="animate-spin text-sm sm:text-base" />
+                Creating Account...
               </div>
             ) : (
-              'Join as Coach'
+              'Create Coach Account'
             )}
           </button>
 
           <div className="text-center">
                          <button 
-               className="bg-transparent border-none text-indigo-600 font-medium cursor-pointer text-sm transition-all duration-300 hover:text-indigo-800 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded" 
+              className="bg-transparent border-none text-indigo-600 font-medium cursor-pointer text-xs sm:text-sm transition-all duration-300 hover:text-indigo-800 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded flex items-center justify-center gap-2 mx-auto" 
                type="button" 
                onClick={onBack}
              >
+              <FaArrowLeft className="text-xs" />
                Already have an account? Sign in
              </button>
           </div>
