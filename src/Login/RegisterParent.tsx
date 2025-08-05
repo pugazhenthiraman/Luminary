@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaSpinner, FaUser, FaEnvelope, FaLock, FaArrowLeft } from 'react-icons/fa';
 import { showSuccessToast, showErrorToast, showWarningToast } from '../components/Toast';
 import CustomPhoneInput from '../components/PhoneInput';
+import { useAuth } from '../hooks/useAuth';
 
 const RegisterParent = ({ onBack }: { onBack: () => void }) => {
+  const navigate = useNavigate();
   // Form state
   const [formData, setFormData] = useState({
     firstName: '',
@@ -35,6 +38,8 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
   const confirmPasswordTimeoutRef = useRef<number | null>(null);
   const firstNameTimeoutRef = useRef<number | null>(null);
   const lastNameTimeoutRef = useRef<number | null>(null);
+
+  const { handleRegister, loading, error } = useAuth();
 
   // Validation functions
   const validateEmail = (email: string): string => {
@@ -165,7 +170,6 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
   // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     // Validate all fields
     const emailError = validateEmail(formData.email);
@@ -188,34 +192,23 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
       return;
     }
 
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Store parent data in localStorage
-      const parentData = {
-        id: 'parent-' + Date.now(),
-        email: formData.email,
-        name: `${formData.firstName} ${formData.lastName}`,
-        role: 'PARENT',
-        isVerified: true,
-        children: [] // Start with empty children array
-      };
-      
-      localStorage.setItem('user', JSON.stringify(parentData));
-      localStorage.setItem('activeRole', 'PARENT');
-      
-      showSuccessToast('Registration successful! Welcome to Luminary');
-      
-      // Redirect to parent dashboard
+    const parentData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password,
+      // Add any other required fields
+    };
+
+    const result = await handleRegister(parentData, 'parent');
+    if (result && result.user) {
+      showSuccessToast('Registration successful! Please login to continue.');
       setTimeout(() => {
-        window.location.href = '/parent/dashboard';
-      }, 1000);
-      
-    } catch (error) {
-      showErrorToast('Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+        navigate('/login'); // Use navigate instead of window.location.href
+      }, 1500);
+    } else if (error) {
+      showErrorToast(error);
     }
   };
 

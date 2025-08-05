@@ -4,8 +4,12 @@ import { FaEye, FaEyeSlash, FaSpinner, FaChevronDown, FaTimes, FaArrowLeft } fro
 import ISO6391 from 'iso-639-1';
 import CustomPhoneInput from '../components/PhoneInput';
 import { coachStorage } from '../utils/coachStorage';
+import { useAuth } from '../hooks/useAuth';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useNavigate } from 'react-router-dom';
 
 const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
+  const navigate = useNavigate();
   // State for form fields
   const [form, setForm] = useState({
     firstName: '',
@@ -448,48 +452,39 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     return errors;
   };
 
+  const { handleRegister, loading, error } = useAuth();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const errors = validateForm();
     if (errors.length > 0) {
       errors.forEach(error => showErrorToast(error));
       return;
     }
 
-    setIsLoading(true);
-    
-    try {
-      // Prepare coach data for storage
-      const coachData = {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        password: form.password,
-        experience: form.experience,
-        duration: form.domain, // Using domain field for duration
-        address: form.address,
-        languages: selectedLanguages,
-        courses: [] // Empty array since we removed course functionality
-      };
+    // Prepare coach data for backend
+    const coachData = {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      phone: form.phone,
+      password: form.password,
+      experience: form.experience,
+      domain: form.domain,
+      address: form.address,
+      languages: selectedLanguages,
+      // Add any other required fields
+    };
 
-
-
-      // Store coach data using file-like storage
-      const success = coachStorage.addCoach(coachData);
-      
-      if (success) {
-        showSuccessToast('Registration successful! Your profile has been submitted for admin approval.');
-        setShowSuccessModal(true);
-      } else {
-        showErrorToast('Registration failed. Email may already be registered.');
-      }
-      
-    } catch (error) {
-      showErrorToast('Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+    const result = await handleRegister(coachData, 'coach');
+    if (result && result.user) {
+      showSuccessToast('Registration successful! Please login to continue.');
+      setTimeout(() => {
+        navigate('/login'); // Use navigate instead of window.location.href
+      }, 1500);
+    } else if (error) {
+      showErrorToast(error);
     }
   };
 
