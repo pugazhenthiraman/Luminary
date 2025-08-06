@@ -34,7 +34,8 @@ import { coachStorage, CoachData } from '../../utils/coachStorage';
 interface ParentUser {
   id: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: string;
   children: Array<{
     id: string;

@@ -4,7 +4,7 @@ import { FaEye, FaEyeSlash, FaSpinner, FaChevronDown, FaTimes, FaArrowLeft } fro
 import ISO6391 from 'iso-639-1';
 import CustomPhoneInput from '../components/PhoneInput';
 import { coachStorage } from '../utils/coachStorage';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth.ts';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -474,17 +474,28 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       domain: form.domain,
       address: form.address,
       languages: selectedLanguages,
-      // Add any other required fields
+      // Add files if they exist
+      license: uploadedFiles.license,
+      resume: uploadedFiles.resume,
+      video: uploadedFiles.video
     };
-
+    
+    console.log('=== COACH REGISTRATION DEBUG START ===');
+    console.log('Form data being sent:', coachData);
+    console.log('userType being passed:', 'coach');
+    
     const result = await handleRegister(coachData, 'coach');
+    
+    console.log('Result from handleRegister:', result);
+    console.log('=== COACH REGISTRATION DEBUG END ===');
+    
     if (result && result.user) {
-      showSuccessToast('Registration successful! Please login to continue.');
-      setTimeout(() => {
-        navigate('/login'); // Use navigate instead of window.location.href
-      }, 1500);
+      showSuccessToast('Registration successful! Please check your email for verification.');
+      navigate('/login');
     } else if (error) {
-      showErrorToast(error);
+      showErrorToast(String(error));
+    } else {
+      showErrorToast('Registration failed. Please try again.');
     }
   };
 

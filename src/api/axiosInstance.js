@@ -1,8 +1,11 @@
 import axios from "axios";
 import { useAuthStore } from "../stores/useAuthStore";
 
+// Use environment variable or default to localhost:5000
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true, // Set to true if backend uses cookies/sessions
   headers: {
     "Content-Type": "application/json",
@@ -41,7 +44,7 @@ axiosInstance.interceptors.response.use(
         if (refreshToken) {
           // Try to refresh the token
           const response = await axios.post(
-            `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
+            `${API_BASE_URL}/auth/refresh`,
             { refreshToken }
           );
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaSpinner, FaUser, FaEnvelope, FaLock, FaArrowLeft } from 'react-icons/fa';
 import { showSuccessToast, showErrorToast, showWarningToast } from '../components/Toast';
 import CustomPhoneInput from '../components/PhoneInput';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth.ts';
 
 const RegisterParent = ({ onBack }: { onBack: () => void }) => {
   const navigate = useNavigate();

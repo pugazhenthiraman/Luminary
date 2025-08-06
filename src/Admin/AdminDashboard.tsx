@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/useAuthStore';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
 import { FaCheck, FaTimes, FaEye, FaSignOutAlt, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaClock, FaCheckCircle, FaTimesCircle, FaSpinner, FaGlobe, FaPlay, FaFileAlt, FaBars } from 'react-icons/fa';
 import { coachStorage, CoachData } from '../utils/coachStorage';
@@ -353,6 +354,7 @@ const dummyCoaches = [
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout: logoutFromStore } = useAuthStore();
   const [coaches, setCoaches] = useState<CoachData[]>([]);
   const [selectedCoach, setSelectedCoach] = useState<CoachData | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -424,15 +426,12 @@ const AdminDashboard = () => {
 
   // Check if user is admin and load coaches
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (!user) {
-      navigate('/');
-      return;
-    }
-
-    const userData = JSON.parse(user);
-    if (userData.role !== 'ADMIN') {
-      navigate('/');
+    // Check if user is authenticated and has ADMIN role
+    if (!isAuthenticated || !user || user.role !== 'ADMIN') {
+      console.log('AdminDashboard: Authentication check failed');
+      console.log('isAuthenticated:', isAuthenticated);
+      console.log('user:', user);
+      navigate('/admin/login');
       return;
     }
 
@@ -446,7 +445,7 @@ const AdminDashboard = () => {
 
     // Cleanup interval on component unmount
     return () => clearInterval(refreshInterval);
-  }, [navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const handleApprove = async (coachId: string) => {
     setIsLoading(true);

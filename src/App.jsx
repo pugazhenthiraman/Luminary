@@ -8,6 +8,8 @@ import AdminLogin from "./Admin/AdminLogin";
 import AdminDashboard from "./Admin/AdminDashboard";
 import CoachDashboard from "./Coach/CoachDashboard";
 import ParentDashboard from "./Parent/ParentDashboard";
+import RegisterCoach from "./Login/RegisterCoach";
+import RegisterParent from "./Login/RegisterParent";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -20,6 +22,8 @@ function App() {
         <Route path="/loginParent" element={<Login />} />
         <Route path="/loginCoach" element={<Login />} />
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/register/coach" element={<RegisterCoach onBack={() => window.history.back()} />} />
+        <Route path="/register/parent" element={<RegisterParent onBack={() => window.history.back()} />} />
         <Route
           path="/admin/dashboard"
           element={

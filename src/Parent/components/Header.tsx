@@ -4,13 +4,17 @@ import { FaBars } from 'react-icons/fa';
 interface ParentUser {
   id: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: string;
   children: Array<{
     id: string;
-    name: string;
-    age: number;
-    grade: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: string;
+    currentGrade: string;
+    schoolName: string;
   }>;
 }
 
@@ -42,7 +46,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onToggleSidebar }) => {
                   Parent Dashboard
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-600 font-medium">
-                  Welcome back, {user.name}
+                  Welcome back, {user.firstName} {user.lastName}
                 </p>
               </div>
             </div>

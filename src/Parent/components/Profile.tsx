@@ -38,7 +38,8 @@ interface Child {
 interface ParentUser {
   id: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: string;
   children: Child[];
 }
@@ -72,7 +73,7 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
     confirm: false
   });
   const [formData, setFormData] = useState({
-    name: parentData.name,
+    name: `${parentData.firstName} ${parentData.lastName}`,
     email: parentData.email,
     phone: '+1 (555) 123-4567',
     address: '123 Main Street, City, State 12345'
@@ -93,7 +94,7 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
 
   const handleCancel = () => {
     setFormData({
-      name: parentData.name,
+      name: `${parentData.firstName} ${parentData.lastName}`,
       email: parentData.email,
       phone: '+1 (555) 123-4567',
       address: '123 Main Street, City, State 12345'

@@ -3,13 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
 import { FaEye, FaEyeSlash, FaSpinner, FaShieldAlt, FaArrowLeft, FaEnvelope, FaLock } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth.ts';
+import { useAuthStore } from '../stores/useAuthStore';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const { handleAdminLogin, loading, error } = useAuth();
+  const { login: loginToStore } = useAuthStore();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ email?: string; password?: string }>({});
   const [isValidating, setIsValidating] = useState(false);
   const [lastEmailError, setLastEmailError] = useState('');
@@ -112,22 +116,15 @@ const AdminLogin = () => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      // Check for admin credentials
-      if (email === 'admin@gmail.com' && password === '@Admin123') {
-        // Store admin data in localStorage
-        const adminData = {
-          id: 'admin-001',
-          email: 'admin@gmail.com',
-          name: 'Admin User',
-          role: 'ADMIN',
-          isVerified: true
-        };
+      // Call backend admin login
+      const result = await handleAdminLogin({ email: email.trim(), password });
+      
+      if (result && result.user) {
+        const { user, accessToken, refreshToken } = result;
         
-        localStorage.setItem('user', JSON.stringify(adminData));
-        localStorage.setItem('activeRole', 'ADMIN');
+        // Store in Zustand (automatically persists to localStorage)
+        loginToStore(user, accessToken || '', refreshToken || '');
         
         showSuccessToast('Admin login successful!');
         
@@ -135,13 +132,24 @@ const AdminLogin = () => {
         setTimeout(() => {
           navigate('/admin/dashboard');
         }, 1000);
-      } else {
-        showErrorToast('Invalid admin credentials');
+      } else if (error) {
+        showErrorToast(error);
       }
-    } catch (error) {
-      showErrorToast('Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+    } catch (err: any) {
+      // Handle specific backend errors
+      let errorMessage = 'Admin login failed. Please try again.';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Invalid admin credentials';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Access denied. Admin privileges required.';
+      } else if (err.message === 'Network Error') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
+      showErrorToast(errorMessage);
     }
   };
 
@@ -253,9 +261,9 @@ const AdminLogin = () => {
           <button 
             type="submit" 
             className="w-full py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-none rounded-xl text-sm font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-purple-700 hover:to-purple-800 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-purple-500/20 hover:border-purple-400/30" 
-            disabled={isLoading}
+            disabled={loading}
           >
-            {isLoading ? (
+            {loading ? (
               <div className="flex items-center justify-center gap-2">
                 <FaSpinner className="animate-spin text-sm" />
                 Signing In...

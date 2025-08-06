@@ -59,6 +59,26 @@ export interface Session {
 }
 
 export const mockData = {
+  children: [
+    {
+      id: 'ch1',
+      firstName: 'Emma',
+      lastName: 'Johnson',
+      dateOfBirth: '2010-05-15',
+      gender: 'Female',
+      currentGrade: 'Grade 8',
+      schoolName: 'Lincoln Middle School'
+    },
+    {
+      id: 'ch2',
+      firstName: 'Alex',
+      lastName: 'Chen',
+      dateOfBirth: '2012-08-22',
+      gender: 'Male',
+      currentGrade: 'Grade 6',
+      schoolName: 'Oakwood Elementary'
+    }
+  ],
   verifiedCourses: [
     {
       id: '1',

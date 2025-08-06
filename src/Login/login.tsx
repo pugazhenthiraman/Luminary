@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth.ts';
 import { useAuthStore } from '../stores/useAuthStore';
 import { USER_TYPE } from '../constants';
 import RegisterCoach from './RegisterCoach';
@@ -222,27 +222,40 @@ const Login = () => {
     if (Object.keys(newValidationErrors).length > 0) {
       setValidationErrors(newValidationErrors);
       // Show first error in toast
-      const firstError = Object.values(newValidationErrors)[0];
-      showErrorToast(firstError);
+      const errors = Object.values(newValidationErrors).filter(error => typeof error === 'string');
+      if (errors.length > 0) {
+        showErrorToast(errors[0]);
+      }
       return;
     }
 
     setLoading(true);
     
     try {
-      // Call backend login
-      const result = await handleLogin({ email: email.trim(), password });
+      console.log('Attempting login with:', { email, password });
       
-      console.log('Login result:', result); // Debug log
+      const result = await handleLogin({ email, password });
       
-      if (result && result.data && result.data.user) {
+      console.log('Login result:', result);
+      
+      // Check if result has the expected structure
+      if (result && result.success && result.data && result.data.user) {
         const { user, accessToken, refreshToken } = result.data;
         
         console.log('User data:', user); // Debug log
         console.log('User role:', user.role); // Debug log
+        console.log('Access token:', accessToken ? 'Present' : 'Missing'); // Debug log
+        console.log('Refresh token:', refreshToken ? 'Present' : 'Missing'); // Debug log
         
         // Store in Zustand (automatically persists to localStorage)
-        loginToStore(user, accessToken, refreshToken);
+        if (accessToken && refreshToken) {
+          console.log('Storing user in auth store...'); // Debug log
+          loginToStore(user, accessToken, refreshToken);
+          console.log('User stored successfully'); // Debug log
+        } else {
+          showErrorToast('Authentication failed. Missing tokens.');
+          return;
+        }
         
         showSuccessToast('Login successful!');
         
@@ -251,25 +264,73 @@ const Login = () => {
           console.log('Redirecting to dashboard for role:', user.role); // Debug log
           switch (user.role) {
             case 'ADMIN':
+              console.log('Navigating to admin dashboard'); // Debug log
               navigate('/admin/dashboard');
               break;
             case 'COACH':
+              console.log('Navigating to coach dashboard'); // Debug log
               navigate('/coach/dashboard');
               break;
             case 'PARENT':
+              console.log('Navigating to parent dashboard'); // Debug log
               navigate('/parent/dashboard');
               break;
             default:
+              console.log('Unknown role, navigating to default dashboard'); // Debug log
               navigate('/dashboard');
               break;
           }
         }, 1000);
+      } else if (result && result.user) {
+        // Fallback: direct user data structure
+        const { user, accessToken, refreshToken } = result;
+        
+        console.log('User data (fallback):', user); // Debug log
+        console.log('User role (fallback):', user.role); // Debug log
+        console.log('Access token (fallback):', accessToken ? 'Present' : 'Missing'); // Debug log
+        console.log('Refresh token (fallback):', refreshToken ? 'Present' : 'Missing'); // Debug log
+        
+        // Store in Zustand (automatically persists to localStorage)
+        if (accessToken && refreshToken) {
+          console.log('Storing user in auth store (fallback)...'); // Debug log
+          loginToStore(user, accessToken, refreshToken);
+          console.log('User stored successfully (fallback)'); // Debug log
+        } else {
+          showErrorToast('Authentication failed. Missing tokens.');
+          return;
+        }
+        
+        showSuccessToast('Login successful!');
+        
+        // Redirect based on role with proper delay
+        setTimeout(() => {
+          console.log('Redirecting to dashboard for role (fallback):', user.role); // Debug log
+          switch (user.role) {
+            case 'ADMIN':
+              console.log('Navigating to admin dashboard (fallback)'); // Debug log
+              navigate('/admin/dashboard');
+              break;
+            case 'COACH':
+              console.log('Navigating to coach dashboard (fallback)'); // Debug log
+              navigate('/coach/dashboard');
+              break;
+            case 'PARENT':
+              console.log('Navigating to parent dashboard (fallback)'); // Debug log
+              navigate('/parent/dashboard');
+              break;
+            default:
+              console.log('Unknown role, navigating to default dashboard (fallback)'); // Debug log
+              navigate('/dashboard');
+              break;
+          }
+        }, 1000);
+      } else if (error) {
+        showErrorToast(String(error));
       } else {
-        // Handle case where result exists but no user data
-        console.log('No user data in result:', result); // Debug log
         showErrorToast('Login failed. Please check your credentials.');
       }
     } catch (err: any) {
+      console.error('Login error:', err); // Debug log
       // Handle specific backend errors
       let errorMessage = 'Login failed. Please try again.';
       
@@ -278,10 +339,14 @@ const Login = () => {
         errorMessage = err.response.data.message;
       } else if (err.response?.status === 401) {
         errorMessage = 'Invalid email or password';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Account locked or coach not approved';
       } else if (err.response?.status === 404) {
         errorMessage = 'User not found';
       } else if (err.response?.status === 422) {
         errorMessage = 'Invalid email or password format';
+      } else if (err.response?.status === 423) {
+        errorMessage = 'Account temporarily locked';
       } else if (err.message === 'Network Error') {
         errorMessage = 'Network error. Please check your connection.';
       }

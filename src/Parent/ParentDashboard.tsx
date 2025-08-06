@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/useAuthStore';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Overview from './components/Overview';
@@ -12,13 +13,17 @@ import { mockData } from './data/mockData';
 interface ParentUser {
   id: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: string;
   children: Array<{
     id: string;
-    name: string;
-    age: number;
-    grade: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: string;
+    currentGrade: string;
+    schoolName: string;
   }>;
 }
 
@@ -30,38 +35,40 @@ const ParentDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showSidebar, setShowSidebar] = useState(true);
   const navigate = useNavigate();
+  
+  // Use Zustand auth store
+  const { user, isAuthenticated, logout: logoutFromStore } = useAuthStore();
 
   useEffect(() => {
     const checkAuth = () => {
-      const userStr = localStorage.getItem('user');
-      const activeRole = localStorage.getItem('activeRole');
-
-      if (!userStr || activeRole !== 'PARENT') {
-        navigate('/parent/login');
+      // Check if user is authenticated and has PARENT role
+      if (!isAuthenticated || !user || user.role !== 'PARENT') {
+        console.log('ParentDashboard: Authentication check failed');
+        console.log('isAuthenticated:', isAuthenticated);
+        console.log('user:', user);
+        navigate('/login');
         return;
       }
 
-      try {
-        const user = JSON.parse(userStr);
-        if (user.role === 'PARENT') {
-          setParentData(user);
-        } else {
-          navigate('/parent/login');
-        }
-      } catch (error) {
-        navigate('/parent/login');
-      }
+      // Set parent data from authenticated user
+      setParentData({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        children: mockData.children // Use mock data for children
+      });
 
       setIsLoading(false);
     };
 
     checkAuth();
-  }, [navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('activeRole');
-    navigate('/parent/login');
+    logoutFromStore();
+    navigate('/login');
   };
 
   const handleToggleSidebar = () => {
@@ -76,6 +83,23 @@ const ParentDashboard: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('parentActiveTab', activeTab);
   }, [activeTab]);
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (!isAuthenticated || !user || user.role !== 'PARENT') {
+    return null;
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -122,17 +146,6 @@ const ParentDashboard: React.FC = () => {
         );
     }
   };
-
-  if (isLoading || !parentData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
