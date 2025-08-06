@@ -20,10 +20,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, showSidebar, onT
     { id: 'overview', label: 'Dashboard Overview', icon: FaHome },
     { id: 'coach-approval', label: 'Coach Approval', icon: FaUserCheck },
     { id: 'course-approval', label: 'Course Approval', icon: FaBookOpen },
-    { id: 'analytics', label: 'Analytics', icon: FaChartLine },
     { id: 'users', label: 'User Management', icon: FaUsers },
-    { id: 'reports', label: 'Reports', icon: FaClipboardList },
-    { id: 'settings', label: 'Settings', icon: FaCog },
+
   ];
 
   return (
