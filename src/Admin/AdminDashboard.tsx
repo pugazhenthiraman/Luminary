@@ -8,349 +8,7 @@ import AdminSidebar from './components/Sidebar';
 import Overview from './components/Overview';
 import CourseApproval from './components/CourseApproval';
 
-// Add dummy coach data for demonstration
-const dummyCoaches = [
-  {
-    id: 'coach_1',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah.johnson@email.com',
-    phone: '+1-555-0123',
-    password: 'hashed_password_123',
-    driverLicense: 'DL123456789',
-    experience: '5',
-    duration: 'Mathematics',
-    address: '123 Oak Street, New York, NY 10001',
-    languages: ['English', 'Spanish'],
-    courses: ['Algebra', 'Calculus', 'Geometry'],
-    status: 'pending' as const,
-    registrationDate: '2024-01-15T10:30:00.000Z',
-    adminNotes: ''
-  },
-  {
-    id: 'coach_2',
-    firstName: 'Michael',
-    lastName: 'Chen',
-    email: 'michael.chen@email.com',
-    phone: '+1-555-0124',
-    password: 'hashed_password_456',
-    driverLicense: 'DL987654321',
-    experience: '8',
-    duration: 'Computer Science',
-    address: '456 Pine Avenue, San Francisco, CA 94102',
-    languages: ['English', 'Mandarin'],
-    courses: ['Python Programming', 'Web Development', 'Data Structures'],
-    status: 'approved' as const,
-    registrationDate: '2024-01-10T14:20:00.000Z',
-    adminNotes: 'Excellent qualifications and experience'
-  },
-  {
-    id: 'coach_3',
-    firstName: 'Emily',
-    lastName: 'Rodriguez',
-    email: 'emily.rodriguez@email.com',
-    phone: '+1-555-0125',
-    password: 'hashed_password_789',
-    driverLicense: 'DL456789123',
-    experience: '3',
-    duration: 'English Literature',
-    address: '789 Maple Drive, Chicago, IL 60601',
-    languages: ['English', 'French'],
-    courses: ['Creative Writing', 'Shakespeare', 'Modern Literature'],
-    status: 'pending' as const,
-    registrationDate: '2024-01-18T09:15:00.000Z',
-    adminNotes: ''
-  },
-  {
-    id: 'coach_4',
-    firstName: 'David',
-    lastName: 'Thompson',
-    email: 'david.thompson@email.com',
-    phone: '+1-555-0126',
-    password: 'hashed_password_101',
-    driverLicense: 'DL789123456',
-    experience: '12',
-    duration: 'Physics',
-    address: '321 Elm Street, Boston, MA 02101',
-    languages: ['English'],
-    courses: ['Mechanics', 'Thermodynamics', 'Quantum Physics'],
-    status: 'rejected' as const,
-    registrationDate: '2024-01-05T16:45:00.000Z',
-    adminNotes: 'Insufficient documentation provided'
-  },
-  {
-    id: 'coach_5',
-    firstName: 'Lisa',
-    lastName: 'Wang',
-    email: 'lisa.wang@email.com',
-    phone: '+1-555-0127',
-    password: 'hashed_password_202',
-    driverLicense: 'DL321654987',
-    experience: '6',
-    duration: 'Chemistry',
-    address: '654 Birch Road, Seattle, WA 98101',
-    languages: ['English', 'Mandarin', 'Korean'],
-    courses: ['Organic Chemistry', 'Biochemistry', 'Analytical Chemistry'],
-    status: 'approved' as const,
-    registrationDate: '2024-01-12T11:30:00.000Z',
-    adminNotes: 'Strong academic background and teaching experience'
-  },
-  {
-    id: 'coach_6',
-    firstName: 'James',
-    lastName: 'Wilson',
-    email: 'james.wilson@email.com',
-    phone: '+1-555-0128',
-    password: 'hashed_password_303',
-    driverLicense: 'DL147258369',
-    experience: '4',
-    duration: 'History',
-    address: '987 Cedar Lane, Austin, TX 73301',
-    languages: ['English', 'German'],
-    courses: ['World History', 'American History', 'European History'],
-    status: 'pending' as const,
-    registrationDate: '2024-01-20T13:20:00.000Z',
-    adminNotes: ''
-  },
-  {
-    id: 'coach_7',
-    firstName: 'Maria',
-    lastName: 'Garcia',
-    email: 'maria.garcia@email.com',
-    phone: '+1-555-0129',
-    password: 'hashed_password_404',
-    driverLicense: 'DL963852741',
-    experience: '7',
-    duration: 'Biology',
-    address: '147 Willow Way, Miami, FL 33101',
-    languages: ['English', 'Spanish', 'Portuguese'],
-    courses: ['Cell Biology', 'Genetics', 'Ecology'],
-    status: 'pending' as const,
-    registrationDate: '2024-01-22T08:45:00.000Z',
-    adminNotes: ''
-  },
-  {
-    id: 'coach_8',
-    firstName: 'Robert',
-    lastName: 'Anderson',
-    email: 'robert.anderson@email.com',
-    phone: '+1-555-0130',
-    password: 'hashed_password_505',
-    driverLicense: 'DL852963741',
-    experience: '9',
-    duration: 'Economics',
-    address: '258 Spruce Street, Denver, CO 80201',
-    languages: ['English', 'French', 'Italian'],
-    courses: ['Microeconomics', 'Macroeconomics', 'Statistics'],
-    status: 'approved' as const,
-    registrationDate: '2024-01-08T15:10:00.000Z',
-    adminNotes: 'PhD in Economics with excellent teaching record'
-  },
-  {
-    id: 'coach_9',
-    firstName: 'Jennifer',
-    lastName: 'Davis',
-    email: 'jennifer.davis@email.com',
-    phone: '+1-555-0131',
-    password: 'hashed_password_606',
-    driverLicense: 'DL741852963',
-    experience: '6',
-    duration: 'Psychology',
-    address: '369 Willow Road, Philadelphia, PA 19101',
-    languages: ['English', 'German'],
-    courses: ['Cognitive Psychology', 'Social Psychology', 'Clinical Psychology'],
-    status: 'pending' as const,
-    registrationDate: '2024-01-25T12:00:00.000Z',
-    adminNotes: ''
-  },
-  {
-    id: 'coach_10',
-    firstName: 'Christopher',
-    lastName: 'Miller',
-    email: 'christopher.miller@email.com',
-    phone: '+1-555-0132',
-    password: 'hashed_password_707',
-    driverLicense: 'DL369258147',
-    experience: '4',
-    duration: 'Art History',
-    address: '741 Poplar Boulevard, San Antonio, TX 78201',
-    languages: ['English', 'Italian'],
-    courses: ['Renaissance Art', 'Modern Art', 'Art Theory'],
-    status: 'approved' as const,
-    registrationDate: '2024-01-06T10:15:00.000Z',
-    adminNotes: 'Museum curator with teaching experience'
-  },
-  {
-    id: 'coach_11',
-    firstName: 'Amanda',
-    lastName: 'Taylor',
-    email: 'amanda.taylor@email.com',
-    phone: '+1-555-0133',
-    password: 'hashed_password_808',
-    driverLicense: 'DL258147369',
-    experience: '7',
-    duration: 'Music Theory',
-    address: '852 Cherry Street, San Diego, CA 92101',
-    languages: ['English', 'French'],
-    courses: ['Classical Music', 'Jazz Theory', 'Composition'],
-    status: 'pending' as const,
-    registrationDate: '2024-01-28T14:30:00.000Z',
-    adminNotes: ''
-  },
-  {
-    id: 'coach_12',
-    firstName: 'Daniel',
-    lastName: 'Brown',
-    email: 'daniel.brown@email.com',
-    phone: '+1-555-0134',
-    password: 'hashed_password_909',
-    driverLicense: 'DL147369258',
-    experience: '5',
-    duration: 'Philosophy',
-    address: '963 Ash Avenue, Dallas, TX 75201',
-    languages: ['English', 'Greek'],
-    courses: ['Ethics', 'Logic', 'Metaphysics'],
-    status: 'rejected' as const,
-    registrationDate: '2024-01-16T09:45:00.000Z',
-    adminNotes: 'Insufficient teaching experience'
-  },
-  {
-    id: 'coach_13',
-    firstName: 'Jessica',
-    lastName: 'Martinez',
-    email: 'jessica.martinez@email.com',
-    phone: '+1-555-0135',
-    password: 'hashed_password_1010',
-    driverLicense: 'DL963147258',
-    experience: '6',
-    duration: 'Environmental Science',
-    address: '159 Oak Drive, San Jose, CA 95101',
-    languages: ['English', 'Spanish'],
-    courses: ['Climate Change', 'Sustainability', 'Ecosystems'],
-    status: 'pending' as const,
-    registrationDate: '2024-01-30T11:20:00.000Z',
-    adminNotes: ''
-  },
-  {
-    id: 'coach_14',
-    firstName: 'Kevin',
-    lastName: 'Johnson',
-    email: 'kevin.johnson@email.com',
-    phone: '+1-555-0136',
-    password: 'hashed_password_1111',
-    driverLicense: 'DL852741963',
-    experience: '8',
-    duration: 'Computer Engineering',
-    address: '741 Maple Lane, Portland, OR 97201',
-    languages: ['English', 'Japanese'],
-    courses: ['Digital Logic', 'Computer Architecture', 'Embedded Systems'],
-    status: 'approved' as const,
-    registrationDate: '2024-01-04T16:20:00.000Z',
-    adminNotes: 'Industry experience in semiconductor design'
-  },
-  {
-    id: 'coach_15',
-    firstName: 'Rachel',
-    lastName: 'Lee',
-    email: 'rachel.lee@email.com',
-    phone: '+1-555-0137',
-    password: 'hashed_password_1212',
-    driverLicense: 'DL741963852',
-    experience: '3',
-    duration: 'Linguistics',
-    address: '963 Cedar Road, Las Vegas, NV 89101',
-    languages: ['English', 'Korean', 'Chinese'],
-    courses: ['Syntax', 'Phonetics', 'Language Acquisition'],
-    status: 'rejected' as const,
-    registrationDate: '2024-01-19T13:45:00.000Z',
-    adminNotes: 'Application incomplete - missing references'
-  },
-  {
-    id: 'coach_16',
-    firstName: 'Thomas',
-    lastName: 'Wilson',
-    email: 'thomas.wilson@email.com',
-    phone: '+1-555-0138',
-    password: 'hashed_password_1313',
-    driverLicense: 'DL963852741',
-    experience: '10',
-    duration: 'Mechanical Engineering',
-    address: '147 Birch Street, Columbus, OH 43201',
-    languages: ['English', 'German'],
-    courses: ['Thermodynamics', 'Fluid Mechanics', 'Machine Design'],
-    status: 'pending' as const,
-    registrationDate: '2024-01-31T10:00:00.000Z',
-    adminNotes: ''
-  },
-  {
-    id: 'coach_17',
-    firstName: 'Nicole',
-    lastName: 'Garcia',
-    email: 'nicole.garcia@email.com',
-    phone: '+1-555-0139',
-    password: 'hashed_password_1414',
-    driverLicense: 'DL258963741',
-    experience: '5',
-    duration: 'Sociology',
-    address: '258 Willow Avenue, Charlotte, NC 28201',
-    languages: ['English', 'Spanish'],
-    courses: ['Social Theory', 'Research Methods', 'Urban Sociology'],
-    status: 'approved' as const,
-    registrationDate: '2024-01-02T14:30:00.000Z',
-    adminNotes: 'Strong research background'
-  },
-  {
-    id: 'coach_18',
-    firstName: 'Andrew',
-    lastName: 'Clark',
-    email: 'andrew.clark@email.com',
-    phone: '+1-555-0140',
-    password: 'hashed_password_1515',
-    driverLicense: 'DL741258963',
-    experience: '7',
-    duration: 'Political Science',
-    address: '369 Spruce Drive, Detroit, MI 48201',
-    languages: ['English', 'French'],
-    courses: ['International Relations', 'Comparative Politics', 'Political Theory'],
-    status: 'rejected' as const,
-    registrationDate: '2024-01-17T11:15:00.000Z',
-    adminNotes: 'Background check pending'
-  },
-  {
-    id: 'coach_19',
-    firstName: 'Samantha',
-    lastName: 'White',
-    email: 'samantha.white@email.com',
-    phone: '+1-555-0141',
-    password: 'hashed_password_1616',
-    driverLicense: 'DL963741258',
-    experience: '4',
-    duration: 'Anthropology',
-    address: '741 Oak Lane, Memphis, TN 38101',
-    languages: ['English', 'Portuguese'],
-    courses: ['Cultural Anthropology', 'Archaeology', 'Ethnography'],
-    status: 'pending' as const,
-    registrationDate: '2024-01-29T15:45:00.000Z',
-    adminNotes: ''
-  },
-  {
-    id: 'coach_20',
-    firstName: 'Ryan',
-    lastName: 'Thompson',
-    email: 'ryan.thompson@email.com',
-    phone: '+1-555-0142',
-    password: 'hashed_password_1717',
-    driverLicense: 'DL258741963',
-    experience: '6',
-    duration: 'Geology',
-    address: '852 Cherry Road, Baltimore, MD 21201',
-    languages: ['English'],
-    courses: ['Mineralogy', 'Structural Geology', 'Paleontology'],
-    status: 'approved' as const,
-    registrationDate: '2024-01-01T09:30:00.000Z',
-    adminNotes: 'Field experience in multiple countries'
-  }
-];
+import { getCoaches, approveCoach, rejectCoach } from '../api/admin';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -418,10 +76,31 @@ const AdminDashboard = () => {
   const paginatedCoaches = filteredCoaches.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filteredCoaches.length / itemsPerPage);
 
-  // Load coaches from dummy data
+  // Load coaches from backend API
   const loadCoaches = () => {
-    // Use dummy data instead of localStorage for demonstration
-    setCoaches(dummyCoaches);
+    setIsLoading(true);
+    getCoaches()
+      .then(res => {
+        // Map backend fields to frontend CoachData type
+        const normalized = ((res.data.data && res.data.data.coaches) || []).map((coach: any) => ({
+          id: coach.id,
+          firstName: coach.firstName,
+          lastName: coach.lastName,
+          email: coach.email,
+          phone: coach.phone,
+          experience: coach.experienceDescription || '', // Backend -> frontend
+          duration: coach.domain || '', // Backend -> frontend
+          address: coach.address || '',
+          languages: coach.languages || [],
+          status: coach.status ? coach.status.toLowerCase() : 'pending',
+          registrationDate: coach.registrationDate || '',
+          adminNotes: coach.adminNotes || '',
+        }));
+        setCoaches(normalized);
+console.log('Loaded coaches:', normalized);
+      })
+      .catch(() => showErrorToast('Failed to load coaches'))
+      .finally(() => setIsLoading(false));
   };
 
   // Check if user is admin and load coaches
@@ -450,12 +129,9 @@ const AdminDashboard = () => {
   const handleApprove = async (coachId: string) => {
     setIsLoading(true);
     try {
-      // Update the dummy data directly
-      const updatedCoaches = coaches.map(coach => 
-        coach.id === coachId ? { ...coach, status: 'approved' as const } : coach
-      );
-      setCoaches(updatedCoaches);
-        showSuccessToast('Coach approved successfully!');
+      await approveCoach(coachId);
+      showSuccessToast('Coach approved successfully!');
+      loadCoaches();
     } catch (error) {
       showErrorToast('Failed to approve coach');
     } finally {
@@ -466,19 +142,12 @@ const AdminDashboard = () => {
   const handleReject = async (coachId: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setCoaches(prev => prev.map(coach => 
-        coach.id === coachId 
-          ? { ...coach, status: 'rejected' as const, adminNotes: rejectReason || 'Rejected by admin' }
-          : coach
-      ));
-      
+      await rejectCoach(coachId, rejectReason || 'Rejected by admin');
       showSuccessToast('Coach rejected successfully');
       setShowRejectConfirm(false);
       setCoachToReject(null);
       setRejectReason('');
+      loadCoaches();
     } catch (error) {
       showErrorToast('Failed to reject coach');
     } finally {
@@ -677,80 +346,84 @@ const AdminDashboard = () => {
               {/* Mobile Card View */}
               <div className="block sm:hidden">
                 <div className="divide-y divide-gray-200">
-                  {paginatedCoaches.map((coach, idx) => (
-                    <div key={coach.id} className={`p-4 hover:bg-gray-50${idx !== 0 ? ' mt-4' : ''} rounded-xl shadow-sm bg-white`}> {/* Add margin and card styling */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <FaUser className="text-blue-600" />
-                            </div>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-gray-900 truncate">
-                              {coach.firstName} {coach.lastName}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {coach.registrationDate}
-                            </div>
-                          </div>
-                        </div>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(coach.status)}`}>
-                          {getStatusIcon(coach.status)}
-                          <span className="ml-1 capitalize">{coach.status}</span>
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <FaEnvelope className="text-gray-400 text-xs flex-shrink-0" />
-                          <span className="text-gray-600 truncate">{coach.email}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <FaPhone className="text-gray-400 text-xs flex-shrink-0" />
-                          <span className="text-gray-600">{coach.phone}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <FaGraduationCap className="text-gray-400 text-xs flex-shrink-0" />
-                          <span className="text-gray-600 truncate">{coach.duration}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <FaClock className="text-gray-400 text-xs flex-shrink-0" />
-                          <span className="text-gray-600">{coach.experience} years experience</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end space-x-2 mt-4 pt-3 border-t border-gray-100">
-                        <button
-                          onClick={() => handleViewDetails(coach)}
-                          className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
-                          title="View Details"
-                        >
-                          <FaEye className="text-sm" />
-                        </button>
-                        {coach.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleApprove(coach.id)}
-                              disabled={isLoading}
-                              className="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 disabled:opacity-50"
-                              title="Approve"
-                            >
-                              {isLoading ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}
-                            </button>
-                            <button
-                              onClick={() => confirmReject(coach.id)}
-                              disabled={isLoading}
-                              className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200 disabled:opacity-50"
-                              title="Reject"
-                            >
-                              {isLoading ? <FaSpinner className="animate-spin text-sm" /> : <FaTimes className="text-sm" />}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                  {paginatedCoaches.length === 0 ? (
+  <div className="p-6 text-center text-gray-500">No coach applications found.</div>
+) : (
+  <>
+    {paginatedCoaches.map((coach, idx) => (
+      <div key={coach.id} className={`p-4 hover:bg-gray-50${idx !== 0 ? ' mt-4' : ''} rounded-xl shadow-sm bg-white`}>
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0 h-10 w-10">
+              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <FaUser className="text-blue-600" />
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-gray-900 truncate">
+                {coach.firstName} {coach.lastName}
+              </div>
+              <div className="text-xs text-gray-500">
+                {coach.registrationDate}
+              </div>
+            </div>
+          </div>
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(coach.status)}`}>
+            {getStatusIcon(coach.status)}
+            <span className="ml-1 capitalize">{coach.status}</span>
+          </span>
+        </div>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center space-x-2">
+            <FaEnvelope className="text-gray-400 text-xs flex-shrink-0" />
+            <span className="text-gray-600 truncate">{coach.email}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <FaPhone className="text-gray-400 text-xs flex-shrink-0" />
+            <span className="text-gray-600">{coach.phone}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <FaGraduationCap className="text-gray-400 text-xs flex-shrink-0" />
+            <span className="text-gray-600 truncate">{coach.duration}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <FaClock className="text-gray-400 text-xs flex-shrink-0" />
+            <span className="text-gray-600">{coach.experience} years experience</span>
+          </div>
+        </div>
+        <div className="flex justify-end space-x-2 mt-4 pt-3 border-t border-gray-100">
+          <button
+            onClick={() => handleViewDetails(coach)}
+            className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
+            title="View Details"
+          >
+            <FaEye className="text-sm" />
+          </button>
+          {coach.status === 'pending' && (
+            <>
+              <button
+                onClick={() => handleApprove(coach.id)}
+                disabled={isLoading}
+                className="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 disabled:opacity-50"
+                title="Approve"
+              >
+                {isLoading ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}
+              </button>
+              <button
+                onClick={() => confirmReject(coach.id)}
+                disabled={isLoading}
+                className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200 disabled:opacity-50"
+                title="Reject"
+              >
+                {isLoading ? <FaSpinner className="animate-spin text-sm" /> : <FaTimes className="text-sm" />}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    ))}
+  </>
+)}
                 </div>
               </div>
               
@@ -780,75 +453,83 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedCoaches.map((coach) => (
-                      <tr key={coach.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                <FaUser className="text-blue-600" />
-                              </div>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {coach.firstName} {coach.lastName}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {coach.registrationDate}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{coach.email}</div>
-                          <div className="text-sm text-gray-500">{coach.phone}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{coach.duration}</div>
-                          <div className="text-sm text-gray-500">{coach.languages.join(', ')}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{coach.experience} years</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(coach.status)}`}>
-                            {getStatusIcon(coach.status)}
-                            <span className="ml-1 capitalize">{coach.status}</span>
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleViewDetails(coach)}
-                              className="text-blue-600 hover:text-blue-900 p-1"
-                              title="View Details"
-                            >
-                              <FaEye />
-                            </button>
-                            {coach.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => handleApprove(coach.id)}
-                                  disabled={isLoading}
-                                  className="text-green-600 hover:text-green-900 p-1 disabled:opacity-50"
-                                  title="Approve"
-                                >
-                                  {isLoading ? <FaSpinner className="animate-spin" /> : <FaCheck />}
-                                </button>
-                                <button
-                                  onClick={() => confirmReject(coach.id)}
-                                  disabled={isLoading}
-                                  className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50"
-                                  title="Reject"
-                                >
-                                  {isLoading ? <FaSpinner className="animate-spin" /> : <FaTimes />}
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {paginatedCoaches.length === 0 ? (
+  <tr>
+    <td colSpan={7} className="py-8 text-center text-gray-500">No coach applications found.</td>
+  </tr>
+) : (
+  <>
+    {paginatedCoaches.map((coach) => (
+      <tr key={coach.id} className="hover:bg-gray-50">
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 h-10 w-10">
+              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <FaUser className="text-blue-600" />
+              </div>
+            </div>
+            <div className="ml-4">
+              <div className="text-sm font-medium text-gray-900">
+                {coach.firstName} {coach.lastName}
+              </div>
+              <div className="text-sm text-gray-500">
+                {coach.registrationDate}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="text-sm text-gray-900">{coach.email}</div>
+          <div className="text-sm text-gray-500">{coach.phone}</div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="text-sm text-gray-900">{coach.duration}</div>
+          <div className="text-sm text-gray-500">{coach.languages.join(', ')}</div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="text-sm text-gray-900">{coach.experience} years</div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(coach.status)}`}>
+            {getStatusIcon(coach.status)}
+            <span className="ml-1 capitalize">{coach.status}</span>
+          </span>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handleViewDetails(coach)}
+              className="text-blue-600 hover:text-blue-900 p-1"
+              title="View Details"
+            >
+              <FaEye />
+            </button>
+            {coach.status === 'pending' && (
+              <>
+                <button
+                  onClick={() => handleApprove(coach.id)}
+                  disabled={isLoading}
+                  className="text-green-600 hover:text-green-900 p-1 disabled:opacity-50"
+                  title="Approve"
+                >
+                  {isLoading ? <FaSpinner className="animate-spin" /> : <FaCheck />}
+                </button>
+                <button
+                  onClick={() => confirmReject(coach.id)}
+                  disabled={isLoading}
+                  className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50"
+                  title="Reject"
+                >
+                  {isLoading ? <FaSpinner className="animate-spin" /> : <FaTimes />}
+                </button>
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+    ))}
+  </>
+)}
                   </tbody>
                 </table>
               </div>
