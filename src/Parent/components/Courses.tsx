@@ -876,12 +876,12 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
               {/* Actions */}
               <div className="flex space-x-2">
                 <button
-                  onClick={() => setSelectedCourse(course)}
+                  onClick={() => handleViewCoachDetails(course.coach.id)}
                   className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 hover:scale-105"
                 >
                   <FaEye className="inline mr-1 text-xs sm:text-sm" />
-                  <span className="hidden sm:inline">View Details</span>
-                  <span className="sm:hidden">Details</span>
+                  <span className="hidden sm:inline">Coach</span>
+                  <span className="sm:hidden">Coach</span>
                 </button>
                 <button
                   onClick={() => handleEnroll(course)}
@@ -921,17 +921,21 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
       {/* Coach Details Modal */}
       {showCoachModal && selectedCoach && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[95vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[95vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 sm:space-x-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <FaUser className="text-white text-lg sm:text-xl" />
+                  <div className="w-14 h-14 sm:w-20 sm:h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center overflow-hidden border-4 border-purple-200 shadow-lg">
+                    {selectedCoach.photo ? (
+                      <img src={selectedCoach.photo} alt="Coach" className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <FaUser className="text-white text-2xl sm:text-4xl" />
+                    )}
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Coach Profile</h2>
-                    <p className="text-xs sm:text-sm text-gray-600">Complete information about this coach</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{selectedCoach.firstName} {selectedCoach.lastName}</h2>
+                    <p className="text-xs sm:text-sm text-gray-600">Professional Coach</p>
                   </div>
                 </div>
                 <button
@@ -944,183 +948,57 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
               </div>
             </div>
 
-            <div className="p-4 sm:p-6">
-              {/* Coach Hero Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
-                {/* Coach Avatar */}
-                <div className="lg:col-span-1">
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 sm:p-8 text-center">
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl sm:text-4xl font-bold">
-                      {selectedCoach.firstName.charAt(0)}{selectedCoach.lastName.charAt(0)}
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                      {selectedCoach.firstName} {selectedCoach.lastName}
-                    </h1>
-                    <p className="text-sm sm:text-base text-gray-600 mb-4">Professional Coach</p>
-                    
-                    {/* Status Badge */}
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
-                      selectedCoach.status === 'approved' 
-                        ? 'bg-green-100 text-green-800' 
-                        : selectedCoach.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full mr-2 ${
-                        selectedCoach.status === 'approved' 
-                          ? 'bg-green-500' 
-                          : selectedCoach.status === 'pending'
-                          ? 'bg-yellow-500'
-                          : 'bg-red-500'
-                      }`}></div>
-                      {selectedCoach.status.charAt(0).toUpperCase() + selectedCoach.status.slice(1)}
-                    </div>
+            <div className="p-4 sm:p-6 space-y-6">
+              {/* Contact & Profile Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <div className="mb-4">
+                    <span className="block text-xs text-gray-500 font-medium mb-1">Email</span>
+                    <span className="block text-sm font-semibold text-gray-900 break-all">{selectedCoach.email}</span>
+                  </div>
+                  <div className="mb-4">
+                    <span className="block text-xs text-gray-500 font-medium mb-1">Phone</span>
+                    <span className="block text-sm font-semibold text-gray-900">{selectedCoach.phone}</span>
+                  </div>
+                  <div className="mb-4">
+                    <span className="block text-xs text-gray-500 font-medium mb-1">Address</span>
+                    <span className="block text-sm font-semibold text-gray-900">{selectedCoach.address}</span>
+                  </div>
+                  <div className="mb-4">
+                    <span className="block text-xs text-gray-500 font-medium mb-1">Languages</span>
+                    <span className="block text-sm font-semibold text-gray-900">
+                      {selectedCoach.languages && selectedCoach.languages.length > 0 ? selectedCoach.languages.join(', ') : 'N/A'}
+                    </span>
                   </div>
                 </div>
-
-                {/* Coach Info */}
-                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-                  {/* Contact Information */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-100">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FaEnvelope className="text-blue-600 text-sm sm:text-base" />
-                      Contact Information
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      <div className="flex items-center space-x-3">
-                        <FaEnvelope className="text-blue-600 text-sm sm:text-base" />
-                        <div>
-                          <p className="text-xs sm:text-sm text-gray-600">Email</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <FaPhone className="text-blue-600 text-sm sm:text-base" />
-                        <div>
-                          <p className="text-xs sm:text-sm text-gray-600">Phone</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.phone}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3 sm:col-span-2">
-                        <FaMapMarkerAlt className="text-blue-600 text-sm sm:text-base" />
-                         <div>
-                          <p className="text-xs sm:text-sm text-gray-600">Address</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.address}</p>
-                         </div>
-                       </div>
-                      <div className="flex items-center space-x-3">
-                        <FaCalendarAlt className="text-blue-600 text-sm sm:text-base" />
-                        <div>
-                          <p className="text-xs sm:text-sm text-gray-600">Member Since</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                            {new Date(selectedCoach.registrationDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                <div>
+                  <div className="mb-4">
+                    <span className="block text-xs text-gray-500 font-medium mb-1">Years of Experience</span>
+                    <span className="block text-sm font-semibold text-gray-900">{selectedCoach.experience}</span>
                   </div>
-
-                  {/* Professional Information */}
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FaBriefcase className="text-green-600 text-sm sm:text-base" />
-                      Professional Information
-                    </h3>
-                    <div className="space-y-3 sm:space-y-4">
-                      <div>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Experience</p>
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.experience}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Duration</p>
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.duration}</p>
-                      </div>
-                    </div>
+                  <div className="mb-4">
+                    <span className="block text-xs text-gray-500 font-medium mb-1">Area of Expertise</span>
+                    <span className="block text-sm font-semibold text-gray-900">{selectedCoach.domain}</span>
                   </div>
-
-                  {/* Languages */}
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 sm:p-6 border border-purple-100">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FaLanguage className="text-purple-600 text-sm sm:text-base" />
-                      Languages Spoken
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCoach.languages.map((language, index) => (
-                        <span
-                          key={index}
-                          className="bg-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium text-purple-700 border border-purple-200"
-                        >
-                          {language}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional Information */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {/* Courses Taught */}
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-indigo-100">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaBook className="text-indigo-600 text-sm sm:text-base" />
-                    Courses Taught
-                  </h3>
-                  <div className="space-y-3">
-                    {selectedCoach.courses.length > 0 ? (
-                      selectedCoach.courses.map((course, index) => (
-                        <div key={index} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
-                          <div className="font-semibold text-gray-900 text-sm sm:text-base">{course}</div>
-                        </div>
-                      ))
+                  <div className="mb-4">
+                    <span className="block text-xs text-gray-500 font-medium mb-1">Resume/CV</span>
+                    {selectedCoach.resume ? (
+                      <a href={selectedCoach.resume} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm font-semibold">View Resume</a>
                     ) : (
-                      <p className="text-gray-600 italic text-sm sm:text-base">No courses listed yet</p>
+                      <span className="block text-sm text-gray-500">Not uploaded</span>
                     )}
                   </div>
-                </div>
-
-                {/* Statistics */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaUsers className="text-green-600 text-sm sm:text-base" />
-                    Statistics
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-blue-600">5.0</div>
-                      <div className="text-xs sm:text-sm text-gray-600">Average Rating</div>
-                      <div className="flex justify-center mt-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <FaStar key={star} className="text-yellow-400 text-xs sm:text-sm" />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-green-600">150+</div>
-                      <div className="text-xs sm:text-sm text-gray-600">Students Taught</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-purple-600">25+</div>
-                      <div className="text-xs sm:text-sm text-gray-600">Courses Created</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-orange-600">98%</div>
-                      <div className="text-xs sm:text-sm text-gray-600">Success Rate</div>
-                    </div>
+                  <div className="mb-4">
+                    <span className="block text-xs text-gray-500 font-medium mb-1">Introduction Video</span>
+                    {selectedCoach.video ? (
+                      <a href={selectedCoach.video} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm font-semibold">Watch Video</a>
+                    ) : (
+                      <span className="block text-sm text-gray-500">Not uploaded</span>
+                    )}
                   </div>
+                  {/* Add more fields as needed */}
                 </div>
               </div>
-
-              {/* Admin Notes (if any) */}
-              {selectedCoach.adminNotes && (
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 sm:p-6 border border-yellow-100 mt-4 sm:mt-6">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaUser className="text-yellow-600 text-sm sm:text-base" />
-                    Admin Notes
-                  </h3>
-                  <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{selectedCoach.adminNotes}</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

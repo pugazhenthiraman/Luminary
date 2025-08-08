@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
 import { FaCheck, FaTimes, FaEye, FaSignOutAlt, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaClock, FaCheckCircle, FaTimesCircle, FaSpinner, FaGlobe, FaPlay, FaFileAlt, FaBars } from 'react-icons/fa';
@@ -14,18 +14,26 @@ import {
   rejectCoach,
   suspendCoach,
   reactivateCoach,
-  updateCoachNotes
+  updateCoachNotes,
+  getAdminStats
 } from '../api/admin';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, logout: logoutFromStore } = useAuthStore();
+  // Read tab and filter from URL query params if present
+  const getQueryParam = (param) => {
+    const params = new URLSearchParams(location.search);
+    return params.get(param);
+  };
+  const initialTab = getQueryParam('tab') || localStorage.getItem('adminActiveTab') || 'overview';
+  const initialFilter = getQueryParam('filter') || localStorage.getItem('adminFilter') || 'all';
   const [coaches, setCoaches] = useState<CoachData[]>([]);
+  const [coachStats, setCoachStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [selectedCoach, setSelectedCoach] = useState<CoachData | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [filter, setFilter] = useState(() => {
-    return localStorage.getItem('adminFilter') || 'all';
-  }); // all, pending, approved, rejected
+  const [filter, setFilter] = useState(initialFilter); // all, pending, approved, rejected
   const [searchTerm, setSearchTerm] = useState(() => {
     return localStorage.getItem('adminSearchTerm') || '';
   });
@@ -33,10 +41,7 @@ const AdminDashboard = () => {
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [coachToReject, setCoachToReject] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [activeTab, setActiveTab] = useState(() => {
-    // Load active tab from localStorage or default to 'overview'
-    return localStorage.getItem('adminActiveTab') || 'overview';
-  });
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [showSidebar, setShowSidebar] = useState(true); // State for sidebar visibility
 
   // Pagination state for coach approval
@@ -44,14 +49,33 @@ const AdminDashboard = () => {
     return parseInt(localStorage.getItem('adminCurrentPage') || '1');
   });
   const itemsPerPage = 10;
+
+  // Update tab/filter if URL changes (e.g., user clicks quick action)
+  useEffect(() => {
+    const urlTab = getQueryParam('tab');
+    const urlFilter = getQueryParam('filter');
+    if (urlTab && urlTab !== activeTab) setActiveTab(urlTab);
+    if (urlFilter && urlFilter !== filter) setFilter(urlFilter);
+    // eslint-disable-next-line
+  }, [location.search]);
   
+  // Normalize status for filtering (API returns uppercase)
+  const statusMap = {
+    pending: 'PENDING',
+    approved: 'APPROVED',
+    rejected: 'REJECTED',
+  };
+
   // Filter coaches based on search term and status
   const filteredCoaches = coaches.filter(coach => {
     const matchesSearch = coach.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         coach.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         coach.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         coach.duration.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filter === 'all' || coach.status === filter;
+      coach.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      coach.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (coach.duration || '').toLowerCase().includes(searchTerm.toLowerCase());
+    let matchesStatus = true;
+    if (filter !== 'all') {
+      matchesStatus = coach.status === statusMap[filter];
+    }
     return matchesSearch && matchesStatus;
   });
   
@@ -83,13 +107,12 @@ const AdminDashboard = () => {
   const paginatedCoaches = filteredCoaches.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filteredCoaches.length / itemsPerPage);
 
+
   // Fetch coaches from API
   const loadCoaches = async () => {
     setIsLoading(true);
     try {
       const res = await getAllCoaches();
-      console.log('API coaches response:', res.data);
-      console.log('API coaches data:', res.data.data);
       let coachArr = [];
       if (Array.isArray(res.data.data)) {
         coachArr = res.data.data;
@@ -108,23 +131,39 @@ const AdminDashboard = () => {
     }
   };
 
+  // Fetch coach stats from API
+  const loadCoachStats = async () => {
+    try {
+      const res = await getAdminStats();
+      // Map API response keys to local state
+      const stats = res.data?.data || {};
+      setCoachStats({
+        total: stats.totalCoaches || 0,
+        pending: stats.pendingCoaches || 0,
+        approved: stats.approvedCoaches || 0,
+        rejected: stats.rejectedCoaches || 0
+      });
+    } catch (error) {
+      // Optionally show error toast
+    }
+  };
+
   // Check if user is admin and load coaches
   useEffect(() => {
     // Check if user is authenticated and has ADMIN role
     if (!isAuthenticated || !user || user.role !== 'ADMIN') {
-      console.log('AdminDashboard: Authentication check failed');
-      console.log('isAuthenticated:', isAuthenticated);
-      console.log('user:', user);
       navigate('/admin/login');
       return;
     }
 
-    // Load coaches on component mount
+    // Load coaches and stats on component mount
     loadCoaches();
+    loadCoachStats();
 
     // Set up periodic refresh every 30 seconds to catch new registrations
     const refreshInterval = setInterval(() => {
       loadCoaches();
+      loadCoachStats();
     }, 30000); // 30 seconds
 
     // Cleanup interval on component unmount
@@ -132,18 +171,20 @@ const AdminDashboard = () => {
   }, [isAuthenticated, user, navigate]);
 
   // Update approve/reject/suspend/reactivate/notes actions to use API
+
   const handleApprove = async (coachId: string) => {
     setIsLoading(true);
     try {
       await approveCoach(coachId);
-        showSuccessToast('Coach approved successfully!');
-      loadCoaches();
+      showSuccessToast('Coach approved successfully!');
+      await Promise.all([loadCoaches(), loadCoachStats()]);
     } catch (error) {
       showErrorToast('Failed to approve coach');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const handleReject = async (coachId: string) => {
     setIsLoading(true);
@@ -153,7 +194,7 @@ const AdminDashboard = () => {
       setShowRejectConfirm(false);
       setCoachToReject(null);
       setRejectReason('');
-      loadCoaches();
+      await Promise.all([loadCoaches(), loadCoachStats()]);
     } catch (error) {
       showErrorToast('Failed to reject coach');
     } finally {
@@ -186,12 +227,17 @@ const AdminDashboard = () => {
 
 
 
+  // Outlined color style for status label
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return 'text-green-600 bg-green-100';
-      case 'rejected': return 'text-red-600 bg-red-100';
-      case 'pending': return 'text-yellow-600 bg-yellow-100';
-      default: return 'text-gray-600 bg-gray-100';
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'text-white-600 border border-green-800 bg-green-400';
+      case 'rejected':
+        return 'text-white-600 border border-red-800 bg-red-400';
+      case 'pending':
+        return 'text-white-600 border border-yellow-800 bg-yellow-400';
+      default:
+        return 'text-white-600 border border-gray-700 bg-gray-400';
     }
   };
 
@@ -235,11 +281,10 @@ const AdminDashboard = () => {
                   </div>
                   <div className="ml-2 sm:ml-4">
                     <p className="text-xs sm:text-sm font-medium text-gray-600">Total Coaches</p>
-                    <p className="text-lg sm:text-2xl font-bold text-gray-900">{coaches.length}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">{coachStats.total}</p>
                   </div>
                 </div>
               </div>
-              
               <div className="bg-white rounded-xl shadow-md p-3 sm:p-6 border border-gray-200">
                 <div className="flex items-center">
                   <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg">
@@ -247,13 +292,10 @@ const AdminDashboard = () => {
                   </div>
                   <div className="ml-2 sm:ml-4">
                     <p className="text-xs sm:text-sm font-medium text-gray-600">Pending</p>
-                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
-                      {coaches.filter(c => c.status === 'pending').length}
-                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">{coachStats.pending}</p>
                   </div>
                 </div>
               </div>
-              
               <div className="bg-white rounded-xl shadow-md p-3 sm:p-6 border border-gray-200">
                 <div className="flex items-center">
                   <div className="p-2 sm:p-3 bg-green-100 rounded-lg">
@@ -261,13 +303,10 @@ const AdminDashboard = () => {
                   </div>
                   <div className="ml-2 sm:ml-4">
                     <p className="text-xs sm:text-sm font-medium text-gray-600">Approved</p>
-                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
-                      {coaches.filter(c => c.status === 'approved').length}
-                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">{coachStats.approved}</p>
                   </div>
                 </div>
               </div>
-              
               <div className="bg-white rounded-xl shadow-md p-3 sm:p-6 border border-gray-200">
                 <div className="flex items-center">
                   <div className="p-2 sm:p-3 bg-red-100 rounded-lg">
@@ -275,9 +314,7 @@ const AdminDashboard = () => {
                   </div>
                   <div className="ml-2 sm:ml-4">
                     <p className="text-xs sm:text-sm font-medium text-gray-600">Rejected</p>
-                    <p className="text-lg sm:text-2xl font-bold text-gray-900">
-                      {coaches.filter(c => c.status === 'rejected').length}
-                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900">{coachStats.rejected}</p>
                   </div>
                 </div>
               </div>
@@ -403,7 +440,7 @@ const AdminDashboard = () => {
                         >
                           <FaEye className="text-sm" />
                         </button>
-                        {coach.status === 'pending' && (
+                        {coach.status.toLowerCase() === 'pending' && (
                           <>
                             <button
                               onClick={() => handleApprove(coach.id)}
@@ -500,7 +537,7 @@ const AdminDashboard = () => {
                             >
                               <FaEye />
                             </button>
-                            {coach.status === 'pending' && (
+                            {(coach.status === 'PENDING' || coach.status === 'pending') && (
                               <>
                                 <button
                                   onClick={() => handleApprove(coach.id)}
@@ -779,91 +816,132 @@ const AdminDashboard = () => {
               {/* Professional Information */}
                  <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
                   <h4 className="text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center">
-                     <FaGraduationCap className="text-blue-600 mr-2" />
-                     Professional Information
-                   </h4>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div>
-                       <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Teaching Domain</label>
-                       <p className="text-sm sm:text-base text-gray-900 font-medium">{selectedCoach.duration}</p>
+                    <FaGraduationCap className="text-blue-600 mr-2" />
+                    Professional Information
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Domain</label>
+                      <p className="text-sm sm:text-base text-gray-900 font-medium">{selectedCoach.domain || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Years of Experience</label>
+                      <p className="text-sm sm:text-base text-gray-900 font-medium">{selectedCoach.experience && selectedCoach.experience.toString().trim() !== '' ? `${selectedCoach.experience} years` : 'Not provided'}</p>
+                    </div>
                   </div>
-                  <div>
-                       <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Years of Experience</label>
-                       <p className="text-sm sm:text-base text-gray-900 font-medium">{selectedCoach.experience} years</p>
-                  </div>
-                </div>
+                  {/* Optionally display other relevant professional fields if available */}
+                  {selectedCoach.certifications && selectedCoach.certifications.length > 0 && (
+                    <div className="mt-4">
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Certifications</label>
+                      <ul className="list-disc list-inside text-sm sm:text-base text-gray-900">
+                        {selectedCoach.certifications.map((cert: string, idx: number) => (
+                          <li key={idx}>{cert}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {selectedCoach.specializations && selectedCoach.specializations.length > 0 && (
+                    <div className="mt-4">
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Specializations</label>
+                      <ul className="list-disc list-inside text-sm sm:text-base text-gray-900">
+                        {selectedCoach.specializations.map((spec: string, idx: number) => (
+                          <li key={idx}>{spec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
               </div>
 
                                                   {/* Courses Section */}
-                 <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                 {/* <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
                   <h4 className="text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center">
                      <FaGraduationCap className="text-blue-600 mr-2" />
                      Courses & Specializations
                    </h4>
-                 {selectedCoach.courses.length > 0 ? (
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                       {selectedCoach.courses.map((course: string, index: number) => (
-                         <div key={index} className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
-                       <div className="flex items-center">
-                             <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-600 rounded-full mr-2 sm:mr-3"></div>
-                             <p className="text-sm sm:text-base text-gray-900 font-medium">{course}</p>
-                           </div>
+                 {Array.isArray(selectedCoach.courses) && selectedCoach.courses.length > 0 ? (
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                     {selectedCoach.courses.map((course: string, index: number) => (
+                       <div key={index} className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 shadow-sm">
+                         <div className="flex items-center">
+                           <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-600 rounded-full mr-2 sm:mr-3"></div>
+                           <p className="text-sm sm:text-base text-gray-900 font-medium">{course}</p>
                          </div>
-                       ))}
-                     </div>
-                   ) : (
-                     <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 text-center">
-                       <p className="text-sm sm:text-base text-gray-500 italic">No courses specified</p>
-                     </div>
-                   )}
-                 </div>
+                       </div>
+                     ))}
+                   </div>
+                 ) : (
+                   <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 text-center">
+                     <p className="text-sm sm:text-base text-gray-500 italic">No courses specified</p>
+                   </div>
+                 )}
+                 </div> */}
 
-                                 {/* Future Sections - Resume & Video */}
-                 <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                {/* Additional Materials - All uploads in a single row */}
+                <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
                   <h4 className="text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center">
-                     <FaFileAlt className="text-blue-600 mr-2" />
-                     Additional Materials
-                   </h4>
-                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                     <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-                       <div className="flex items-center mb-3">
+                    <FaFileAlt className="text-blue-600 mr-2" />
+                    Additional Materials
+                  </h4>
+                  <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
+                    {/* Resume Upload */}
+                    <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 flex-1 flex flex-col items-center">
+                      <div className="flex items-center mb-3">
                         <div className="w-8 h-8 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
                           <FaFileAlt className="text-blue-600 text-base sm:text-xl" />
-                         </div>
-                         <div>
-                           <p className="text-sm font-medium text-gray-700">Resume</p>
-                           <p className="text-xs text-gray-500">PDF Document</p>
-                         </div>
-                       </div>
-                       <div className="bg-gray-50 rounded-lg p-3 text-center">
-                         <p className="text-xs text-gray-500">Not uploaded yet</p>
-                       </div>
-                     </div>
-                     <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-                       <div className="flex items-center mb-3">
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Resume</p>
+                          <p className="text-xs text-gray-500">PDF</p>
+                        </div>
+                      </div>
+                      {selectedCoach.resume ? (
+                        <a href={selectedCoach.resume} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">Download</a>
+                      ) : (
+                        <div className="bg-gray-50 rounded-lg p-3 text-center">
+                          <p className="text-xs text-gray-500">Not uploaded</p>
+                        </div>
+                      )}
+                    </div>
+                    {/* Driver License Upload */}
+                    <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 flex-1 flex flex-col items-center">
+                      <div className="flex items-center mb-3">
+                        <div className="w-8 h-8 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                          <FaFileAlt className="text-blue-600 text-base sm:text-xl" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Driver License</p>
+                          <p className="text-xs text-gray-500">PDF/JPG/PNG</p>
+                        </div>
+                      </div>
+                      {selectedCoach.driverLicenseFile ? (
+                        <a href={selectedCoach.driverLicenseFile} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">Download</a>
+                      ) : (
+                        <div className="bg-gray-50 rounded-lg p-3 text-center">
+                          <p className="text-xs text-gray-500">Not uploaded</p>
+                        </div>
+                      )}
+                    </div>
+                    {/* Introduction Video Upload */}
+                    <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 flex-1 flex flex-col items-center">
+                      <div className="flex items-center mb-3">
                         <div className="w-8 h-8 sm:w-12 sm:h-12 bg-red-100 rounded-lg flex items-center justify-center mr-3">
                           <FaPlay className="text-red-600 text-base sm:text-xl" />
-                         </div>
-                         <div>
-                           <p className="text-sm font-medium text-gray-700">Introduction Video</p>
-                           <p className="text-xs text-gray-500">MP4 Video</p>
-                         </div>
-                       </div>
-                       {/* YouTube-style video thumbnail */}
-                       <div className="relative bg-gray-200 rounded-lg overflow-hidden aspect-video">
-                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-10 h-10 sm:w-16 sm:h-16 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
-                            <FaPlay className="text-white text-base sm:text-xl ml-1" />
-                           </div>
-                         </div>
-                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 sm:p-3">
-                           <p className="text-white text-xs font-medium">Introduction Video</p>
-                           <p className="text-white/80 text-xs">Not uploaded yet</p>
-                         </div>
-                       </div>
-                     </div>
-                   </div>
-               </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Intro Video</p>
+                          <p className="text-xs text-gray-500">MP4</p>
+                        </div>
+                      </div>
+                      {selectedCoach.introVideo ? (
+                        <a href={selectedCoach.introVideo} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">Watch</a>
+                      ) : (
+                        <div className="bg-gray-50 rounded-lg p-3 text-center">
+                          <p className="text-xs text-gray-500">Not uploaded</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
               {/* Actions */}
               {selectedCoach.status === 'pending' && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
-import { FaEye, FaEyeSlash, FaSpinner, FaChevronDown, FaTimes, FaArrowLeft } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaSpinner, FaChevronDown, FaTimes, FaArrowLeft, FaFileAlt } from 'react-icons/fa';
 import ISO6391 from 'iso-639-1';
 import CustomPhoneInput from '../components/PhoneInput';
 import { coachStorage } from '../utils/coachStorage';
@@ -22,6 +22,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     experience: '',
     address: '',
     language: '',
+    driverLicenseNumber: '',
   });
 
   // Language selection state
@@ -435,6 +436,8 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     } else {
       setLanguageError('');
     }
+    // Driver license number is optional, but you can make it required if needed:
+    // if (!form.driverLicenseNumber) errors.push('Driver license number is required');
 
     // Field-specific validation
     const emailError = validateEmail(form.email);
@@ -446,8 +449,6 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     if (form.password !== form.confirmPassword) {
       errors.push('Passwords do not match');
     }
-
-    // Driver license validation removed - now optional
 
     return errors;
   };
@@ -474,6 +475,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       domain: form.domain,
       address: form.address,
       languages: selectedLanguages,
+      driverLicenseNumber: form.driverLicenseNumber,
       // Add files if they exist
       license: uploadedFiles.license,
       resume: uploadedFiles.resume,
@@ -598,11 +600,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 First Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-              <input 
-                name="firstName" 
-                placeholder="Enter your first name" 
-                value={form.firstName} 
-                onChange={handleChange}
+                <input 
+                  name="firstName" 
+                  placeholder="Enter your first name" 
+                  value={form.firstName} 
+                  onChange={handleChange}
                   className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
                 />
                 {isValidating && (
@@ -611,7 +613,45 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                   </div>
                 )}
               </div>
-              {/* lastFirstNameError is not defined, assuming it's a typo or intended to be emailError */}
+            </div>
+            <div>
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input 
+                  name="lastName" 
+                  placeholder="Enter your last name" 
+                  value={form.lastName} 
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+                {isValidating && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <FaSpinner className="animate-spin text-purple-500 text-xs sm:text-sm" />
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                Email Address <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input 
+                  name="email" 
+                  type="text"
+                  placeholder="Enter your email address" 
+                  value={form.email} 
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+                {isValidating && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <FaSpinner className="animate-spin text-purple-500 text-xs sm:text-sm" />
+                  </div>
+                )}
+              </div>
               {emailError && (
                 <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
@@ -619,33 +659,8 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 </div>
               )}
             </div>
-            <div>
-              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
-                Last Name <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-              <input 
-                name="lastName" 
-                placeholder="Enter your last name" 
-                value={form.lastName} 
-                onChange={handleChange}
-                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
-                />
-                {isValidating && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-purple-500 text-xs sm:text-sm" />
-                  </div>
-                )}
-              </div>
-              {/* lastLastNameError is not defined, assuming it's a typo or intended to be passwordError */}
-              {passwordError && (
-                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
-                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                  {passwordError}
-                </div>
-              )}
-            </div>
           </div>
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
@@ -750,6 +765,29 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
               )}
             </div>
           </div>
+
+                    {/* Passwords */}
+          {/* Driver License Number - moved below confirm password */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                Driver License Number
+              </label>
+              <div className="relative">
+                <input
+                  name="driverLicenseNumber"
+                  type="text"
+                  placeholder="Enter your driver license number"
+                  value={form.driverLicenseNumber}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+              </div>
+            </div>
+          </div>
+
+
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
@@ -883,123 +921,181 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
               </div>
 
-          {/* File Uploads */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              <div>
+          {/* File Uploads - All in a single row, optional */}
+          <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
+            {/* Resume Upload */}
+            <div className="flex-1">
               <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
-                Resume/CV <span className="text-red-500">*</span>
+                Resume/CV
               </label>
-                <div className="relative">
-                  {!uploadedFiles.resume ? (
+              <div className="relative">
+                {!uploadedFiles.resume ? (
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
-              <input 
-                type="file" 
-                name="resume" 
-                id="resume-upload"
+                    <input 
+                      type="file" 
+                      name="resume" 
+                      id="resume-upload"
                       accept=".pdf,.doc,.docx"
-                title="Upload your resume"
-                onChange={handleResumeChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        multiple={false}
-                      />
+                      title="Upload your resume"
+                      onChange={handleResumeChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      multiple={false}
+                    />
                     <div className="space-y-2 sm:space-y-3">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
                         <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div>
+                        </svg>
+                      </div>
+                      <div>
                         <p className="text-xs sm:text-sm font-medium text-gray-700">Upload Resume/CV</p>
                         <p className="text-xs text-gray-500">PDF, DOC, DOCX up to 10MB</p>
-                        </div>
                       </div>
                     </div>
-                  ) : (
+                  </div>
+                ) : (
                   <div className="relative">
                     <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
                       <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
                         <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
+                        </svg>
+                      </div>
                       <span className="text-xs sm:text-sm text-gray-700 flex-1 truncate">{uploadedFiles.resume.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeFile('resume')}
-                         className="text-red-500 hover:text-red-700 transition-colors duration-200"
-                         title="Remove resume"
-                         aria-label="Remove resume file"
-                        >
-                         <FaTimes className="text-xs sm:text-sm" />
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() => removeFile('resume')}
+                        className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                        title="Remove resume"
+                        aria-label="Remove resume file"
+                      >
+                        <FaTimes className="text-xs sm:text-sm" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {resumeError && (
+                  <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
+                    <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                    {resumeError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Driver License Upload */}
+            <div className="flex-1">
+              <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
+                Driver License
+              </label>
+              <div className="relative">
+                {!uploadedFiles.license ? (
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 cursor-pointer group">
+                    <input 
+                      type="file" 
+                      name="license" 
+                      id="license-upload"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      title="Upload your driver license"
+                      onChange={handleDriverLicenseChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      multiple={false}
+                    />
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-blue-200 transition-colors duration-300">
+                        <FaFileAlt className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Upload Driver License</p>
+                        <p className="text-xs text-gray-500">PDF, JPG, PNG up to 5MB</p>
                       </div>
                     </div>
-                  )}
-              {resumeError && (
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <FaFileAlt className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <span className="text-xs sm:text-sm text-gray-700 flex-1 truncate">{uploadedFiles.license.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile('license')}
+                        className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                        title="Remove license"
+                        aria-label="Remove license file"
+                      >
+                        <FaTimes className="text-xs sm:text-sm" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {driverLicenseError && (
                   <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
-                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                  {resumeError}
-                </div>
-              )}
+                    <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                    {driverLicenseError}
+                  </div>
+                )}
               </div>
-          </div>
+            </div>
 
-            <div>
+            {/* Introduction Video Upload */}
+            <div className="flex-1">
               <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
-                Introduction Video <span className="text-red-500">*</span>
+                Introduction Video
               </label>
-                <div className="relative">
-                  {!uploadedFiles.video ? (
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
-              <input 
-                type="file" 
+              <div className="relative">
+                {!uploadedFiles.video ? (
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-pink-400 hover:bg-pink-50 transition-all duration-300 cursor-pointer group">
+                    <input 
+                      type="file" 
                       name="video" 
-                      id="video-upload"
+                      id="introVideo-upload"
                       accept=".mp4,.avi,.mov,.wmv"
                       title="Upload your introduction video"
-                onChange={handleVideoChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        multiple={false}
-                      />
+                      onChange={handleVideoChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      multiple={false}
+                    />
                     <div className="space-y-2 sm:space-y-3">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <div>
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-pink-200 transition-colors duration-300">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M4 6v12a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2z" />
+                        </svg>
+                      </div>
+                      <div>
                         <p className="text-xs sm:text-sm font-medium text-gray-700">Upload Introduction Video</p>
                         <p className="text-xs text-gray-500">MP4, AVI, MOV, WMV up to 50MB</p>
-                        </div>
                       </div>
                     </div>
-                  ) : (
+                  </div>
+                ) : (
                   <div className="relative">
-                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                      <span className="text-xs sm:text-sm text-gray-700 flex-1 truncate">{uploadedFiles.video.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeFile('video')}
-                         className="text-red-500 hover:text-red-700 transition-colors duration-200"
-                         title="Remove video"
-                         aria-label="Remove introduction video"
-                        >
-                         <FaTimes className="text-xs sm:text-sm" />
-                        </button>
+                    <div className="flex items-center gap-3 p-3 bg-pink-50 rounded-lg border border-pink-200">
+                      <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M4 6v12a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2z" />
+                        </svg>
                       </div>
+                      <span className="text-xs sm:text-sm text-gray-700 flex-1 truncate">{uploadedFiles.video.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile('video')}
+                        className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                        title="Remove video"
+                        aria-label="Remove video file"
+                      >
+                        <FaTimes className="text-xs sm:text-sm" />
+                      </button>
                     </div>
-                  )}
-              {videoError && (
+                  </div>
+                )}
+                {videoError && (
                   <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
-                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                  {videoError}
-                </div>
-              )}
+                    <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                    {videoError}
+                  </div>
+                )}
               </div>
             </div>
           </div>

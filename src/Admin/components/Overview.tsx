@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaUsers, FaBook, FaUserPlus, FaEye, FaClock, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { getAdminStats } from '../../api/admin';
 
@@ -22,6 +23,7 @@ interface DashboardStats {
 }
 
 const Overview: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -218,19 +220,31 @@ const Overview: React.FC = () => {
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+          <button
+            className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => navigate('/admin/dashboard?tab=coach-approval&filter=pending')}
+          >
             <FaClock className="text-sm" />
             <span className="font-medium">Review Pending Coaches</span>
           </button>
-          <button className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors">
+          <button
+            className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors"
+            onClick={() => navigate('/admin/dashboard?tab=course-approval&filter=pending')}
+          >
             <FaBook className="text-sm" />
             <span className="font-medium">Review Pending Courses</span>
           </button>
-          <button className="flex items-center justify-center space-x-2 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors">
+          <button
+            className="flex items-center justify-center space-x-2 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+            onClick={() => navigate('/admin/dashboard?tab=coach-approval&filter=all')}
+          >
             <FaUsers className="text-sm" />
             <span className="font-medium">View All Coaches</span>
           </button>
-          <button className="flex items-center justify-center space-x-2 bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+          <button
+            className="flex items-center justify-center space-x-2 bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+            onClick={() => navigate('/admin/dashboard?tab=course-approval&filter=all')}
+          >
             <FaEye className="text-sm" />
             <span className="font-medium">View All Courses</span>
           </button>
