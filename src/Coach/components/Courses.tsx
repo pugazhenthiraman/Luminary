@@ -11,6 +11,7 @@ import {
   FaTimes
 } from 'react-icons/fa';
 import CreateCourseForm from './CreateCourseForm';
+import axiosInstance from '../../api/axiosInstance';
 
 interface TimeSlot {
   id: string;
@@ -197,31 +198,47 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
   };
 
   const handleCreateCourse = async (courseData: any) => {
-    const category = courseData.program.charAt(0).toUpperCase() + courseData.program.slice(1);
-    
-    // Create a new course object with the form data
+    // Build multipart form data per backend contract
+    const formData = new FormData();
+    formData.append('title', courseData.title);
+    formData.append('description', courseData.description);
+    formData.append('benefits', courseData.benefits);
+    formData.append('category', courseData.category);
+    formData.append('program', courseData.program);
+    formData.append('credits', String(courseData.credits));
+    formData.append('timezone', courseData.timezone);
+    // Optional fields
+    formData.append('courseDuration', '12 weeks');
+    formData.append('weeklySchedule', JSON.stringify(courseData.weeklySchedule || []));
+    if (courseData.thumbnail instanceof File) {
+      formData.append('thumbnail', courseData.thumbnail);
+    }
+    if (courseData.introVideo instanceof File) {
+      formData.append('introVideo', courseData.introVideo);
+    }
+
+    const resp = await axiosInstance.post('/courses', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    const created = resp.data?.data || resp.data;
+    // Update local list with server response
     const newCourse: Course = {
-      id: Date.now(), // Simple ID generation
-      title: courseData.title,
-      thumbnail: courseData.thumbnail ? URL.createObjectURL(courseData.thumbnail) : generateTextThumbnail(courseData.title),
+      id: created.id,
+      title: created.title,
+      thumbnail: created.thumbnail || generateTextThumbnail(created.title),
       students: 0,
       rating: 0,
-      price: courseData.credits,
-      status: 'active',
-      category: category,
-      duration: '12 weeks',
-      lessons: 24,
-      weeklySchedule: courseData.weeklySchedule,
-      videoThumbnail: courseData.videoThumbnail || '',
-      hasVideo: !!courseData.videoThumbnail
+      price: Number(created.creditCost || courseData.credits || 0),
+      status: created.isActive ? 'active' : 'inactive',
+      category: created.category,
+      duration: created.courseDuration || '—',
+      lessons: 0,
+      weeklySchedule: created.weeklySchedule || courseData.weeklySchedule,
+      videoThumbnail: '',
+      hasVideo: Boolean(created.videoUrl)
     };
 
-    // Save to localStorage for shared state
-    const existingCourses = JSON.parse(localStorage.getItem('sharedCourses') || '[]');
-    const updatedCourses = [...existingCourses, newCourse];
-    localStorage.setItem('sharedCourses', JSON.stringify(updatedCourses));
-
-    // Add the new course to the local state
     setLocalCourses(prev => [newCourse, ...prev]);
     setShowCreateForm(false);
   };

@@ -15,27 +15,33 @@ export const register = (data, userType = "parent") => {
   if (userType === "coach") {
     console.log('Creating FormData for coach registration');
     const formData = new FormData();
-    
-    // Add all text fields
-    Object.keys(data).forEach(key => {
+
+    // Add non-file fields only
+    Object.keys(data).forEach((key) => {
+      if (key === 'license' || key === 'resume' || key === 'video') {
+        return; // skip file fields here; append them explicitly below
+      }
+      if (data[key] === undefined || data[key] === null) {
+        return; // skip null/undefined
+      }
       if (key === 'languages') {
-        // Handle languages array - send as JSON string for backend to parse
         formData.append('languages', JSON.stringify(data[key]));
       } else {
         formData.append(key, data[key]);
       }
     });
-    
-    // Add files if they exist
-    if (data.license) {
+
+    // Append file fields once if present
+    if (data.license instanceof File) {
       formData.append('license', data.license);
     }
-    if (data.resume) {
+    if (data.resume instanceof File) {
       formData.append('resume', data.resume);
     }
-    if (data.video) {
+    if (data.video instanceof File) {
       formData.append('video', data.video);
     }
+
     console.log('Calling /auth/register/coach endpoint');
     console.log('=== END auth.js register DEBUG ===');
     return axiosInstance.post("/auth/register/coach", formData, {

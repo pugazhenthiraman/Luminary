@@ -9,6 +9,7 @@ import Enrollments from './components/Enrollments';
 import Schedule from './components/Schedule';
 import Profile from './components/Profile';
 import { mockData } from './data/mockData';
+import { getCourses as getPublicCourses } from '../api/courses';
 
 interface ParentUser {
   id: string;
@@ -34,6 +35,7 @@ const ParentDashboard: React.FC = () => {
   const [parentData, setParentData] = useState<ParentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [availableCourses, setAvailableCourses] = useState<any[]>(mockData.verifiedCourses);
   const navigate = useNavigate();
   
   // Use Zustand auth store
@@ -84,6 +86,36 @@ const ParentDashboard: React.FC = () => {
     localStorage.setItem('parentActiveTab', activeTab);
   }, [activeTab]);
 
+  // Load approved public courses from backend
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getPublicCourses({ page: 1, limit: 50, sortBy: 'createdAt', sortOrder: 'desc' });
+        const apiCourses = (res.data?.data?.courses || []).map((c: any) => ({
+          id: String(c.id),
+          title: c.title,
+          description: c.description || '',
+          benefits: c.benefits || '',
+          category: c.category,
+          program: c.program || 'morning',
+          credits: Number(c.creditCost || 0),
+          timezone: c.timezone || 'UTC',
+          weeklySchedule: Array.isArray(c.weeklySchedule) ? c.weeklySchedule : [],
+          thumbnail: c.thumbnail || '',
+          introVideo: c.videoUrl || '',
+          coach: {
+            id: String(c.coach.id),
+            name: c.coach.name,
+            avatar: c.coach.avatar || ''
+          }
+        }));
+        setAvailableCourses(apiCourses);
+      } catch (e) {
+        // Keep mock data on failure
+      }
+    })();
+  }, []);
+
   // Show loading while checking authentication
   if (isLoading) {
     return (
@@ -106,41 +138,36 @@ const ParentDashboard: React.FC = () => {
       case 'overview':
         return (
           <Overview
-            parentData={parentData!}
-            enrollments={mockData.enrollments}
-            upcomingSessions={mockData.upcomingSessions}
+            parentData={parentData as any}
+            enrollments={mockData.enrollments as any}
+            upcomingSessions={mockData.upcomingSessions as any}
             onTabChange={handleTabChange}
           />
         );
       case 'courses':
-        return (
-          <Courses
-            courses={mockData.verifiedCourses}
-            parentData={parentData!}
-          />
-        );
+        return <Courses courses={availableCourses as any} parentData={parentData!} />;
       case 'enrollments':
         return (
           <Enrollments
-            enrollments={mockData.enrollments}
-            parentData={parentData!}
+            enrollments={mockData.enrollments as any}
+            parentData={parentData as any}
           />
         );
       case 'schedule':
         return (
           <Schedule
-            schedule={mockData.schedule}
-            parentData={parentData!}
+            schedule={mockData.schedule as any}
+            parentData={parentData as any}
           />
         );
       case 'profile':
-        return <Profile parentData={parentData!} />;
+        return <Profile parentData={parentData as any} />;
       default:
         return (
           <Overview
-            parentData={parentData!}
-            enrollments={mockData.enrollments}
-            upcomingSessions={mockData.upcomingSessions}
+            parentData={parentData as any}
+            enrollments={mockData.enrollments as any}
+            upcomingSessions={mockData.upcomingSessions as any}
             onTabChange={handleTabChange}
           />
         );
@@ -150,7 +177,7 @@ const ParentDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <Header
-        user={parentData}
+        user={parentData as any}
         onLogout={handleLogout}
         onToggleSidebar={handleToggleSidebar}
       />

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { getCourses as getAdminCourses, approveCourse as approveAdminCourse, rejectCourse as rejectAdminCourse } from '../../api/admin';
 import { 
   FaEye, 
   FaCheck, 
@@ -19,7 +20,7 @@ import {
 } from 'react-icons/fa';
 
 interface CourseSubmission {
-  id: string;
+  id: number;
   coachName: string;
   coachEmail: string;
   coachPhoto: string;
@@ -52,74 +53,85 @@ const CourseApproval: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'coach' | 'category'>('date');
-  const [isLoading, setIsLoading] = useState(false); // Added for loading state
+  const [isLoading, setIsLoading] = useState(false); // loading state
   const [showAdvancedFilterModal, setShowAdvancedFilterModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All Prices');
   const [priceSort, setPriceSort] = useState<'none' | 'asc' | 'desc'>('none');
+  const [adminNotes, setAdminNotes] = useState('');
 
-  // Mock data - replace with actual API calls
-  const [courses, setCourses] = useState<CourseSubmission[]>([
-    {
-      id: '1',
-      coachName: 'Sarah Johnson',
-      coachEmail: 'sarah.johnson@email.com',
-      coachPhoto: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-      courseTitle: 'Advanced JavaScript Programming',
-      courseDescription: 'Master modern JavaScript concepts including ES6+, async programming, and advanced patterns. Perfect for developers looking to level up their skills.',
-      category: 'Technology & STEM',
-      price: 85,
-      duration: '12 weeks',
-      lessons: 24,
-      thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=240&fit=crop',
-      videoUrl: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-      weeklySchedule: [
-        { day: 'MONDAYS', isActive: true, timeSlots: [{ startTime: '09:00', endTime: '10:00' }] },
-        { day: 'WEDNESDAYS', isActive: true, timeSlots: [{ startTime: '14:00', endTime: '15:00' }] },
-        { day: 'FRIDAYS', isActive: true, timeSlots: [{ startTime: '16:00', endTime: '17:00' }] }
-      ],
-      submittedAt: '2024-01-15T10:30:00Z',
-      status: 'pending'
-    },
-    {
-      id: '2',
-      coachName: 'Michael Chen',
-      coachEmail: 'michael.chen@email.com',
-      coachPhoto: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-      courseTitle: 'Creative Writing Workshop',
-      courseDescription: 'Develop your creative writing skills through interactive workshops, peer feedback, and expert guidance.',
-      category: 'Creative Arts',
-      price: 65,
-      duration: '8 weeks',
-      lessons: 16,
-      thumbnail: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400&h=240&fit=crop',
-      weeklySchedule: [
-        { day: 'TUESDAYS', isActive: true, timeSlots: [{ startTime: '18:00', endTime: '19:30' }] },
-        { day: 'THURSDAYS', isActive: true, timeSlots: [{ startTime: '18:00', endTime: '19:30' }] }
-      ],
-      submittedAt: '2024-01-14T15:45:00Z',
-      status: 'approved'
-    },
-    {
-      id: '3',
-      coachName: 'Priya Singh',
-      coachEmail: 'priya.singh@email.com',
-      coachPhoto: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=150&h=150&fit=crop&crop=face',
-      courseTitle: 'Mindfulness for Kids',
-      courseDescription: 'A fun and interactive course to help children develop mindfulness and emotional intelligence.',
-      category: 'Mindfulness & Wellbeing',
-      price: 40,
-      duration: '6 weeks',
-      lessons: 12,
-      thumbnail: 'https://images.unsplash.com/photo-1464983953574-0892a716854b?w=400&h=240&fit=crop',
-      weeklySchedule: [
-        { day: 'SATURDAYS', isActive: true, timeSlots: [{ startTime: '10:00', endTime: '11:00' }] }
-      ],
-      submittedAt: '2024-01-10T09:00:00Z',
-      status: 'rejected',
-      rejectionReason: 'Course content needs more detail.'
+  // Data from backend
+  const [courses, setCourses] = useState<CourseSubmission[]>([]);
+
+  const mapPriceRange = (label: string) => {
+    switch (label) {
+      case 'Free':
+        return '0-0';
+      case '$0 - $50':
+        return '0-50';
+      case '$50 - $100':
+        return '50-100';
+      case '$100 - $200':
+        return '100-200';
+      case '$200+':
+        return '200-999999';
+      default:
+        return '';
     }
-  ]);
+  };
+
+  const computeSort = () => {
+    if (priceSort !== 'none') {
+      return { sortBy: 'price', sortOrder: priceSort } as const;
+    }
+    if (sortBy === 'coach') return { sortBy: 'coachName', sortOrder: 'desc' as const };
+    if (sortBy === 'category') return { sortBy: 'category', sortOrder: 'desc' as const };
+    return { sortBy: 'submittedAt', sortOrder: 'desc' as const };
+  };
+
+  const loadCourses = async () => {
+    setIsLoading(true);
+    try {
+      const params: any = {
+        status: filterStatus,
+        search: searchTerm,
+        category: selectedCategory !== 'All Categories' ? selectedCategory : undefined,
+        priceRange: mapPriceRange(selectedPriceRange) || undefined,
+        page: 1,
+        limit: 50,
+        ...computeSort(),
+      };
+      const res = await getAdminCourses(params);
+      const list: CourseSubmission[] = (res.data?.data?.courses || []).map((c: any) => ({
+        id: c.id,
+        coachName: c.coachName,
+        coachEmail: c.coachEmail,
+        coachPhoto: c.coachPhoto,
+        courseTitle: c.courseTitle,
+        courseDescription: c.courseDescription,
+        category: c.category,
+        price: c.price,
+        duration: String(c.duration ?? ''),
+        lessons: c.lessons || 0,
+        thumbnail: c.thumbnail || '',
+        videoUrl: c.videoUrl || '',
+        weeklySchedule: c.weeklySchedule || [],
+        submittedAt: c.submittedAt,
+        status: c.status,
+        rejectionReason: c.rejectionReason,
+      }));
+      setCourses(list);
+    } catch (err) {
+      console.error('Failed to load courses', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterStatus, searchTerm, selectedCategory, selectedPriceRange, priceSort, sortBy]);
 
   const filteredCourses = courses.filter(course => {
     const matchesStatus = filterStatus === 'all' || course.status === filterStatus;
@@ -139,20 +151,32 @@ const CourseApproval: React.FC = () => {
     sortedCourses.sort((a, b) => b.price - a.price);
   }
 
-  const handleApprove = (courseId: string) => {
-    setCourses(prev => prev.map(course => 
-      course.id === courseId ? { ...course, status: 'approved' as const } : course
-    ));
-    setShowModal(false);
+  const handleApprove = async (courseId: number) => {
+    setIsLoading(true);
+    try {
+      await approveAdminCourse(courseId, adminNotes || undefined);
+      setShowModal(false);
+      await loadCourses();
+    } catch (error) {
+      console.error('Error approving course:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleReject = (courseId: string, reason: string) => {
-    setCourses(prev => prev.map(course => 
-      course.id === courseId ? { ...course, status: 'rejected' as const, rejectionReason: reason } : course
-    ));
-    setShowModal(false);
-    setShowRejectModal(false);
-    setRejectReason('');
+  const handleReject = async (courseId: number, reason: string) => {
+    setIsLoading(true);
+    try {
+      await rejectAdminCourse(courseId, reason, adminNotes || undefined);
+      setShowModal(false);
+      setShowRejectModal(false);
+      setRejectReason('');
+      await loadCourses();
+    } catch (error) {
+      console.error('Error rejecting course:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRejectClick = (course: CourseSubmission) => {
@@ -179,12 +203,10 @@ const CourseApproval: React.FC = () => {
     }
   };
 
-  const confirmReject = async (courseId: string) => {
+  const confirmReject = async (courseId: number) => {
     setIsLoading(true);
     try {
-      // Simulate an API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); 
-      handleReject(courseId, rejectReason);
+      await handleReject(courseId, rejectReason);
     } catch (error) {
       console.error("Error rejecting course:", error);
     } finally {
@@ -354,11 +376,17 @@ const CourseApproval: React.FC = () => {
           <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200">
             {/* Course Thumbnail */}
             <div className="relative">
-              <img
-                src={course.thumbnail}
-                alt={course.courseTitle}
-                className="w-full h-40 sm:h-48 object-cover"
-              />
+              {course.thumbnail ? (
+                <img
+                  src={course.thumbnail}
+                  alt={course.courseTitle}
+                  className="w-full h-40 sm:h-48 object-cover"
+                />
+              ) : (
+                <div className="w-full h-40 sm:h-48 bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
+                  No thumbnail
+                </div>
+              )}
               <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
                 {getStatusBadge(course.status)}
               </div>
@@ -384,11 +412,17 @@ const CourseApproval: React.FC = () => {
             <div className="p-4 sm:p-6">
               {/* Coach Info */}
               <div className="flex items-center space-x-3 mb-3 sm:mb-4">
-                <img
-                  src={course.coachPhoto}
-                  alt={course.coachName}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
-                />
+                {course.coachPhoto ? (
+                  <img
+                    src={course.coachPhoto}
+                    alt={course.coachName}
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs">
+                    {(course.coachName || '?').charAt(0)}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{course.coachName}</h3>
                   <p className="text-xs sm:text-sm text-gray-500 truncate">{course.coachEmail}</p>
@@ -443,7 +477,7 @@ const CourseApproval: React.FC = () => {
                   
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => setSelectedCourse(course)}
+                      onClick={() => { setSelectedCourse(course); setShowModal(true); }}
                       className="text-blue-600 hover:text-blue-800 p-1.5 sm:p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
                       title="View Details"
                     >
@@ -510,11 +544,17 @@ const CourseApproval: React.FC = () => {
                 <div className="space-y-4 sm:space-y-6">
                   {/* Course Thumbnail */}
                   <div className="relative">
+                  {selectedCourse.thumbnail ? (
                     <img
                       src={selectedCourse.thumbnail}
                       alt={selectedCourse.courseTitle}
                       className="w-full h-48 sm:h-64 object-cover rounded-lg"
                     />
+                  ) : (
+                    <div className="w-full h-48 sm:h-64 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm">
+                      No thumbnail
+                    </div>
+                  )}
                     {selectedCourse.videoUrl && (
                       <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center">
                         <button 
@@ -562,11 +602,17 @@ const CourseApproval: React.FC = () => {
                   <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
                     <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Coach Information</h4>
                     <div className="flex items-center space-x-3">
-                      <img
-                        src={selectedCourse.coachPhoto}
-                        alt={selectedCourse.coachName}
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
-                      />
+                      {selectedCourse.coachPhoto ? (
+                        <img
+                          src={selectedCourse.coachPhoto}
+                          alt={selectedCourse.coachName}
+                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm">
+                          {(selectedCourse.coachName || '?').charAt(0)}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <h5 className="font-medium text-gray-900 text-sm sm:text-base truncate">{selectedCourse.coachName}</h5>
                         <p className="text-xs sm:text-sm text-gray-500 truncate">{selectedCourse.coachEmail}</p>
@@ -627,7 +673,6 @@ const CourseApproval: React.FC = () => {
                   <button
                     onClick={() => {
                       handleApprove(selectedCourse.id);
-                      setShowModal(false); // Close modal after approval
                     }}
                     disabled={isLoading}
                     className="w-full sm:w-40 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 px-5 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 font-medium text-sm shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
@@ -672,6 +717,8 @@ const CourseApproval: React.FC = () => {
                     placeholder="Add notes or feedback about this course..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
                     rows={3}
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
                   />
                   <div className="flex justify-end">
                     <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm">

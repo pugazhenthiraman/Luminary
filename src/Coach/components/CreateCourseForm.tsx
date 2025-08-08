@@ -37,39 +37,41 @@ interface DaySchedule {
   isActive: boolean;
   timeSlots: TimeSlot[];
 }
-
-interface CourseFormData {
-  title: string;
-  description: string;
-  benefits: string;
-  category: string;
-  program: 'morning' | 'afternoon' | 'evening';
-  credits: number;
-  timezone: string;
-  introVideo?: File;
-  weeklySchedule: DaySchedule[];
-  thumbnail?: File;
-}
-
-const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, initialData, isEditing = false }) => {
-  const [formData, setFormData] = useState<CourseFormData>({
-    title: initialData?.title || '',
-    description: initialData?.description || '',
-    benefits: initialData?.benefits || '',
-    category: initialData?.category || '',
-    program: initialData?.program || 'morning',
-    credits: initialData?.credits || 0,
-    timezone: initialData?.timezone || '',
-    weeklySchedule: initialData?.weeklySchedule || [
-      { day: 'SUNDAYS', isActive: false, timeSlots: [] },
-      { day: 'MONDAYS', isActive: false, timeSlots: [] },
-      { day: 'TUESDAYS', isActive: false, timeSlots: [] },
-      { day: 'WEDNESDAYS', isActive: false, timeSlots: [] },
-      { day: 'THURSDAYS', isActive: false, timeSlots: [] },
-      { day: 'FRIDAYS', isActive: false, timeSlots: [] },
-      { day: 'SATURDAYS', isActive: false, timeSlots: [] }
-    ]
-  });
+ 
+ interface CourseFormData {
+   title: string;
+   description: string;
+   benefits: string;
+   category: string;
+   program: 'morning' | 'afternoon' | 'evening';
+   credits: number;
+   timezone: string;
+   introVideo?: File;
+   weeklySchedule: DaySchedule[];
+   thumbnail?: File;
+   courseDuration?: string;
+ }
+ 
+ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, initialData, isEditing = false }) => {
+   const [formData, setFormData] = useState<CourseFormData>({
+     title: initialData?.title || '',
+     description: initialData?.description || '',
+     benefits: initialData?.benefits || '',
+     category: initialData?.category || '',
+     program: initialData?.program || 'morning',
+     credits: initialData?.credits || 0,
+     timezone: initialData?.timezone || '',
+     courseDuration: initialData?.courseDuration || '',
+     weeklySchedule: initialData?.weeklySchedule || [
+       { day: 'SUNDAYS', isActive: false, timeSlots: [] },
+       { day: 'MONDAYS', isActive: false, timeSlots: [] },
+       { day: 'TUESDAYS', isActive: false, timeSlots: [] },
+       { day: 'WEDNESDAYS', isActive: false, timeSlots: [] },
+       { day: 'THURSDAYS', isActive: false, timeSlots: [] },
+       { day: 'FRIDAYS', isActive: false, timeSlots: [] },
+       { day: 'SATURDAYS', isActive: false, timeSlots: [] }
+     ]
+   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -597,6 +599,8 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
     }
   };
 
+ 
+
     return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9998] p-1 sm:p-2 lg:p-4">
       <div ref={modalContainerRef} className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-2xl max-w-full sm:max-w-4xl lg:max-w-5xl w-full max-h-[98vh] sm:max-h-[95vh] overflow-visible border border-gray-100">
@@ -730,6 +734,8 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                       </div>
                     )}
                   </div>
+
+                  
                 </div>
 
                 {/* Right Column */}
@@ -903,8 +909,22 @@ const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, 
                     )}
                   </div>
 
+                  {/* Course Duration (optional) */}
+                  <div className="group">
+                    <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
+                      <span>Course Duration</span>
+                      <span className="text-gray-500 text-xs font-medium">Optional</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.courseDuration || ''}
+                      onChange={(e) => handleInputChange('courseDuration', e.target.value)}
+                      className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white"
+                      placeholder="e.g., 12 weeks"
+                    />
+                  </div>
 
-                
+
                 </div>
               </div>
             </div>

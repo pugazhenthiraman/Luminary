@@ -796,11 +796,17 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
           >
             {/* Course Thumbnail */}
             <div className="relative h-40 sm:h-48 bg-gray-200">
-              <img
-                src={course.thumbnail}
-                alt={course.title}
-                className="w-full h-full object-cover"
-              />
+              {course.thumbnail ? (
+                <img
+                  src={course.thumbnail}
+                  alt={course.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
+                  No thumbnail
+                </div>
+              )}
               {course.introVideo && (
                 <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
                   <div className="bg-black bg-opacity-50 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
@@ -818,11 +824,17 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                 {course.title}
               </h3>
               <div className="flex items-center space-x-2 mb-3">
-                <img
-                  src={course.coach.avatar}
-                  alt={course.coach.name}
-                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full"
-                />
+                {course.coach.avatar ? (
+                  <img
+                    src={course.coach.avatar}
+                    alt={course.coach.name}
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full"
+                  />
+                ) : (
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-300 flex items-center justify-center text-[10px] sm:text-xs text-gray-700">
+                    {course.coach.name.charAt(0)}
+                  </div>
+                )}
                 <span className="text-xs sm:text-sm text-gray-600 truncate">{course.coach.name}</span>
                 <button
                   onClick={() => handleViewCoachDetails(course.coach.id)}
