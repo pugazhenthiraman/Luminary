@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
 import { FaCheck, FaTimes, FaEye, FaSignOutAlt, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaClock, FaCheckCircle, FaTimesCircle, FaSpinner, FaGlobe, FaPlay, FaFileAlt, FaBars } from 'react-icons/fa';
+import Avatar from '../components/Avatar';
 import { coachStorage, CoachData } from '../utils/coachStorage';
 import AdminSidebar from './components/Sidebar';
 import Overview from './components/Overview';
@@ -340,7 +341,7 @@ console.log('Loaded coaches:', normalized);
             {/* Coaches List - Mobile Responsive */}
             <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
               <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Coach Applications</h2>
+                <h2 className="text-lg font-semibold text-gray-900"></h2>
               </div>
               
               {/* Mobile Card View */}
@@ -355,9 +356,11 @@ console.log('Loaded coaches:', normalized);
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0 h-10 w-10">
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <FaUser className="text-blue-600" />
-              </div>
+              <Avatar
+                name={`${coach.firstName} ${coach.lastName}`}
+                size={40}
+                className="h-10 w-10"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-gray-900 truncate">
@@ -464,9 +467,11 @@ console.log('Loaded coaches:', normalized);
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="flex items-center">
             <div className="flex-shrink-0 h-10 w-10">
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <FaUser className="text-blue-600" />
-              </div>
+              <Avatar
+                name={`${coach.firstName} ${coach.lastName}`}
+                size={40}
+                className="h-10 w-10"
+              />
             </div>
             <div className="ml-4">
               <div className="text-sm font-medium text-gray-900">

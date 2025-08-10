@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Avatar from '../../components/Avatar';
 import { 
   FaUser, 
   FaEnvelope, 
@@ -398,18 +399,25 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
       {/* Header */}
       <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="mb-4 sm:mb-0">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Profile Settings
-            </h1>
-            <p className="text-gray-600 mt-1 text-sm sm:text-base">
-            Manage your account information and preferences.
-          </p>
-        </div>
+          <div className="mb-4 sm:mb-0 flex items-center gap-4">
+            <Avatar
+              name={`${parentData.firstName} ${parentData.lastName}`}
+              imageUrl={parentData.avatar}
+              size={48}
+            />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Profile Settings
+              </h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">
+                Manage your account information and preferences.
+              </p>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
-          <span className="bg-indigo-100 text-indigo-800 text-sm font-medium px-3 py-1 rounded-full">
-            Parent Account
-          </span>
+            <span className="bg-indigo-100 text-indigo-800 text-sm font-medium px-3 py-1 rounded-full">
+              Parent Account
+            </span>
             <button 
               onClick={addMockChildren}
               className="flex items-center space-x-2 px-3 py-1 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors duration-200 text-xs sm:text-sm"

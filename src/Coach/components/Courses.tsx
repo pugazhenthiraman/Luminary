@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import Avatar from '../../components/Avatar';
 import { 
   FaPlus, 
   FaSearch, 
@@ -12,6 +13,7 @@ import {
 } from 'react-icons/fa';
 import CreateCourseForm from './CreateCourseForm';
 import axiosInstance from '../../api/axiosInstance';
+import { getCourseById } from '../../api/courses';
 
 interface TimeSlot {
   id: string;
@@ -29,7 +31,7 @@ interface DaySchedule {
 }
 
 interface Course {
-  id: number;
+  id: string | number;
   title: string;
   thumbnail: string;
   students: number;
@@ -54,6 +56,9 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [localCourses, setLocalCourses] = useState<Course[]>(courses);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [selectedCourseDetails, setSelectedCourseDetails] = useState<any | null>(null);
   
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
@@ -119,6 +124,11 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       return true;
     });
   }, [localCourses, selectedCategory, selectedStatus, selectedPriceRange, selectedRating]);
+
+  // Sync local courses when parent prop changes (API updates)
+  useEffect(() => {
+    setLocalCourses(courses || []);
+  }, [courses]);
 
   // Load shared courses from localStorage on component mount
   useEffect(() => {
@@ -332,6 +342,21 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     }
   };
 
+  const handleViewDetails = async (courseId: string | number) => {
+    try {
+      setDetailsLoading(true);
+      setShowDetailsModal(true);
+      const resp = await getCourseById(String(courseId));
+      const data = resp.data?.data || resp.data;
+      setSelectedCourseDetails(data);
+    } catch (e) {
+      console.error('Failed to load course details:', e);
+      setSelectedCourseDetails(null);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 lg:space-y-8 animate-in fade-in duration-500">
       {/* Header */}
@@ -393,11 +418,22 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
         {filteredCourses.map((course) => (
           <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200 animate-in slide-in-from-bottom duration-500">
             <div className="relative">
-              <img
-                src={course.thumbnail}
-                alt={course.title}
-                className="w-full h-32 sm:h-40 lg:h-48 object-cover"
-              />
+              {/* Thumbnail or Fallback */}
+              {course.thumbnail && course.thumbnail !== "" ? (
+                <img
+                  src={course.thumbnail}
+                  alt={course.title}
+                  className="w-full h-32 sm:h-40 lg:h-48 object-cover"
+                />
+              ) : (
+                <div className="w-full h-32 sm:h-40 lg:h-48 flex items-center justify-center">
+                  <Avatar
+                    name={course.title}
+                    size={64}
+                    className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24"
+                  />
+                </div>
+              )}
               <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                   course.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -496,6 +532,14 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                 >
                   <FaEdit className="text-xs sm:text-sm" />
                   <span className="hidden sm:inline">Edit</span>
+                </button>
+                <button 
+                  onClick={() => handleViewDetails(course.id)}
+                  className="flex-1 flex items-center justify-center space-x-2 bg-blue-50 text-blue-600 py-2 px-3 rounded-lg hover:bg-blue-100 transition-colors duration-200 text-xs sm:text-sm font-medium"
+                  title="View details"
+                >
+                  <FaSort className="text-xs sm:text-sm" />
+                  <span className="hidden sm:inline">View</span>
                 </button>
                 <button 
                   onClick={() => handleAddVideo(course)}
@@ -715,6 +759,84 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                   Apply
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Course Details Modal */}
+      {showDetailsModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">Course Details</h3>
+              <button
+                onClick={() => { setShowDetailsModal(false); setSelectedCourseDetails(null); }}
+                className="w-8 h-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                aria-label="Close details"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6">
+              {detailsLoading ? (
+                <div className="flex items-center justify-center py-10 text-gray-500">Loading...</div>
+              ) : selectedCourseDetails ? (
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-4">
+                    <img src={selectedCourseDetails.thumbnail || selectedCourseDetails.imageUrl} alt={selectedCourseDetails.title} className="w-32 h-20 object-cover rounded border" />
+                    <div>
+                      <h4 className="text-xl font-semibold text-gray-900">{selectedCourseDetails.title}</h4>
+                      <div className="text-sm text-gray-600 mt-1">Status: <span className="font-medium">{selectedCourseDetails.isActive ? 'active' : (selectedCourseDetails.status || 'inactive')}</span></div>
+                      <div className="text-sm text-gray-600">Category: <span className="font-medium">{selectedCourseDetails.category || '—'}</span></div>
+                      <div className="text-sm text-gray-600">Credits: <span className="font-medium">{selectedCourseDetails.creditCost ?? selectedCourseDetails.price ?? 0}</span></div>
+                      <div className="text-sm text-gray-600">Duration: <span className="font-medium">{selectedCourseDetails.courseDuration || selectedCourseDetails.duration || '—'}</span></div>
+                    </div>
+                  </div>
+                  {selectedCourseDetails.description && (
+                    <div>
+                      <h5 className="font-semibold text-gray-800 mb-1">Description</h5>
+                      <p className="text-gray-700 text-sm whitespace-pre-line">{selectedCourseDetails.description}</p>
+                    </div>
+                  )}
+                  {selectedCourseDetails.benefits && (
+                    <div>
+                      <h5 className="font-semibold text-gray-800 mb-1">Benefits</h5>
+                      <p className="text-gray-700 text-sm whitespace-pre-line">{selectedCourseDetails.benefits}</p>
+                    </div>
+                  )}
+                  {selectedCourseDetails.coach && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-3 bg-gray-50 rounded border">
+                        <div className="text-xs uppercase text-gray-500">Coach</div>
+                        <div className="text-sm text-gray-800 font-medium">{selectedCourseDetails.coach.firstName} {selectedCourseDetails.coach.lastName}</div>
+                        <div className="text-xs text-gray-600">{selectedCourseDetails.coach.email}</div>
+                      </div>
+                    </div>
+                  )}
+                  {(selectedCourseDetails.sessions?.length || selectedCourseDetails.weeklySchedule?.length) && (
+                    <div>
+                      <h5 className="font-semibold text-gray-800 mb-2">Schedule</h5>
+                      <div className="space-y-1 text-sm text-gray-700">
+                        {selectedCourseDetails.sessions?.map((s: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between">
+                            <span>{s.day || s.date}</span>
+                            <span>{s.startTime} - {s.endTime}</span>
+                          </div>
+                        ))}
+                        {!selectedCourseDetails.sessions && selectedCourseDetails.weeklySchedule?.filter((d: any) => d.isActive).map((d: any) => (
+                          <div key={d.day} className="flex items-center justify-between">
+                            <span>{d.day}</span>
+                            <span>{d.timeSlots?.[0]?.startTime || ''}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-gray-500">No details available.</div>
+              )}
             </div>
           </div>
         </div>

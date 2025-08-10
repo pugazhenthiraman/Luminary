@@ -27,6 +27,7 @@ import {
   FaQuestionCircle,
   FaChevronRight
 } from 'react-icons/fa';
+  import CourseCard from "../../components/CourseCard";
 import { Course } from '../data/mockData';
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
 import { coachStorage, CoachData } from '../../utils/coachStorage';
@@ -789,121 +790,27 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
       {/* Courses Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {filteredCourses.map((course, index) => (
-          <div 
-            key={course.id} 
+          <div
+            key={course.id}
             className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden hover:scale-[1.02] animate-in slide-in-from-bottom duration-500"
             style={{ animationDelay: `${index * 100}ms` }}
           >
             {/* Course Thumbnail */}
-            <div className="relative h-40 sm:h-48 bg-gray-200">
-              {course.thumbnail ? (
-                <img
-                  src={course.thumbnail}
-                  alt={course.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-                  No thumbnail
-                </div>
-              )}
-              {course.introVideo && (
-                <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
-                  <div className="bg-black bg-opacity-50 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
-                    <FaPlay className="text-xs" />
-                    <span className="hidden sm:inline">Intro Video</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Course Content */}
-            <div className="p-4 sm:p-6">
-              {/* Course Title and Coach */}
-              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                {course.title}
-              </h3>
-              <div className="flex items-center space-x-2 mb-3">
-                {course.coach.avatar ? (
-                  <img
-                    src={course.coach.avatar}
-                    alt={course.coach.name}
-                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full"
-                  />
-                ) : (
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-300 flex items-center justify-center text-[10px] sm:text-xs text-gray-700">
-                    {course.coach.name.charAt(0)}
-                  </div>
-                )}
-                <span className="text-xs sm:text-sm text-gray-600 truncate">{course.coach.name}</span>
-                <button
-                  onClick={() => handleViewCoachDetails(course.coach.id)}
-                  className="text-blue-600 hover:text-blue-700 text-xs font-medium hover:scale-105 transition-all duration-200"
-                >
-                  View Profile
-                </button>
-              </div>
-
-              {/* Course Description */}
-              <p className="text-gray-600 text-xs sm:text-sm mb-4 line-clamp-2">
-                {course.description}
-              </p>
-
-              {/* Key Info Row */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
-                    {course.category}
-                  </span>
-                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-                    {formatProgram(course.program)}
-                  </span>
-                  <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
-                    {course.credits} Credits
-                  </span>
-                </div>
-              </div>
-
-              {/* Schedule Preview */}
-              <div className="mb-4">
-                <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
-                  <FaCalendarAlt className="text-indigo-600 text-xs sm:text-sm" />
-                  <span className="truncate">
-                    {course.weeklySchedule
-                      .filter(day => day.isActive)
-                      .slice(0, 2)
-                      .map((day, index) => (
-                        <span key={index}>
-                          {day.day.slice(0, -1)} {day.timeSlots[0] && formatTime(day.timeSlots[0].startTime)}
-                          {index < Math.min(2, course.weeklySchedule.filter(d => d.isActive).length - 1) && ', '}
-                        </span>
-                      ))}
-                    {course.weeklySchedule.filter(day => day.isActive).length > 2 && (
-                      <span className="text-blue-600">+{course.weeklySchedule.filter(day => day.isActive).length - 2} more</span>
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setSelectedCourse(course)}
-                  className="flex-1 px-2 sm:px-3 py-2 text-xs sm:text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 hover:scale-105"
-                >
-                  <FaEye className="inline mr-1 text-xs sm:text-sm" />
-                  <span className="hidden sm:inline">View Details</span>
-                  <span className="sm:hidden">Details</span>
-                </button>
-                <button
-                  onClick={() => handleEnroll(course)}
-                  className="flex-1 px-2 sm:px-4 py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md"
-                >
-                  <FaGraduationCap className="inline mr-1 text-xs sm:text-sm" />
-                  Enroll
-                </button>
-              </div>
-            </div>
+            {/* Thumbnail is now handled by CourseCard for consistency */}
+            {/* Course Content (Card) */}
+            <CourseCard
+              course={{
+                ...course,
+                benefits: course.benefits || "",
+                timezone: course.timezone || "",
+                thumbnail: course.thumbnail || ""
+              }}
+              onViewDetails={() => setSelectedCourse(course)}
+              onEnroll={() => handleEnroll(course)}
+              onViewCoachDetails={handleViewCoachDetails}
+              formatProgram={formatProgram}
+              formatTime={formatTime}
+            />
           </div>
         ))}
       </div>
