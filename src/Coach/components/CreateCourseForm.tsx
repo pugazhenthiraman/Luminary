@@ -50,6 +50,7 @@ interface DaySchedule {
    weeklySchedule: DaySchedule[];
    thumbnail?: File;
    courseDuration?: string;
+   courseDurationNumber?: number;
  }
  
  const CreateCourseForm: React.FC<CreateCourseFormProps> = ({ onClose, onSubmit, initialData, isEditing = false }) => {
@@ -62,6 +63,7 @@ interface DaySchedule {
      credits: initialData?.credits || 0,
      timezone: initialData?.timezone || '',
      courseDuration: initialData?.courseDuration || '',
+     courseDurationNumber: initialData?.courseDurationNumber || 12,
      weeklySchedule: initialData?.weeklySchedule || [
        { day: 'SUNDAYS', isActive: false, timeSlots: [] },
        { day: 'MONDAYS', isActive: false, timeSlots: [] },
@@ -560,9 +562,15 @@ interface DaySchedule {
     }
 
     setIsSubmitting(true);
-    
+    // Default to 1 week if empty
+    const durationValue = formData.courseDurationNumber === undefined || formData.courseDurationNumber < 1 ? 1 : formData.courseDurationNumber;
+    const payload = {
+      ...formData,
+      courseDuration: `${durationValue} weeks`,
+      courseDurationNumber: durationValue
+    };
     try {
-      await onSubmit(formData);
+      await onSubmit(payload);
       toast.success(
         <div className="flex items-center space-x-2">
           <FaCheck className="text-green-500" />
@@ -909,19 +917,31 @@ interface DaySchedule {
                     )}
                   </div>
 
-                  {/* Course Duration (optional) */}
+                  {/* Course Duration (weeks, user-friendly, improved UI) */}
                   <div className="group">
                     <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
                       <span>Course Duration</span>
-                      <span className="text-gray-500 text-xs font-medium">Optional</span>
+                      
                     </label>
-                    <input
-                      type="text"
-                      value={formData.courseDuration || ''}
-                      onChange={(e) => handleInputChange('courseDuration', e.target.value)}
-                      className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white"
-                      placeholder="e.g., 12 weeks"
-                    />
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={1}
+                        value={formData.courseDurationNumber === undefined ? '' : formData.courseDurationNumber}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                          setFormData(prev => ({
+                            ...prev,
+                            courseDurationNumber: val
+                          }));
+                        }}
+                        className="w-full pl-4 pr-16 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white group-hover:border-gray-300"
+                        placeholder="12 Weeks"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none">
+                        <span className="text-gray-400 text-base">weeks</span>
+                      </div>
+                    </div>
                   </div>
 
 
@@ -1281,7 +1301,7 @@ interface DaySchedule {
                                             </svg>
                                           </button>
                                           
-                                          {openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'start' && (
+                                          {(openTimeDropdown && openTimeDropdown.dayIndex === dayIndex && openTimeDropdown.slotId === timeSlot.id && openTimeDropdown.type === 'start') && (
                                             <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto w-full sm:min-w-[120px]">
                                               {timeOptions.map(option => (
                                                 <button
@@ -1315,7 +1335,7 @@ interface DaySchedule {
                                             </svg>
                                           </button>
                                           
-                                          {openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'end' && (
+                                          {(openTimeDropdown && openTimeDropdown.dayIndex === dayIndex && openTimeDropdown.slotId === timeSlot.id && openTimeDropdown.type === 'end') && (
                                             <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-48 overflow-y-auto w-full sm:min-w-[120px]">
                                               {timeOptions.map(option => (
                                                 <button
@@ -1424,4 +1444,4 @@ interface DaySchedule {
   );
 };
 
-export default CreateCourseForm; 
+export default CreateCourseForm;

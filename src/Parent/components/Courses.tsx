@@ -30,49 +30,63 @@ import {
   import CourseCard from "../../components/CourseCard";
 import { Course } from '../data/mockData';
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
-import { coachStorage, CoachData } from '../../utils/coachStorage';
+import { getCoachDetails } from '../../api/coach';
 
-interface ParentUser {
+// Minimal type definitions to fix errors
+export interface CoursesProps {
+  courses: Course[];
+  parentData: any;
+}
+
+export interface CoachData {
   id: string;
-  email: string;
   firstName: string;
   lastName: string;
-  role: string;
-  children: Array<{
-    id: string;
-    firstName: string;
-    lastName: string;
-    dateOfBirth: string;
-    gender: string;
-    currentGrade: string;
-    schoolName: string;
-  }>;
+  name?: string;
+  bio?: string;
+  avatarUrl?: string;
+  certifications?: string[];
+  languages?: string[];
+  status?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  registrationDate?: string;
+  experience?: string;
+  duration?: string;
+  courses?: any[];
+  adminNotes?: string;
 }
 
-interface CoursesProps {
-  courses: Course[];
-  parentData: ParentUser;
-}
-
-interface EnrollmentData {
+export interface EnrollmentData {
   courseId: string;
   selectedChildren: string[];
   totalPrice: number;
   paymentMethod?: {
-    cardNumber: string;
-    expiryDate: string;
-    cvv: string;
-    cardholderName: string;
+    cardNumber?: string;
+    expiryDate?: string;
+    cvv?: string;
+    cardholderName?: string;
   };
 }
 
-interface PaymentStep {
+export interface PaymentStep {
   step: 'children' | 'payment' | 'confirmation';
   title: string;
   description: string;
 }
 
+const priceRanges = [
+  { value: 'all', label: 'All Prices' },
+  { value: 'free', label: 'Free ($0)' },
+  { value: 'low', label: 'Low ($1-50)' },
+  { value: 'medium', label: 'Medium ($51-150)' },
+  { value: 'high', label: 'High ($151-300)' },
+  { value: 'premium', label: 'Premium ($300+)' }
+];
+
 const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
+  const [isCoachLoading, setIsCoachLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
@@ -108,150 +122,6 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
       title: 'Confirmation',
       description: 'Review and confirm your enrollment'
     }
-  ];
-
-  // Initialize sample coach data for testing
-  useEffect(() => {
-    // Clear existing coach data for testing (remove this in production)
-    coachStorage.clearAllData();
-    
-    // Check if we already have coach data
-    const existingCoaches = coachStorage.getAllCoaches();
-    if (existingCoaches.length === 0) {
-      // Add sample coach data with IDs that match the course data
-      const sampleCoaches = [
-        {
-          firstName: 'Sarah',
-          lastName: 'Johnson',
-          email: 'sarah.johnson@example.com',
-          phone: '+1 (555) 123-4567',
-          password: 'password123',
-          experience: 'Mathematics Education Specialist',
-          duration: '8 years',
-          address: '123 Education Street, Boston, MA 02101',
-          languages: ['English', 'Spanish'],
-          courses: ['Advanced Mathematics for Grade 8', 'Algebra Fundamentals', 'Geometry Mastery']
-        },
-        {
-          firstName: 'Emily',
-          lastName: 'Chen',
-          email: 'emily.chen@example.com',
-          phone: '+1 (555) 234-5678',
-          password: 'password123',
-          experience: 'Creative Writing Instructor',
-          duration: '5 years',
-          address: '456 Creative Lane, San Francisco, CA 94102',
-          languages: ['English', 'Mandarin'],
-          courses: ['Creative Writing Workshop', 'Poetry for Young Writers', 'Storytelling Skills']
-        },
-        {
-          firstName: 'David',
-          lastName: 'Rodriguez',
-          email: 'david.rodriguez@example.com',
-          phone: '+1 (555) 345-6789',
-          password: 'password123',
-          experience: 'Computer Science Educator',
-          duration: '6 years',
-          address: '789 Tech Avenue, Austin, TX 73301',
-          languages: ['English', 'Spanish'],
-          courses: ['Coding Fundamentals for Kids', 'Python Programming', 'Web Development Basics']
-        }
-      ];
-
-      // Add coaches with specific IDs that match the course data
-      sampleCoaches.forEach((coach, index) => {
-        const coachId = `c${index + 1}`; // This will create c1, c2, c3
-        coachStorage.addCoachWithId(coach, coachId);
-      });
-    }
-  }, []);
-
-  // Initialize mock child data for parent
-  useEffect(() => {
-    const initializeMockChildren = () => {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          if (user.role === 'PARENT' && (!user.children || user.children.length === 0)) {
-            // Add 4 mock children
-            const mockChildren = [
-              {
-                id: 'ch1',
-                firstName: 'Emma',
-                lastName: 'Johnson',
-                dateOfBirth: '2012-03-15',
-                gender: 'Female',
-                currentGrade: 'Grade 6',
-                schoolName: 'Springfield Elementary School'
-              },
-              {
-                id: 'ch2',
-                firstName: 'Alex',
-                lastName: 'Johnson',
-                dateOfBirth: '2014-07-22',
-                gender: 'Male',
-                currentGrade: 'Grade 4',
-                schoolName: 'Springfield Elementary School'
-              },
-              {
-                id: 'ch3',
-                firstName: 'Sophia',
-                lastName: 'Johnson',
-                dateOfBirth: '2016-11-08',
-                gender: 'Female',
-                currentGrade: 'Grade 2',
-                schoolName: 'Springfield Elementary School'
-              },
-              {
-                id: 'ch4',
-                firstName: 'Lucas',
-                lastName: 'Johnson',
-                dateOfBirth: '2018-05-12',
-                gender: 'Male',
-                currentGrade: 'Kindergarten',
-                schoolName: 'Springfield Elementary School'
-              }
-            ];
-
-            // Update user with mock children
-            const updatedUser = {
-              ...user,
-              children: mockChildren
-            };
-
-            // Save to localStorage
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            
-            // Update parent data in component state if it exists
-            if (parentData) {
-              // This will trigger a re-render with the new children
-              window.location.reload();
-            }
-          }
-        } catch (error) {
-          console.error('Error initializing mock children:', error);
-        }
-      }
-    };
-
-    initializeMockChildren();
-  }, [parentData]);
-
-  // Get unique categories
-  const categories = useMemo(() => {
-    const cats = [...new Set(courses.map(course => course.category))];
-    return ['all', ...cats];
-  }, [courses]);
-
-  // Price range options
-  const priceRanges = [
-    { value: 'all', label: 'All Prices' },
-    { value: 'free', label: 'Free ($0)' },
-    { value: 'low', label: 'Low ($1-50)' },
-    { value: 'medium', label: 'Medium ($51-150)' },
-    { value: 'high', label: 'High ($151-300)' },
-    { value: 'premium', label: 'Premium ($300+)' }
   ];
 
   // Date range options
@@ -483,13 +353,18 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
   };
 
   const handleViewCoachDetails = (coachId: string) => {
-    const coachData = coachStorage.getCoachById(coachId);
-    if (coachData) {
-      setSelectedCoach(coachData);
-      setShowCoachModal(true);
-    } else {
-      showErrorToast('Coach details not found');
-    }
+    setIsCoachLoading(true);
+    getCoachDetails(coachId)
+      .then((res) => {
+        setSelectedCoach(res.data);
+        setShowCoachModal(true);
+      })
+      .catch(() => {
+        showErrorToast('Coach details not found');
+      })
+      .finally(() => {
+        setIsCoachLoading(false);
+      });
   };
 
   const handleNextStep = () => {
@@ -601,6 +476,27 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
     });
   };
 
+  // Utility: pick a gradient based on course title for variety
+  function getGradient(title: string) {
+    const gradients = [
+      "bg-gradient-to-r from-blue-500 to-purple-600",
+      "bg-gradient-to-r from-green-400 to-emerald-500",
+      "bg-gradient-to-r from-pink-500 to-yellow-500",
+      "bg-gradient-to-r from-indigo-500 to-blue-400",
+      "bg-gradient-to-r from-orange-400 to-red-500",
+      "bg-gradient-to-r from-teal-400 to-cyan-500",
+      "bg-gradient-to-r from-fuchsia-500 to-pink-500"
+    ];
+    let hash = 0;
+    for (let i = 0; i < title.length; i++) {
+      hash = title.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const idx = Math.abs(hash) % gradients.length;
+    return gradients[idx];
+  }
+
+  const categories = ['all', ...Array.from(new Set(courses.map(course => course.category)))];
+  
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -790,19 +686,26 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
       {/* Courses Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {filteredCourses.map((course, index) => (
-          <div
-            key={course.id}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden hover:scale-[1.02] animate-in slide-in-from-bottom duration-500"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            {/* Course Thumbnail */}
-            {/* Thumbnail is now handled by CourseCard for consistency */}
+          <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200">
+            <div className="relative h-40 sm:h-48 rounded-xl overflow-hidden mb-4">
+              {course.thumbnail && course.thumbnail !== "" ? (
+                <img
+                  src={course.thumbnail}
+                  alt={course.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div
+                  className={`absolute inset-0 w-full h-full flex items-center justify-center text-white text-lg sm:text-xl font-bold select-none ${getGradient(course.title)}`}
+                >
+                  {course.title}
+                </div>
+              )}
+            </div>
             {/* Course Content (Card) */}
             <CourseCard
               course={{
                 ...course,
-                benefits: course.benefits || "",
-                timezone: course.timezone || "",
                 thumbnail: course.thumbnail || ""
               }}
               onViewDetails={() => setSelectedCourse(course)}
@@ -964,7 +867,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                       Languages Spoken
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {selectedCoach.languages.map((language, index) => (
+                      {(selectedCoach.languages ?? []).map((language, index) => (
                         <span
                           key={index}
                           className="bg-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium text-purple-700 border border-purple-200"
@@ -986,7 +889,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                     Courses Taught
                   </h3>
                   <div className="space-y-3">
-                    {selectedCoach.courses.length > 0 ? (
+                    {(selectedCoach.courses && selectedCoach.courses.length > 0) ? (
                       selectedCoach.courses.map((course, index) => (
                         <div key={index} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
                           <div className="font-semibold text-gray-900 text-sm sm:text-base">{course}</div>
@@ -1077,7 +980,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                 {/* Course Thumbnail/Video */}
                 <div className="lg:col-span-1">
                   <div className="relative">
-                    {selectedCourse.introVideo ? (
+                    {(selectedCourse.thumbnail && selectedCourse.thumbnail !== "") ? (
                       <div className="relative">
                         <img
                           src={selectedCourse.thumbnail}
@@ -1087,8 +990,11 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                         <div className="absolute inset-0 bg-black bg-opacity-40 rounded-xl flex items-center justify-center">
                           <button 
                             onClick={() => {
-                              // In a real app, this would open the video player
-                              window.open(selectedCourse.introVideo, '_blank');
+                              if (selectedCourse.introVideo) {
+                                window.open(selectedCourse.introVideo, '_blank');
+                              } else {
+                                showErrorToast('No introduction video available for this course');
+                              }
                             }}
                             className="bg-white bg-opacity-90 hover:bg-opacity-100 text-gray-900 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg flex items-center gap-2 sm:gap-3 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
                           >
@@ -1097,13 +1003,37 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                             <span className="sm:hidden">Watch Video</span>
                           </button>
                         </div>
+                        {!selectedCourse.introVideo && (
+                          <div className="absolute bottom-2 left-0 w-full text-center">
+                            <span className="text-xs text-white bg-black bg-opacity-40 px-2 py-1 rounded">No introduction video available</span>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <img
-                        src={selectedCourse.thumbnail}
-                        alt={selectedCourse.title}
-                        className="w-full h-48 sm:h-60 lg:h-80 object-cover rounded-xl shadow-lg"
-                      />
+                      <div className={`relative w-full h-48 sm:h-60 lg:h-80 rounded-xl shadow-lg flex items-center justify-center text-white text-2xl font-bold select-none ${getGradient(selectedCourse.title)}`}>
+                        <span className="mx-auto text-center w-full">{selectedCourse.title}</span>
+                        <div className="absolute inset-0 bg-black bg-opacity-40 rounded-xl flex items-center justify-center">
+                          <button 
+                            onClick={() => {
+                              if (selectedCourse.introVideo) {
+                                window.open(selectedCourse.introVideo, '_blank');
+                              } else {
+                                showErrorToast('No introduction video available for this course');
+                              }
+                            }}
+                            className="bg-white bg-opacity-90 hover:bg-opacity-100 text-gray-900 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg flex items-center gap-2 sm:gap-3 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
+                          >
+                            <FaPlay className="text-sm sm:text-lg" />
+                            <span className="hidden sm:inline">Watch Introduction Video</span>
+                            <span className="sm:hidden">Watch Video</span>
+                          </button>
+                        </div>
+                        {!selectedCourse.introVideo && (
+                          <div className="absolute bottom-2 left-0 w-full text-center">
+                            <span className="text-xs text-white bg-black bg-opacity-40 px-2 py-1 rounded">No introduction video available</span>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1659,4 +1589,4 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
   );
 };
 
-export default Courses; 
+export default Courses;

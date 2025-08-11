@@ -14,6 +14,7 @@ import {
 import CreateCourseForm from './CreateCourseForm';
 import axiosInstance from '../../api/axiosInstance';
 import { getCourseById } from '../../api/courses';
+import { showErrorToast } from '../../components/Toast';
 
 interface TimeSlot {
   id: string;
@@ -50,6 +51,28 @@ interface CoursesProps {
   courses: Course[];
 }
 
+// ThumbnailWithFallback component
+function ThumbnailWithFallback({ thumbnail, title, generateTextThumbnail }) {
+  const [imgError, setImgError] = React.useState(false);
+  if (!thumbnail || thumbnail === "" || imgError) {
+    return (
+      <img
+        src={generateTextThumbnail(title)}
+        alt={title}
+        className="w-full h-32 sm:h-40 lg:h-48 object-cover rounded"
+      />
+    );
+  }
+  return (
+    <img
+      src={thumbnail}
+      alt={title}
+      className="w-full h-32 sm:h-40 lg:h-48 object-cover"
+      onError={() => setImgError(true)}
+    />
+  );
+}
+
 const Courses: React.FC<CoursesProps> = ({ courses }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -76,8 +99,16 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       }
       
       // Status filter
-      if (selectedStatus !== 'All Status' && course.status !== selectedStatus) {
-        return false;
+      if (selectedStatus !== 'All Status') {
+        // Normalize status for comparison
+        const normalizedStatus = course.status?.toLowerCase();
+        if (
+          (selectedStatus === 'Active' && normalizedStatus !== 'active') ||
+          (selectedStatus === 'Pending' && normalizedStatus !== 'pending') ||
+          (selectedStatus === 'Rejected' && normalizedStatus !== 'rejected')
+        ) {
+          return false;
+        }
       }
       
       // Price range filter
@@ -215,10 +246,15 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     formData.append('benefits', courseData.benefits);
     formData.append('category', courseData.category);
     formData.append('program', courseData.program);
-    formData.append('credits', String(courseData.credits));
+    formData.append('credits', courseData.credits); // send as number
     formData.append('timezone', courseData.timezone);
     // Optional fields
-    formData.append('courseDuration', '12 weeks');
+    if (courseData.duration) {
+      formData.append('duration', courseData.duration);
+    }
+    if (courseData.courseDuration) {
+      formData.append('courseDuration', courseData.courseDuration);
+    }
     formData.append('weeklySchedule', JSON.stringify(courseData.weeklySchedule || []));
     if (courseData.thumbnail instanceof File) {
       formData.append('thumbnail', courseData.thumbnail);
@@ -233,6 +269,16 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
 
     const created = resp.data?.data || resp.data;
     // Update local list with server response
+    // Only use 'active', 'pending', 'rejected' for status
+    let statusLabel = 'pending';
+    if (created.status && typeof created.status === 'string') {
+      const s = created.status.toLowerCase();
+      if (s === 'approved' || (created.isActive && s !== 'rejected')) statusLabel = 'active';
+      else if (s === 'rejected') statusLabel = 'rejected';
+      else statusLabel = 'pending';
+    } else if (created.isActive) {
+      statusLabel = 'active';
+    }
     const newCourse: Course = {
       id: created.id,
       title: created.title,
@@ -240,7 +286,7 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       students: 0,
       rating: 0,
       price: Number(created.creditCost || courseData.credits || 0),
-      status: created.isActive ? 'active' : 'inactive',
+      status: statusLabel,
       category: created.category,
       duration: created.courseDuration || '—',
       lessons: 0,
@@ -357,6 +403,25 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     }
   };
 
+  // Utility: pick a gradient based on course title for variety
+  function getGradient(title: string) {
+    const gradients = [
+      "bg-gradient-to-r from-blue-500 to-purple-600",
+      "bg-gradient-to-r from-green-400 to-emerald-500",
+      "bg-gradient-to-r from-pink-500 to-yellow-500",
+      "bg-gradient-to-r from-indigo-500 to-blue-400",
+      "bg-gradient-to-r from-orange-400 to-red-500",
+      "bg-gradient-to-r from-teal-400 to-cyan-500",
+      "bg-gradient-to-r from-fuchsia-500 to-pink-500"
+    ];
+    let hash = 0;
+    for (let i = 0; i < title.length; i++) {
+      hash = title.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const idx = Math.abs(hash) % gradients.length;
+    return gradients[idx];
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6 lg:space-y-8 animate-in fade-in duration-500">
       {/* Header */}
@@ -392,7 +457,7 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
           <div className="flex items-center justify-center sm:justify-end space-x-2">
             <button 
               onClick={() => setShowFilterModal(true)}
-              className="flex items-center space-x-2 px-3 py-2 sm:px-4 sm:py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all duration-200 text-sm sm:text-base font-medium border border-indigo-200 hover:border-indigo-300"
+              className="flex items-center space-x-2 px-3 py-2 sm:px-4 sm:py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all duration-200 text-sm sm:text-base font-medium"
               title="Open advanced filters"
             >
               <FaFilter className="text-sm sm:text-base" />
@@ -418,27 +483,15 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
         {filteredCourses.map((course) => (
           <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200 animate-in slide-in-from-bottom duration-500">
             <div className="relative">
-              {/* Thumbnail or Fallback */}
-              {course.thumbnail && course.thumbnail !== "" ? (
-                <img
-                  src={course.thumbnail}
-                  alt={course.title}
-                  className="w-full h-32 sm:h-40 lg:h-48 object-cover"
-                />
-              ) : (
-                <div className="w-full h-32 sm:h-40 lg:h-48 flex items-center justify-center">
-                  <Avatar
-                    name={course.title}
-                    size={64}
-                    className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24"
-                  />
-                </div>
-              )}
+              {/* Thumbnail or Fallback with error handling */}
+              <ThumbnailWithFallback thumbnail={course.thumbnail} title={course.title} generateTextThumbnail={generateTextThumbnail} />
               <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  course.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  course.status === 'active' ? 'bg-green-100 text-green-800' :
+                  course.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  course.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
                 }`}>
-                  {course.status}
+                  {course.status.charAt(0).toUpperCase() + course.status.slice(1)}
                 </span>
               </div>
               <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
@@ -653,8 +706,8 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
               {/* Status Filter */}
               <div>
                 <label className="block text-sm font-semibold text-gray-800 mb-3">Status</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {['All Status', 'Active', 'Draft', 'Archived', 'Pending Review'].map((status) => (
+                <div className="grid grid-cols-3 gap-3">
+                  {['All Status', 'Active', 'Pending', 'Rejected'].map((status) => (
                     <button
                       key={status}
                       onClick={() => setSelectedStatus(status)}
@@ -783,11 +836,46 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                 <div className="flex items-center justify-center py-10 text-gray-500">Loading...</div>
               ) : selectedCourseDetails ? (
                 <div className="space-y-4">
-                  <div className="flex items-start space-x-4">
-                    <img src={selectedCourseDetails.thumbnail || selectedCourseDetails.imageUrl} alt={selectedCourseDetails.title} className="w-32 h-20 object-cover rounded border" />
+                  <div className="flex items-start space-x-6">
+                    {/* Thumbnail Section */}
+                    <div className="flex flex-col items-center">
+                      <div className="mb-2 font-semibold text-gray-700">Course Thumbnail</div>
+                      {selectedCourseDetails.thumbnail && selectedCourseDetails.thumbnail !== "" ? (
+                        <div className="w-32 h-20">
+                          <img src={selectedCourseDetails.thumbnail} alt={selectedCourseDetails.title} className="w-full h-full object-cover rounded border" />
+                        </div>
+                      ) : (
+                        <div className={`w-32 h-20 rounded border flex items-center justify-center text-white text-base font-bold select-none ${getGradient(selectedCourseDetails.title)}`}> 
+                          <span className="mx-auto text-center w-full">{selectedCourseDetails.title}</span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Video Section */}
+                    <div className="flex flex-col items-center">
+                      <div className="mb-2 font-semibold text-gray-700">Introduction Video</div>
+                      <button
+                        onClick={() => {
+                          if (selectedCourseDetails.videoUrl) {
+                            window.open(selectedCourseDetails.videoUrl, '_blank');
+                          } else {
+                            showErrorToast('No introduction video available for this course');
+                          }
+                        }}
+                        className={`w-32 py-2 rounded bg-blue-600 text-white font-semibold flex items-center justify-center gap-2 shadow ${selectedCourseDetails.videoUrl ? 'hover:bg-blue-700' : 'opacity-50 cursor-not-allowed'}`}
+                        disabled={!selectedCourseDetails.videoUrl}
+                        title={selectedCourseDetails.videoUrl ? 'Watch Introduction Video' : 'No video available'}
+                      >
+                        <FaVideo className="text-lg" />
+                        {selectedCourseDetails.videoUrl ? 'Watch Introduction Video' : 'No Video Available'}
+                      </button>
+                    </div>
                     <div>
                       <h4 className="text-xl font-semibold text-gray-900">{selectedCourseDetails.title}</h4>
-                      <div className="text-sm text-gray-600 mt-1">Status: <span className="font-medium">{selectedCourseDetails.isActive ? 'active' : (selectedCourseDetails.status || 'inactive')}</span></div>
+                      <div className="text-sm text-gray-600 mt-1">Status: <span className="font-medium">{
+                        selectedCourseDetails.status
+                          ? selectedCourseDetails.status.charAt(0).toUpperCase() + selectedCourseDetails.status.slice(1)
+                          : (selectedCourseDetails.isActive ? 'Active' : 'Pending')
+                      }</span></div>
                       <div className="text-sm text-gray-600">Category: <span className="font-medium">{selectedCourseDetails.category || '—'}</span></div>
                       <div className="text-sm text-gray-600">Credits: <span className="font-medium">{selectedCourseDetails.creditCost ?? selectedCourseDetails.price ?? 0}</span></div>
                       <div className="text-sm text-gray-600">Duration: <span className="font-medium">{selectedCourseDetails.courseDuration || selectedCourseDetails.duration || '—'}</span></div>
@@ -847,4 +935,4 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
   );
 };
 
-export default Courses; 
+export default Courses;

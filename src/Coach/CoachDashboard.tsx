@@ -9,7 +9,6 @@ import Videos from './components/Videos';
 import Schedule from './components/Schedule';
 import Analytics from './components/Analytics';
 import Profile from './components/Profile';
-import { mockData } from './data/mockData';
 import { getCourses } from '../api/courses';
 import axiosInstance from '../api/axiosInstance';
 
@@ -130,7 +129,7 @@ const CoachDashboard: React.FC = () => {
         const normalized = (Array.isArray(list) ? list : []).map((c: any) => ({
           id: c.id || c._id,
           title: c.title || c.name || 'Untitled',
-          thumbnail: c.thumbnail || c.imageUrl || mockData.courses[0]?.thumbnail,
+          thumbnail: c.thumbnail || c.imageUrl || '',
           students: c.studentsCount || c.enrolledCount || 0,
           rating: c.rating || 0,
           price: Number(c.creditCost ?? c.price ?? 0),
@@ -194,21 +193,13 @@ const CoachDashboard: React.FC = () => {
     return null;
   }
 
-  // Merge basic user data with extended coach data for components
-  const extendedCoachData = {
-    ...mockData.extendedCoachData,
-    id: coachData.id,
-    role: coachData.role,
-    isVerified: coachData.isVerified
-  };
-
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
         return <Overview 
-          coachData={mockData.extendedCoachData} 
-          recentActivity={mockData.recentActivity} 
-          upcomingSessions={mockData.upcomingSessions}
+          coachData={coachData} 
+          recentActivity={[]} 
+          upcomingSessions={[]}
           onTabChange={handleTabChange}
         />;
       case 'courses':
@@ -220,12 +211,12 @@ const CoachDashboard: React.FC = () => {
       case 'analytics':
         return <Analytics />;
       case 'profile':
-        return <Profile coachData={mockData.extendedCoachData} />;
+        return <Profile coachData={coachData} />;
       default:
         return <Overview 
-          coachData={mockData.extendedCoachData} 
-          recentActivity={mockData.recentActivity} 
-          upcomingSessions={mockData.upcomingSessions}
+          coachData={coachData} 
+          recentActivity={[]} 
+          upcomingSessions={[]}
           onTabChange={handleTabChange}
         />;
     }
@@ -236,7 +227,7 @@ const CoachDashboard: React.FC = () => {
       {/* Header */}
       <Header
         coachName={`${coachData.firstName} ${coachData.lastName}`}
-        avatar={mockData.extendedCoachData.avatar}
+        avatar={''}
         showSidebar={showSidebar}
         onToggleSidebar={handleToggleSidebar}
         onLogout={handleLogout}
@@ -259,4 +250,4 @@ const CoachDashboard: React.FC = () => {
   );
 };
 
-export default CoachDashboard; 
+export default CoachDashboard;
