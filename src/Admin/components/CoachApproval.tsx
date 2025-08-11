@@ -118,8 +118,12 @@ const CoachApproval: React.FC = () => {
   };
 
   const handleViewDetails = (coach: CoachData) => {
+    console.log("[DEBUG] View Details clicked for coach:", coach);
     setSelectedCoach(coach);
     setShowDetails(true);
+    setTimeout(() => {
+      console.log("[DEBUG] showDetails:", showDetails, "selectedCoach:", selectedCoach);
+    }, 100);
   };
 
   const getStatusColor = (status: string) => {
@@ -328,16 +332,24 @@ const CoachApproval: React.FC = () => {
       )}
 
       {/* Coach Details Modal (reusable) */}
-      {showDetails && selectedCoach && (
-        <CoachDetailsModal
-          coach={selectedCoach}
-          show={showDetails}
-          onClose={() => setShowDetails(false)}
-          onApprove={() => { handleApprove(selectedCoach.id); setShowDetails(false); }}
-          onReject={() => confirmReject(selectedCoach.id)}
-          isLoading={isLoading}
-        />
-      )}
+      {(() => {
+        console.log("[DEBUG] Modal render condition:", { showDetails, selectedCoach });
+        return showDetails && selectedCoach ? (
+          <CoachDetailsModal
+            coach={selectedCoach}
+            show={showDetails}
+            onClose={() => {
+              console.log("[DEBUG] Modal closed");
+              setShowDetails(false);
+            }}
+            onApprove={() => { handleApprove(selectedCoach.id); setShowDetails(false); }}
+            onReject={() => confirmReject(selectedCoach.id)}
+            isLoading={isLoading}
+            showActions={true}
+            confirmReject={confirmReject}
+          />
+        ) : null;
+      })()}
 
       {/* Reject Confirmation Modal */}
       {showRejectConfirm && (

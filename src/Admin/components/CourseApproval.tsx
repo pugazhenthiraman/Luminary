@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { getGradient } from '../../utils/getGradient';
-import { getCourses as getAdminCourses, approveCourse as approveAdminCourse, rejectCourse as rejectAdminCourse } from '../../api/admin';
+import { getCourses as getAdminCourses, approveCourse as approveAdminCourse, rejectCourse as rejectAdminCourse, getCoaches } from '../../api/admin';
 import Avatar from '../../components/Avatar';
+import CourseDetailsModal from '../../components/CourseDetailsModal';
+import CoachDetailsModal from '../../components/CoachDetailsModal';
 import { 
   FaEye, 
   FaCheck, 
@@ -26,6 +28,7 @@ interface CourseSubmission {
   coachName: string;
   coachEmail: string;
   coachPhoto: string;
+  coachPhone?: string;
   courseTitle: string;
   courseDescription: string;
   category: string;
@@ -59,9 +62,22 @@ const CourseApproval: React.FC = () => {
   const [showAdvancedFilterModal, setShowAdvancedFilterModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All Prices');
+  const [selectedDay, setSelectedDay] = useState<string>('All Days');
   const [priceSort, setPriceSort] = useState<'none' | 'asc' | 'desc'>('none');
   const [adminNotes, setAdminNotes] = useState('');
+  
+  // Coach details modal states
+  const [selectedCoachForDetails, setSelectedCoachForDetails] = useState(null);
+  const [showCoachModal, setShowCoachModal] = useState(false);
+  const [coachLoading, setCoachLoading] = useState(false);
 
+
+  // Debug: Log current modal state on every render (after state declarations)
+  console.log("CourseApproval render - Modal states:", { 
+    showCoachModal, 
+    hasSelectedCoach: !!selectedCoachForDetails,
+    selectedCoachName: selectedCoachForDetails?.firstName 
+  });
   // Data from backend
   const [courses, setCourses] = useState<CourseSubmission[]>([]);
 
@@ -104,24 +120,78 @@ const CourseApproval: React.FC = () => {
         ...computeSort(),
       };
       const res = await getAdminCourses(params);
-      const list: CourseSubmission[] = (res.data?.data?.courses || []).map((c: any) => ({
-        id: c.id,
-        coachName: c.coachName,
-        coachEmail: c.coachEmail,
-        coachPhoto: c.coachPhoto,
-        courseTitle: c.courseTitle,
-        courseDescription: c.courseDescription,
-        category: c.category,
-        price: c.price,
-        duration: String(c.duration ?? ''),
-        lessons: c.lessons || 0,
-        thumbnail: c.thumbnail || '',
-        videoUrl: c.videoUrl || '',
-        weeklySchedule: c.weeklySchedule || [],
-        submittedAt: c.submittedAt,
-        status: c.status,
-        rejectionReason: c.rejectionReason,
-      }));
+      
+      // Debug: Log the API response to see the actual data structure
+      console.log('API Response:', res.data);
+      console.log('Courses data:', res.data?.data?.courses);
+      
+      const list: CourseSubmission[] = (res.data?.data?.courses || []).map((c: any) => {
+        // Debug: Log each course data to see the phone field
+        console.log('Course data:', c);
+        console.log('Coach nested object:', c.coach);
+        console.log('Coach phone from nested object:', c.coach?.phone);
+        
+        // Extract coach information from the nested coach object
+        const coach = c.coach || {};
+        
+        const phoneNumber = coach.phone || c.coachPhone || c.phone;
+        const coachName = coach.firstName && coach.lastName 
+          ? `${coach.firstName} ${coach.lastName}`.trim()
+          : c.coachName || 'Unknown Coach';
+        const coachEmail = coach.email || c.coachEmail || 'No email provided';
+        const coachPhoto = c.coachPhoto || coach.photo || coach.profileImage;
+        
+        console.log('Final extracted data:', { 
+          phoneNumber, 
+          coachName, 
+          coachEmail,
+          coachPhoto 
+        });
+        
+        return {
+          id: c.id,
+          coachName: coachName,
+          coachEmail: coachEmail,
+          coachPhoto: coachPhoto,
+          coachPhone: phoneNumber, // This should now be coach.phone
+          courseTitle: c.courseTitle || c.title,
+          courseDescription: c.courseDescription || c.description,
+          category: c.category,
+          price: c.price,
+          duration: String(c.duration ?? ''),
+          lessons: c.lessons || 0,
+          thumbnail: c.thumbnail || c.image || c.coverImage,
+          videoUrl: c.videoUrl || c.previewVideo,
+          weeklySchedule: c.weeklySchedule || [],
+          submittedAt: c.submittedAt || c.createdAt,
+          status: c.status,
+          rejectionReason: c.rejectionReason,
+        };
+        
+        return {
+          id: c.id,
+          coachName: coachName,
+          coachEmail: coachEmail,
+          coachPhoto: c.coachPhoto || coachData.coachPhoto || coachData.photo || coachData.profileImage,
+          coachPhone: phoneNumber, // Use the extracted phone number
+          courseTitle: c.courseTitle || c.title,
+          courseDescription: c.courseDescription || c.description,
+          category: c.category,
+          price: c.price,
+          duration: String(c.duration ?? ''),
+          lessons: c.lessons || 0,
+          thumbnail: c.thumbnail || c.image || c.coverImage,
+          videoUrl: c.videoUrl || c.previewVideo,
+          weeklySchedule: c.weeklySchedule || [],
+          submittedAt: c.submittedAt || c.createdAt,
+          status: c.status,
+          rejectionReason: c.rejectionReason,
+        };
+      });
+      
+      // Debug: Log the final mapped data
+      console.log('Mapped courses:', list);
+      
       setCourses(list);
     } catch (err) {
       console.error('Failed to load courses', err);
@@ -131,9 +201,12 @@ const CourseApproval: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log("useEffect triggered - loadCourses called. Dependencies:", {
+      filterStatus, searchTerm, selectedCategory, selectedPriceRange, selectedDay, priceSort, sortBy
+    });
     loadCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, searchTerm, selectedCategory, selectedPriceRange, priceSort, sortBy]);
+  }, [filterStatus, searchTerm, selectedCategory, selectedPriceRange, selectedDay, priceSort, sortBy]);
 
   const filteredCourses = courses.filter(course => {
     const matchesStatus = filterStatus === 'all' || course.status === filterStatus;
@@ -143,7 +216,12 @@ const CourseApproval: React.FC = () => {
                        course.price.toString().includes(searchTerm);
     const matchesCategory = selectedCategory === 'All Categories' || course.category === selectedCategory;
     const matchesPrice = true; // To be implemented
-    return matchesStatus && matchesSearch && matchesCategory && matchesPrice;
+    // Day-based filter - check if course has sessions on selected day
+    const matchesDay = selectedDay === 'All Days' || course.weeklySchedule.some(day => 
+      day.day.toLowerCase() === selectedDay.toLowerCase() && day.isActive && day.timeSlots.length > 0
+    );
+    
+    return matchesStatus && matchesSearch && matchesCategory && matchesPrice && matchesDay;
   });
 
   let sortedCourses = [...filteredCourses];
@@ -184,6 +262,107 @@ const CourseApproval: React.FC = () => {
   const handleRejectClick = (course: CourseSubmission) => {
     setSelectedCourse(course);
     setShowRejectModal(true);
+  };
+
+  // Handle viewing coach details
+  // Transform API coach data to match CoachData interface
+  const transformCoachData = (apiCoach: any): any => {
+    return {
+      id: apiCoach.id?.toString() || '',
+      firstName: apiCoach.firstName || '',
+      lastName: apiCoach.lastName || '',
+      email: apiCoach.email || '',
+      phone: apiCoach.phone || '',
+      experience: apiCoach.experienceDescription || '',
+      duration: '', // Not available in API response
+      address: apiCoach.address || '',
+      languages: apiCoach.languages || [],
+      status: apiCoach.status || '',
+      registrationDate: apiCoach.registrationDate || '',
+      adminNotes: apiCoach.adminNotes || '',
+      driverLicense: apiCoach.licenseFileUrl || '',
+      courses: [], // Not available in this context
+      // Additional fields from API
+      domain: apiCoach.domain || '',
+      rating: apiCoach.rating || '0',
+      totalStudents: apiCoach.totalStudents || 0,
+      totalReviews: apiCoach.totalReviews || 0,
+      isVerified: apiCoach.isVerified || false,
+      approvedAt: apiCoach.approvedAt || null,
+      approvedBy: apiCoach.approvedBy || null,
+      lastLogin: apiCoach.lastLogin || null,
+      introVideoUrl: apiCoach.introVideoUrl || null,
+      resumeFileUrl: apiCoach.resumeFileUrl || null
+    };
+  };
+
+  const handleViewCoachDetails = async (coachEmail: string) => {
+    console.log('Fetching coach details for:', coachEmail);
+    setCoachLoading(true);
+    
+    try {
+      // Get all coaches and find the one with matching email
+      const response = await getCoaches();
+      console.log('API Response:', response);
+      
+      // Handle the actual API response structure
+      let coaches = [];
+      
+      if (response.data && response.data.data) {
+        // The API returns: {success: true, message: '...', data: {coaches: [...], pagination: {...}}}
+        if (response.data.data.coaches && Array.isArray(response.data.data.coaches)) {
+          coaches = response.data.data.coaches;
+        } else if (Array.isArray(response.data.data)) {
+          coaches = response.data.data;
+        }
+      } else if (response.data && response.data.coaches && Array.isArray(response.data.coaches)) {
+        coaches = response.data.coaches;
+      } else if (response.data && Array.isArray(response.data)) {
+        coaches = response.data;
+      } else if (Array.isArray(response)) {
+        coaches = response;
+      }
+      
+      console.log('Coaches array:', coaches);
+      
+      if (Array.isArray(coaches) && coaches.length > 0) {
+        const coach = coaches.find((c: any) => c.email === coachEmail);
+        
+        if (coach) {
+          console.log('Found coach:', coach);
+          const transformedCoach = transformCoachData(coach);
+          console.log('Transformed coach:', transformedCoach);
+          
+          // Use React's functional state update to ensure state is set correctly
+          setSelectedCoachForDetails(() => {
+            console.log('Setting selectedCoachForDetails with functional update');
+            return transformedCoach;
+          });
+          
+          setShowCoachModal(() => {
+            console.log('Setting showCoachModal to TRUE with functional update');
+            return true;
+          });
+          
+          console.log('Coach modal state set to true');
+          
+          // Force a re-render check
+          setTimeout(() => {
+            console.log('After timeout - showCoachModal:', showCoachModal);
+            console.log('After timeout - selectedCoachForDetails:', selectedCoachForDetails?.firstName);
+          }, 100);
+        } else {
+          console.error('Coach not found with email:', coachEmail);
+          console.log('Available coaches:', coaches.map((c: any) => c.email));
+        }
+      } else {
+        console.error('No coaches found or coaches data is not an array:', typeof coaches, coaches);
+      }
+    } catch (error) {
+      console.error('Error fetching coach details:', error);
+    } finally {
+      setCoachLoading(false);
+    }
   };
 
   const formatTimeDisplay = (time: string) => {
@@ -261,6 +440,34 @@ const CourseApproval: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
           </div>
+          {/* Day Filter */}
+          <div className="flex flex-col sm:flex-row sm:justify-start mb-4">
+            <select
+              value={selectedDay}
+              onChange={(e) => setSelectedDay(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white w-full sm:w-48"
+            >
+              <option value="All Days">All Days</option>
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+            
+            {/* Clear Filter Button - only show when day filter is applied */}
+            {selectedDay !== 'All Days' && (
+              <button
+                onClick={() => setSelectedDay('All Days')}
+                className="ml-2 px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 border border-gray-300 hover:border-red-300"
+              >
+                Clear Day Filter
+              </button>
+            )}
+          </div>
+          
           {/* Price Sort Dropdown */}
           <div className="flex flex-col sm:flex-row sm:justify-end">
             <select
@@ -476,7 +683,7 @@ const CourseApproval: React.FC = () => {
                   
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => { setSelectedCourse(course); setShowModal(true); }}
+                      onClick={(e) => { e.stopPropagation(); console.log("Eye clicked:", course); setSelectedCourse(course); setShowModal(true); }}
                       className="text-blue-600 hover:text-blue-800 p-1.5 sm:p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
                       title="View Details"
                     >
@@ -520,212 +727,20 @@ const CourseApproval: React.FC = () => {
         </div>
       )}
 
-      {/* Course Detail Modal */}
-      {showModal && selectedCourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Course Details</h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-gray-400 hover:text-gray-600 p-2"
-                  title="Close modal"
-                  aria-label="Close modal"
-                >
-                  <FaTimes className="text-lg sm:text-xl" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {/* Left Column - Course Info */}
-                <div className="space-y-4 sm:space-y-6">
-                  {/* Course Thumbnail */}
-                  <div className="relative">
-                  {selectedCourse.thumbnail ? (
-                    <img
-                      src={selectedCourse.thumbnail}
-                      alt={selectedCourse.courseTitle}
-                      className="w-full h-48 sm:h-64 object-cover rounded-lg"
-                    />
-                  ) : (
-                    <div className="w-full h-48 sm:h-64 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm">
-                      No thumbnail
-                    </div>
-                  )}
-                    {selectedCourse.videoUrl && (
-                      <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <button 
-                          className="w-12 h-12 sm:w-16 sm:h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center"
-                          title="Play course video"
-                          aria-label="Play course video"
-                        >
-                          <FaPlay className="text-gray-800 text-lg sm:text-xl" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Course Details */}
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">{selectedCourse.courseTitle}</h3>
-                      <p className="text-sm sm:text-base text-gray-600">{selectedCourse.courseDescription}</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <span className="text-xs sm:text-sm text-gray-500">Category</span>
-                        <p className="font-medium text-sm sm:text-base">{selectedCourse.category}</p>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <span className="text-xs sm:text-sm text-gray-500">Price</span>
-                        <p className="font-medium text-sm sm:text-base">${selectedCourse.price}</p>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <span className="text-xs sm:text-sm text-gray-500">Duration</span>
-                        <p className="font-medium text-sm sm:text-base">{selectedCourse.duration}</p>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <span className="text-xs sm:text-sm text-gray-500">Lessons</span>
-                        <p className="font-medium text-sm sm:text-base">{selectedCourse.lessons}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column - Coach Info & Schedule */}
-                <div className="space-y-4 sm:space-y-6">
-                  {/* Coach Information */}
-                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Coach Information</h4>
-                    <div className="flex items-center space-x-3">
-                      <Avatar
-                        name={selectedCourse.coachName}
-                        imageUrl={selectedCourse.coachPhoto}
-                        size={48}
-                        className="w-10 h-10 sm:w-12 sm:h-12"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <h5 className="font-medium text-gray-900 text-sm sm:text-base truncate">{selectedCourse.coachName}</h5>
-                        <p className="text-xs sm:text-sm text-gray-500 truncate">{selectedCourse.coachEmail}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Weekly Schedule */}
-                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Weekly Schedule</h4>
-                    <div className="space-y-2">
-                      {selectedCourse.weeklySchedule.map((day) => (
-                        <div key={day.day} className={`p-2 sm:p-3 rounded-lg ${day.isActive ? 'bg-white' : 'bg-gray-100'}`}>
-                          <div className="flex items-center justify-between">
-                            <span className={`font-medium text-xs sm:text-sm ${day.isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                              {day.day}
-                            </span>
-                            <span className={`text-xs sm:text-sm ${day.isActive ? 'text-green-600' : 'text-gray-400'}`}>
-                              {day.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </div>
-                          {day.isActive && day.timeSlots.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {day.timeSlots.map((slot, index) => (
-                                <div key={index} className="text-xs sm:text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                                  {formatTimeDisplay(slot.startTime)} - {formatTimeDisplay(slot.endTime)}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Submission Info */}
-                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Submission Details</h4>
-                    <div className="space-y-2 text-xs sm:text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Submitted:</span>
-                        <span className="text-right">{new Date(selectedCourse.submittedAt).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-500">Status:</span>
-                        <div className="text-right">
-                          {getStatusBadge(selectedCourse.status)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Actions */}
-              {selectedCourse.status === 'pending' && (
-                <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-4 sm:gap-10 justify-center">
-                  <button
-                    onClick={() => {
-                      handleApprove(selectedCourse.id);
-                    }}
-                    disabled={isLoading}
-                    className="w-full sm:w-40 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 px-5 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 font-medium text-sm shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <FaSpinner className="animate-spin text-sm" />
-                    ) : (
-                      <>
-                        <FaCheck className="text-sm" />
-                        <span>Approve</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedCourse(selectedCourse); // Ensure selectedCourse is set for reject modal
-                      setShowRejectModal(true);
-                    }}
-                    disabled={isLoading}
-                    className="w-full sm:w-40 bg-gradient-to-r from-rose-500 to-rose-600 text-white py-3 px-5 rounded-lg hover:from-rose-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 font-medium text-sm shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <FaSpinner className="animate-spin text-sm" />
-                    ) : (
-                      <>
-                        <FaTimes className="text-sm" />
-                        <span>Reject</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {/* Admin Notes Section */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <h4 className="text-base font-bold text-gray-900 mb-3 flex items-center">
-                  <FaFileAlt className="text-blue-600 mr-2" />
-                  Admin Notes
-                </h4>
-                <div className="space-y-3">
-                  <textarea
-                    placeholder="Add notes or feedback about this course..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
-                    rows={3}
-                    value={adminNotes}
-                    onChange={(e) => setAdminNotes(e.target.value)}
-                  />
-                  <div className="flex justify-end">
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm">
-                      Save Notes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Modern Course Details Modal */}
+      {showModal && selectedCourse ? (
+        <CourseDetailsModal
+          selectedCourse={selectedCourse}
+          showModal={showModal}
+          onClose={() => setShowModal(false)}
+          onApprove={(courseId) => handleApprove(courseId, adminNotes)}
+          onReject={() => setShowRejectModal(true)}
+          isLoading={isLoading}
+          formatTimeDisplay={formatTimeDisplay}
+          getStatusBadge={getStatusBadge}
+          onViewCoachDetails={(coachEmail) => handleViewCoachDetails(coachEmail)}
+        />
+      ) : null}
       {/* Reject Reason Modal */}
       {showRejectModal && selectedCourse && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -776,6 +791,21 @@ const CourseApproval: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Coach Details Modal - Using Existing Beautiful Component */}
+      {showCoachModal && selectedCoachForDetails && (
+        <CoachDetailsModal
+          coach={selectedCoachForDetails as any}
+          show={showCoachModal}
+          onClose={() => {
+            console.log("Closing coach modal");
+            setShowCoachModal(false);
+            setSelectedCoachForDetails(null);
+          }}
+          isLoading={coachLoading}
+          showActions={false}
+        />
+      )}
+
     </div>
   );
 };

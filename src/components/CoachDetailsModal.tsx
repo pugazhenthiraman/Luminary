@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { FaUser, FaTimes, FaGraduationCap, FaClock, FaGlobe, FaFileAlt, FaPlay, FaCheck } from 'react-icons/fa';
+import { FaUser, FaTimes, FaGraduationCap, FaClock, FaGlobe, FaFileAlt, FaPlay, FaCheck, FaEnvelope, FaPhone } from 'react-icons/fa';
 import { CoachData } from '../Admin/components/CoachApproval';
 
 interface CoachDetailsModalProps {
@@ -23,7 +24,14 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
   showActions = false,
   confirmReject,
 }) => {
-  if (!show || !coach) return null;
+  console.log("CoachDetailsModal render:", { show, coach: coach?.firstName, coachId: coach?.id });
+  
+  if (!show || !coach) {
+    console.log("CoachDetailsModal not showing:", { show, hasCoach: !!coach });
+    return null;
+  }
+
+  console.log("CoachDetailsModal rendering UI for:", coach.firstName, coach.lastName);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -33,8 +41,8 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[98vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-2 sm:p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[98vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 sm:p-6 rounded-t-xl">
           <div className="flex justify-between items-center">
@@ -46,7 +54,6 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
                 <h3 className="text-base sm:text-xl lg:text-2xl font-bold truncate">{coach.firstName} {coach.lastName}</h3>
                 <p className="text-blue-100 flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${coach.status === 'approved' ? 'bg-green-500 text-white' : coach.status === 'rejected' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-white'}`}>
-                    {/* Status icon can be passed as prop if needed */}
                     <span className="ml-1 capitalize">{coach.status}</span>
                   </span>
                   <span className="text-xs sm:text-sm">Applied on {formatDate(coach.registrationDate)}</span>
@@ -56,8 +63,33 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
             <button onClick={onClose} className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-all duration-200 flex-shrink-0" title="Close"><FaTimes className="text-lg sm:text-xl" /></button>
           </div>
         </div>
+        {/* Coach Information Card - Improved Layout */}
+        <div className="p-4 sm:p-6">
+          <div className="bg-blue-50 rounded-xl p-4 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold">
+                {coach.firstName.charAt(0)}{coach.lastName.charAt(0)}
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">{coach.firstName} {coach.lastName}</h2>
+                <div className="flex items-center gap-2 mb-1">
+                  <FaEnvelope className="text-blue-600 text-sm" />
+                  <span className="text-sm text-gray-700">{coach.email}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FaPhone className="text-green-600 text-sm" />
+                  <span className="text-sm text-gray-700">{coach.phone}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${coach.status === 'approved' ? 'bg-green-100 text-green-800' : coach.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>{coach.status.charAt(0).toUpperCase() + coach.status.slice(1)}</span>
+              <span className="text-xs text-gray-500">Applied on {formatDate(coach.registrationDate)}</span>
+            </div>
+          </div>
+        </div>
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(98vh-120px)]">
+        <div className="overflow-y-auto max-h-[calc(98vh-220px)]">
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {/* Quick Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
