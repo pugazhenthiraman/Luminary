@@ -216,10 +216,42 @@ const CourseApproval: React.FC = () => {
                        course.price.toString().includes(searchTerm);
     const matchesCategory = selectedCategory === 'All Categories' || course.category === selectedCategory;
     const matchesPrice = true; // To be implemented
-    // Day-based filter - check if course has sessions on selected day
-    const matchesDay = selectedDay === 'All Days' || course.weeklySchedule.some(day => 
-      day.day.toLowerCase() === selectedDay.toLowerCase() && day.isActive && day.timeSlots.length > 0
-    );
+    
+    // Enhanced Day-based filter - handle different day name formats
+    const matchesDay = selectedDay === 'All Days' || course.weeklySchedule.some(day => {
+      // Normalize day names for comparison - fix the plural handling
+      const normalizeDay = (dayName) => {
+        let normalized = dayName.toLowerCase().trim();
+        
+        // Handle plural forms by removing 's' only at the end
+        if (normalized.endsWith('s')) {
+          normalized = normalized.slice(0, -1); // Remove last character if it's 's'
+        }
+        
+        // Remove 'day' suffix if present (like 'monday' -> 'mon')
+        // But keep the full day name for better matching
+        return normalized;
+      };
+      
+      const apiDay = normalizeDay(day.day);
+      const selectedDayNormalized = normalizeDay(selectedDay);
+      
+      const dayMatches = apiDay === selectedDayNormalized;
+      const isActive = day.isActive;
+      const hasTimeSlots = day.timeSlots && day.timeSlots.length > 0;
+      
+      // Debug logging for day filter
+      if (selectedDay !== 'All Days') {
+        console.log(`Course: ${course.courseTitle}, API Day: "${day.day}" -> "${apiDay}", Selected: "${selectedDay}" -> "${selectedDayNormalized}", Matches: ${dayMatches}, Active: ${isActive}, HasSlots: ${hasTimeSlots}`);
+      }
+      
+      return dayMatches && isActive && hasTimeSlots;
+    });
+    
+    // Debug logging for overall filter result
+    if (selectedDay !== 'All Days') {
+      console.log(`Course: ${course.courseTitle}, MatchesDay: ${matchesDay}`);
+    }
     
     return matchesStatus && matchesSearch && matchesCategory && matchesPrice && matchesDay;
   });
@@ -405,21 +437,28 @@ const CourseApproval: React.FC = () => {
         </div>
         <div className="mt-4 sm:mt-0 flex items-center space-x-3">
           <div className="bg-blue-50 text-blue-700 px-3 sm:px-4 py-2 rounded-lg">
-            <span className="text-xs sm:text-sm font-medium">{filteredCourses.length} courses</span>
+            <span className="text-xs sm:text-sm font-medium">
+              {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''}
+              {selectedDay !== 'All Days' && (
+                <span className="ml-1 text-blue-600">
+                  on {selectedDay}
+                </span>
+              )}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
-        <div className="flex flex-col gap-2 sm:gap-4">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+        <div className="space-y-4">
           {/* Status Filter Pills */}
-          <div className="flex flex-wrap gap-2 mb-2">
+          <div className="flex flex-wrap gap-2">
             {['all', 'pending', 'approved', 'rejected'].map(status => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status as any)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors duration-150 ${
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors duration-150 ${
                   filterStatus === status
                     ? 'bg-blue-600 text-white border-blue-600'
                     : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-blue-50 hover:text-blue-700'
@@ -429,57 +468,64 @@ const CourseApproval: React.FC = () => {
               </button>
             ))}
           </div>
-          {/* Search */}
-          <div className="relative mb-2">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
-            <input
-              type="text"
-              placeholder="Search courses, coaches, price..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-          </div>
-          {/* Day Filter */}
-          <div className="flex flex-col sm:flex-row sm:justify-start mb-4">
-            <select
-              value={selectedDay}
-              onChange={(e) => setSelectedDay(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white w-full sm:w-48"
-            >
-              <option value="All Days">All Days</option>
-              <option value="Monday">Monday</option>
-              <option value="Tuesday">Tuesday</option>
-              <option value="Wednesday">Wednesday</option>
-              <option value="Thursday">Thursday</option>
-              <option value="Friday">Friday</option>
-              <option value="Saturday">Saturday</option>
-              <option value="Sunday">Sunday</option>
-            </select>
-            
-            {/* Clear Filter Button - only show when day filter is applied */}
-            {selectedDay !== 'All Days' && (
-              <button
-                onClick={() => setSelectedDay('All Days')}
-                className="ml-2 px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 border border-gray-300 hover:border-red-300"
-              >
-                Clear Day Filter
-              </button>
-            )}
-          </div>
           
-          {/* Price Sort Dropdown */}
-          <div className="flex flex-col sm:flex-row sm:justify-end">
-            <select
-              value={priceSort}
-              onChange={e => setPriceSort(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm w-full sm:w-48 mt-2 sm:mt-0"
-              aria-label="Sort by price"
-            >
-              <option value="none">Sort by Price</option>
-              <option value="asc">Price: Low to High</option>
-              <option value="desc">Price: High to Low</option>
-            </select>
+          {/* Search and Filters Row */}
+          <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
+            {/* Search - Takes most space */}
+            <div className="relative flex-1">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+              <input
+                type="text"
+                placeholder="Search courses, coaches, price..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            
+            {/* Right side filters */}
+            <div className="flex flex-col sm:flex-row gap-3 lg:flex-shrink-0">
+              {/* Day Filter */}
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedDay}
+                  onChange={(e) => setSelectedDay(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white w-full sm:w-40"
+                >
+                  <option value="All Days">All Days</option>
+                  <option value="Monday">Monday</option>
+                  <option value="Tuesday">Tuesday</option>
+                  <option value="Wednesday">Wednesday</option>
+                  <option value="Thursday">Thursday</option>
+                  <option value="Friday">Friday</option>
+                  <option value="Saturday">Saturday</option>
+                  <option value="Sunday">Sunday</option>
+                </select>
+                
+                {/* Clear Day Filter Button */}
+                {selectedDay !== 'All Days' && (
+                  <button
+                    onClick={() => setSelectedDay('All Days')}
+                    className="px-2 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 border border-gray-300 hover:border-red-300 flex-shrink-0"
+                    title="Clear day filter"
+                  >
+                    <FaTimes className="text-xs" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Price Sort Dropdown */}
+              <select
+                value={priceSort}
+                onChange={e => setPriceSort(e.target.value as any)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white w-full sm:w-40"
+                aria-label="Sort by price"
+              >
+                <option value="none">Sort by Price</option>
+                <option value="asc">Price: Low to High</option>
+                <option value="desc">Price: High to Low</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -652,24 +698,73 @@ const CourseApproval: React.FC = () => {
                   <div className="pt-3 border-t border-gray-100">
                     <div className="flex items-center space-x-2 mb-2">
                       <FaCalendarAlt className="text-gray-400 text-xs sm:text-sm" />
-                      <span className="text-xs font-medium text-gray-700">Schedule</span>
+                      <span className="text-xs font-medium text-gray-700">
+                        Schedule
+                        {selectedDay !== 'All Days' && (
+                          <span className="ml-1 text-blue-600 font-semibold">
+                            ({selectedDay})
+                          </span>
+                        )}
+                      </span>
                     </div>
                     <div className="space-y-1">
-                      {course.weeklySchedule
-                        .filter(day => day.isActive)
-                        .slice(0, 2)
-                        .map((day, index) => (
-                          <div key={day.day} className="flex items-center justify-between text-xs text-gray-600">
-                            <span className="font-medium truncate">{day.day}</span>
-                            <div className="flex items-center space-x-1 ml-2">
-                              {day.timeSlots.slice(0, 1).map((slot, slotIndex) => (
-                                <span key={slotIndex} className="text-xs">
-                                  {formatTimeDisplay(slot.startTime)}
-                                </span>
+                      {/* Helper function to normalize day names for comparison */}
+                      {(() => {
+                        const normalizeDay = (dayName) => {
+                          let normalized = dayName.toLowerCase().trim();
+                          
+                          // Handle plural forms by removing 's' only at the end
+                          if (normalized.endsWith('s')) {
+                            normalized = normalized.slice(0, -1); // Remove last character if it's 's'
+                          }
+                          
+                          return normalized;
+                        };
+                        
+                        const selectedDayNormalized = selectedDay !== 'All Days' ? normalizeDay(selectedDay) : null;
+                        
+                        return (
+                          <>
+                            {/* Show selected day first if it exists and is active */}
+                            {selectedDay !== 'All Days' && course.weeklySchedule
+                              .filter(day => normalizeDay(day.day) === selectedDayNormalized && day.isActive)
+                              .map((day, index) => (
+                                <div key={day.day} className="flex items-center justify-between text-xs bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                                  <span className="font-semibold text-blue-800 truncate">{day.day}</span>
+                                  <div className="flex items-center space-x-1 ml-2">
+                                    {day.timeSlots.slice(0, 1).map((slot, slotIndex) => (
+                                      <span key={slotIndex} className="text-xs text-blue-700 font-medium">
+                                        {formatTimeDisplay(slot.startTime)}
+                                      </span>
+                                    ))}
+                                    {day.timeSlots.length > 1 && (
+                                      <span className="text-xs text-blue-600">
+                                        +{day.timeSlots.length - 1}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                               ))}
-                            </div>
-                          </div>
-                        ))}
+                            
+                            {/* Show other active days */}
+                            {course.weeklySchedule
+                              .filter(day => day.isActive && (selectedDay === 'All Days' || normalizeDay(day.day) !== selectedDayNormalized))
+                              .slice(0, selectedDay === 'All Days' ? 2 : 1)
+                              .map((day, index) => (
+                                <div key={day.day} className="flex items-center justify-between text-xs text-gray-600">
+                                  <span className="font-medium truncate">{day.day}</span>
+                                  <div className="flex items-center space-x-1 ml-2">
+                                    {day.timeSlots.slice(0, 1).map((slot, slotIndex) => (
+                                      <span key={slotIndex} className="text-xs">
+                                        {formatTimeDisplay(slot.startTime)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}

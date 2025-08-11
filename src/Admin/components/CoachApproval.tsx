@@ -21,6 +21,7 @@ export interface CoachData {
   adminNotes: string;
   driverLicense?: string;
   courses?: string[];
+  photo?: string;
 }
 
 const CoachApproval: React.FC = () => {
@@ -159,16 +160,23 @@ const CoachApproval: React.FC = () => {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-200 mb-6 sm:mb-8">
-        <div className="flex flex-col space-y-4">
-          <div className="flex flex-wrap gap-2 sm:gap-4">
-            <button onClick={() => setFilter('all')} className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>All</button>
-            <button onClick={() => setFilter('pending')} className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Pending</button>
-            <button onClick={() => setFilter('approved')} className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Approved</button>
-            <button onClick={() => setFilter('rejected')} className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Rejected</button>
+      <div className="bg-white rounded-lg shadow-md p-2 sm:p-3 border border-gray-200 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          {/* Search box left, filters right on desktop */}
+          <div className="w-full sm:w-2/3">
+            <input
+              type="text"
+              placeholder="Search coaches..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
           </div>
-          <div className="relative">
-            <input type="text" placeholder="Search coaches..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" />
+          <div className="flex flex-wrap gap-1 sm:gap-2 sm:w-auto sm:justify-end">
+            <button onClick={() => setFilter('all')} className={`px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>All</button>
+            <button onClick={() => setFilter('pending')} className={`px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Pending</button>
+            <button onClick={() => setFilter('approved')} className={`px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Approved</button>
+            <button onClick={() => setFilter('rejected')} className={`px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Rejected</button>
           </div>
         </div>
       </div>
