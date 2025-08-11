@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getGradient } from '../../utils/getGradient';
 import CoachDetailsModal from '../../components/CoachDetailsModal';
 import { FaCheck, FaTimes, FaEye, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaClock, FaSpinner, FaGlobe } from 'react-icons/fa';
 import Avatar from '../../components/Avatar';
@@ -177,17 +178,35 @@ const CoachApproval: React.FC = () => {
             <>
               {paginatedCoaches.map((coach, idx) => (
                 <div key={coach.id} className={`p-4 hover:bg-gray-50${idx !== 0 ? ' mt-4' : ''} rounded-xl shadow-sm bg-white`}>
+                  {/* Removed thumbnail area for cleaner look */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0 h-10 w-10">
-                        <Avatar name={`${coach.firstName} ${coach.lastName}`} size={40} className="h-10 w-10" />
+                        {coach.photo ? (
+                          <Avatar name={`${coach.firstName} ${coach.lastName}`} imageUrl={coach.photo} size={40} className="h-10 w-10" />
+                        ) : (
+                          <div
+                            className="h-10 w-10 rounded-full flex items-center justify-center text-white text-base font-bold select-none"
+                            style={{ background: 'linear-gradient(90deg, #6366f1 0%, #f97316 100%)' }}
+                          >
+                            {coach.firstName.charAt(0)}{coach.lastName.charAt(0)}
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 truncate">{coach.firstName} {coach.lastName}</div>
                         <div className="text-xs text-gray-500">{coach.registrationDate}</div>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(coach.status)}`}>{getStatusIcon(coach.status)}<span className="ml-1 capitalize">{coach.status}</span></span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        ${coach.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                        ${coach.status === 'approved' ? 'bg-green-100 text-green-800' : ''}
+                        ${coach.status === 'rejected' ? 'bg-red-100 text-red-800' : ''}
+                        ${!['pending','approved','rejected'].includes(coach.status) ? 'bg-gray-100 text-gray-800' : ''}
+                      `}>
+                        {getStatusIcon(coach.status)}
+                        <span className="ml-1 capitalize">{coach.status}</span>
+                      </span>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center space-x-2"><FaEnvelope className="text-gray-400 text-xs flex-shrink-0" /><span className="text-gray-600 truncate">{coach.email}</span></div>
@@ -234,9 +253,19 @@ const CoachApproval: React.FC = () => {
                 {paginatedCoaches.map((coach) => (
                   <tr key={coach.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {/* Removed thumbnail area for cleaner look */}
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <Avatar name={`${coach.firstName} ${coach.lastName}`} size={40} className="h-10 w-10" />
+                          {coach.photo ? (
+                            <Avatar name={`${coach.firstName} ${coach.lastName}`} imageUrl={coach.photo} size={40} className="h-10 w-10" />
+                          ) : (
+                            <div
+                              className="h-10 w-10 rounded-full flex items-center justify-center text-white text-base font-bold select-none"
+                              style={{ background: 'linear-gradient(90deg, #6366f1 0%, #f97316 100%)' }}
+                            >
+                              {coach.firstName.charAt(0)}{coach.lastName.charAt(0)}
+                            </div>
+                          )}
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{coach.firstName} {coach.lastName}</div>
@@ -256,7 +285,15 @@ const CoachApproval: React.FC = () => {
                       <div className="text-sm text-gray-900">{coach.experience} years</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(coach.status)}`}>{getStatusIcon(coach.status)}<span className="ml-1 capitalize">{coach.status}</span></span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                          ${coach.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                          ${coach.status === 'approved' ? 'bg-green-100 text-green-800' : ''}
+                          ${coach.status === 'rejected' ? 'bg-red-100 text-red-800' : ''}
+                          ${!['pending','approved','rejected'].includes(coach.status) ? 'bg-gray-100 text-gray-800' : ''}
+                        `}>
+                          {getStatusIcon(coach.status)}
+                          <span className="ml-1 capitalize">{coach.status}</span>
+                        </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">

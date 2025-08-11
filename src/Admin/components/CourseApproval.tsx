@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getGradient } from '../../utils/getGradient';
 import { getCourses as getAdminCourses, approveCourse as approveAdminCourse, rejectCourse as rejectAdminCourse } from '../../api/admin';
 import Avatar from '../../components/Avatar';
 import { 
@@ -384,15 +385,8 @@ const CourseApproval: React.FC = () => {
                   className="w-full h-40 sm:h-48 object-cover"
                 />
               ) : (
-                <div className="w-full h-40 sm:h-48 flex items-center justify-center">
-                  <div
-                    className="w-full h-full rounded-xl flex items-center justify-center text-white text-lg sm:text-xl font-bold select-none"
-                    style={{
-                      background: 'linear-gradient(90deg, #f97316 0%, #eab308 100%)',
-                    }}
-                  >
-                    {course.courseTitle}
-                  </div>
+                <div className={`w-full h-40 sm:h-48 rounded-xl flex items-center justify-center text-white text-lg sm:text-xl font-bold select-none ${getGradient(course.courseTitle)}`}>
+                  {course.courseTitle}
                 </div>
               )}
               <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
@@ -441,7 +435,9 @@ const CourseApproval: React.FC = () => {
                   <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium self-start">
                     {course.category}
                   </span>
-                  <span className="text-xs sm:text-sm text-gray-600">{course.duration} • {course.lessons} lessons</span>
+                  <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium self-start">
+                    {course.duration}
+                  </span>
                 </div>
 
                 {/* Schedule Preview */}
