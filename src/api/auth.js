@@ -74,3 +74,15 @@ export const forgotPassword = (email) =>
 // Reset password
 export const resetPassword = (token, password) => 
   axiosInstance.post("/auth/reset-password", { token, password });
+export const requestVerificationCode = (data) =>
+  axiosInstance.post("/auth/request-verification-code", data);
+
+export const verifyEmailWithCode = (data) =>
+  axiosInstance.post("/auth/verify-email-code", data);
+
+export const resendVerificationCode = (data) =>
+  axiosInstance.post("/auth/resend-verification-code", data);
+
+export const checkVerificationStatus = (email) =>
+  axiosInstance.get(`/auth/verification-status/${encodeURIComponent(email)}`);
+

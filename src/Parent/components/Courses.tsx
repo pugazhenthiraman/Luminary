@@ -31,6 +31,7 @@ import {
 import { Course } from '../data/mockData';
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
 import { getCoachDetails } from '../../api/coach';
+import PaymentModal from '../../components/PaymentModel';
 
 // Minimal type definitions to fix errors
 export interface CoursesProps {
@@ -99,6 +100,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
   const [selectedCoach, setSelectedCoach] = useState<CoachData | null>(null);
   const [currentStep, setCurrentStep] = useState<'children' | 'payment' | 'confirmation'>('children');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [enrollmentData, setEnrollmentData] = useState<EnrollmentData>({
     courseId: '',
     selectedChildren: [],
@@ -442,6 +444,11 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
     
     try {
       // Simulate Stripe payment processing
+      setShowPaymentModal(true);
+      setIsProcessingPayment(false);
+      return;
+
+
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // In a real implementation, you would:
@@ -464,8 +471,26 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
       setIsProcessingPayment(false);
     }
   };
+ const handlePaymentSuccess = (paymentData) => {
+    showSuccessToast(`Payment successful! Enrolled ${enrollmentData.selectedChildren.length} child(ren) in ${selectedCourse?.title}`);
+    setShowPaymentModal(false);
+    setShowEnrollmentModal(false);
+    setCurrentStep('children');
+    setSelectedCourse(null);
+    setEnrollmentData({
+      courseId: '',
+      selectedChildren: [],
+      totalPrice: 0
+    });
+  };
 
-  const resetEnrollmentFlow = () => {
+
+  const handlePaymentError = (error) => {
+    showErrorToast('Payment failed. Please try again.');
+    console.error('Payment error:', error);
+  };  const resetEnrollmentFlow = () => {
+
+
     setShowEnrollmentModal(false);
     setCurrentStep('children');
     setSelectedCourse(null);
@@ -1585,6 +1610,18 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
           </div>
         </div>
       )}
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        course={selectedCourse}
+        selectedChildren={enrollmentData.selectedChildren.map(childId =>
+          parentData.children.find(child => child.id === childId)
+        ).filter(Boolean)}
+        totalAmount={selectedCourse?.credits && enrollmentData.selectedChildren.length > 0 ? Math.max(selectedCourse.credits * enrollmentData.selectedChildren.length * 25, 1) : 1}
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+      />
     </div>
   );
 };

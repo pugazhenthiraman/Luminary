@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaSpinner, FaUser, FaEnvelope, FaLock, FaArrowLeft } from 'react-icons/fa';
 import { showSuccessToast, showErrorToast, showWarningToast } from '../components/Toast';
 import CustomPhoneInput from '../components/PhoneInput';
-import EmailVerification from '../components/EmailVerification.tsx';
+import EmailVerification from '../components/EmailVerification';
 import { useAuth } from '../hooks/useAuth.ts';
 
 
@@ -13,6 +13,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
   // Registration flow state
   const [currentStep, setCurrentStep] = useState<'registration' | 'verification'>('registration');
   const [registrationData, setRegistrationData] = useState<any>(null);
+ 
   // Form state
   const [formData, setFormData] = useState({
     firstName: '',
@@ -234,7 +235,6 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
       email: formData.email,
       phone: formData.phone,
       password: formData.password,
-      // Add any other required fields
     };
 
 
@@ -300,7 +300,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
   }
 
 
- return (
+  return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-to-r from-indigo-400/10 to-purple-400/10"></div>
@@ -381,11 +381,6 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
                       : 'border-gray-200 focus:border-indigo-500'
                   }`}
                 />
-                {isValidating && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-blue-500 text-xs sm:text-sm" />
-                  </div>
-                )}
               </div>
               {lastLastNameError && (
                 <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
@@ -397,154 +392,153 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
           </div>
 
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <div>
-              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  name="email"
-                  type="text"
-                  placeholder="Enter your email address"
-                  value={formData.email}
-                  onChange={handleEmailChange}
-                  className={`w-full px-3 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
-                    lastEmailError
-                      ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50'
-                      : 'border-gray-200 focus:border-indigo-500'
-                  }`}
-                />
-                {isValidating && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-blue-500 text-xs sm:text-sm" />
-                  </div>
-                )}
-              </div>
-              {lastEmailError && (
-                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
-                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                  {lastEmailError}
-                </div>
-              )}
-            </div>
-            <div>
-              <CustomPhoneInput
-                value={formData.phone}
-                onChange={(value, country) => {
-                  setFormData(prev => ({ ...prev, phone: value }));
-                }}
-                onValidationChange={(isValid, errorMessage) => {
-                  setLastPhoneError(errorMessage);
-                }}
-                label="Phone Number"
-                placeholder="Enter your phone number"
-                required={true}
-                error={lastPhoneError}
+          {/* Email */}
+          <div>
+            <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+              Email Address <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type="email"
+                name="email"
+                placeholder="Enter your email address"
+                value={formData.email}
+                onChange={handleEmailChange}
+                className={`w-full px-3 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  lastEmailError
+                    ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50'
+                    : 'border-gray-200 focus:border-indigo-500'
+                }`}
               />
-            </div>
-          </div>
-
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <div>
-              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
-                Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Create a strong password"
-                  value={formData.password}
-                  onChange={handlePasswordChange}
-                  className={`w-full px-3 py-2 sm:py-2.5 pr-10 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
-                    lastPasswordError
-                      ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50'
-                      : 'border-gray-200 focus:border-indigo-500'
-                  }`}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <FaEyeSlash className="text-xs sm:text-sm" /> : <FaEye className="text-xs sm:text-sm" />}
-                </button>
-                {isValidating && (
-                  <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-                    <FaSpinner className="animate-spin text-blue-500 text-xs sm:text-sm" />
-                  </div>
-                )}
-              </div>
-              {lastPasswordError && (
-                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
-                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                  {lastPasswordError}
+              {isValidating && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <FaSpinner className="animate-spin text-blue-500 text-xs sm:text-sm" />
                 </div>
               )}
             </div>
-            <div>
-              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={handleConfirmPasswordChange}
-                  className={`w-full px-3 py-2 sm:py-2.5 pr-10 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
-                    lastConfirmPasswordError
-                      ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50'
-                      : 'border-gray-200 focus:border-indigo-500'
-                  }`}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? <FaEyeSlash className="text-xs sm:text-sm" /> : <FaEye className="text-xs sm:text-sm" />}
-                </button>
+            {lastEmailError && (
+              <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                {lastEmailError}
               </div>
-              {lastConfirmPasswordError && (
-                <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
-                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                  {lastConfirmPasswordError}
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
 
+          {/* Phone */}
+          <div>
+            <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+              Phone Number <span className="text-red-500">*</span>
+            </label>
+            <CustomPhoneInput
+              value={formData.phone}
+              onChange={(phone: string) => setFormData(prev => ({ ...prev, phone }))}
+              onValidationChange={(isValid: boolean, error: string) => {
+                setLastPhoneError(isValid ? '' : error);
+              }}
+              className={`${
+                lastPhoneError
+                  ? 'border-red-300 bg-red-50 focus:border-red-500'
+                  : 'border-gray-200 focus:border-indigo-500'
+              }`}
+            />
+            {lastPhoneError && (
+              <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                {lastPhoneError}
+              </div>
+            )}
+          </div>
+
+
+          {/* Password */}
+          <div>
+            <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+              Password <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Create a strong password"
+                value={formData.password}
+                onChange={handlePasswordChange}
+                className={`w-full px-3 py-2 sm:py-2.5 pr-10 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  lastPasswordError
+                    ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50'
+                    : 'border-gray-200 focus:border-indigo-500'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 text-xs sm:text-sm"
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+            {lastPasswordError && (
+              <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                {lastPasswordError}
+              </div>
+            )}
+          </div>
+
+
+          {/* Confirm Password */}
+          <div>
+            <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+              Confirm Password <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleConfirmPasswordChange}
+                className={`w-full px-3 py-2 sm:py-2.5 pr-10 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                  lastConfirmPasswordError
+                    ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50'
+                    : 'border-gray-200 focus:border-indigo-500'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 text-xs sm:text-sm"
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+            {lastConfirmPasswordError && (
+              <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                {lastConfirmPasswordError}
+              </div>
+            )}
+          </div>
+
+
+          {/* Submit Button */}
           <button
-            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none rounded-lg text-sm sm:text-base font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-indigo-500/20 hover:border-indigo-400/30"
             type="submit"
-            disabled={isLoading}
+            disabled={loading || isLoading}
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 sm:py-3 px-4 rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
           >
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2">
-                <FaSpinner className="animate-spin text-sm sm:text-base" />
+            {loading || isLoading ? (
+              <>
+                <FaSpinner className="animate-spin" />
                 Creating Account...
-              </div>
+              </>
             ) : (
-              'Create Parent Account'
+              <>
+                <FaUser />
+                Create Parent Account
+              </>
             )}
           </button>
-
-
-          <div className="text-center">
-            <button
-              className="bg-transparent border-none text-indigo-600 font-medium cursor-pointer text-xs sm:text-sm transition-all duration-300 hover:text-indigo-800 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded flex items-center justify-center gap-2 mx-auto"
-              type="button"
-              onClick={onBack}
-            >
-              <FaArrowLeft className="text-xs" />
-              Already have an account? Sign in
-            </button>
-          </div>
         </form>
       </div>
     </div>

@@ -3,13 +3,19 @@ import { showSuccessToast, showErrorToast } from '../components/Toast';
 import { FaEye, FaEyeSlash, FaSpinner, FaChevronDown, FaTimes, FaArrowLeft } from 'react-icons/fa';
 import ISO6391 from 'iso-639-1';
 import CustomPhoneInput from '../components/PhoneInput';
+import EmailVerification from '../components/EmailVerification.tsx';
 import { coachStorage } from '../utils/coachStorage';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 
+
 const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   const navigate = useNavigate();
+ 
+  // Registration flow state
+  const [currentStep, setCurrentStep] = useState<'registration' | 'verification'>('registration');
+  const [registrationData, setRegistrationData] = useState<any>(null);
   // State for form fields
   const [form, setForm] = useState({
     firstName: '',
@@ -24,6 +30,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     language: '',
   });
 
+
   // Language selection state
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -33,13 +40,16 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   const languagesPerPage = 20;
   const [dropdownPosition, setDropdownPosition] = useState<'above' | 'below'>('below');
 
+
   // Ref for language dropdown
   const languageDropdownRef = useRef<HTMLDivElement>(null);
+
 
   // File upload state and error handling
   const [photoError, setPhotoError] = useState('');
   const [resumeError, setResumeError] = useState('');
   const [videoError, setVideoError] = useState('');
+
 
   // Uploaded files state
   const [uploadedFiles, setUploadedFiles] = useState({
@@ -49,10 +59,14 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     video: null as File | null
   });
 
+
   // File size limits (bytes)
   const RESUME_MAX_SIZE = 10 * 1024 * 1024; // 10MB
   const VIDEO_MAX_SIZE = 50 * 1024 * 1024; // 50MB
   const LICENSE_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+
+
 
 
 
@@ -65,31 +79,37 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   const [isValidating, setIsValidating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+
   // Debounce refs
   const emailDebounceRef = useRef<number | null>(null);
   const passwordDebounceRef = useRef<number | null>(null);
   const confirmPasswordDebounceRef = useRef<number | null>(null);
 
+
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+
   // Get all languages
   const allLanguages = ISO6391.getAllNames().sort();
+
 
   // Filter languages based on search
   const filteredLanguages = allLanguages.filter(lang =>
     lang.toLowerCase().includes(languageSearch.toLowerCase())
   );
-  
+ 
   // Pagination logic
   const totalPages = Math.ceil(filteredLanguages.length / languagesPerPage);
   const startIndex = (currentPage - 1) * languagesPerPage;
   const endIndex = startIndex + languagesPerPage;
   const currentLanguages = filteredLanguages.slice(startIndex, endIndex);
+
 
   // Language selection handlers
   const handleLanguageSelect = (language: string) => {
@@ -101,9 +121,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     setShowLanguageDropdown(false);
   };
 
+
   const handleLanguageRemove = (languageToRemove: string) => {
     setSelectedLanguages(selectedLanguages.filter(lang => lang !== languageToRemove));
   };
+
 
   const handleLanguageSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLanguageSearch(e.target.value);
@@ -113,6 +135,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     setTimeout(calculateDropdownPosition, 0);
   };
 
+
   // Pagination navigation functions
   const goToNextPage = () => {
     if (currentPage < totalPages) {
@@ -120,17 +143,20 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+
   const goToPrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
 
+
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
+
 
   // Calculate dropdown position
   const calculateDropdownPosition = useCallback(() => {
@@ -140,7 +166,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       const dropdownHeight = 320; // Approximate height of dropdown
       const spaceBelow = viewportHeight - rect.bottom;
       const spaceAbove = rect.top;
-      
+     
       if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
         setDropdownPosition('above');
       } else {
@@ -148,6 +174,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       }
     }
   }, []);
+
 
   // Click outside handler for language dropdown
   useEffect(() => {
@@ -159,16 +186,19 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       }
     };
 
+
     if (showLanguageDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       // Calculate position when dropdown opens
       calculateDropdownPosition();
     }
 
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showLanguageDropdown, calculateDropdownPosition]);
+
 
   // Update form.language when selectedLanguages changes
   useEffect(() => {
@@ -178,6 +208,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }));
   }, [selectedLanguages]);
 
+
   // Handle window resize and scroll for dropdown positioning
   useEffect(() => {
     const handleResize = () => {
@@ -186,25 +217,31 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       }
     };
 
+
     const handleScroll = () => {
       if (showLanguageDropdown) {
         calculateDropdownPosition();
       }
     };
 
+
     window.addEventListener('resize', handleResize);
     window.addEventListener('scroll', handleScroll, true);
-    
+   
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll, true);
     };
   }, [showLanguageDropdown, calculateDropdownPosition]);
 
+
   // Input formatting functions
   const formatName = (value: string) => {
     return value.replace(/\b\w/g, (char) => char.toUpperCase());
   };
+
+
+
 
 
 
@@ -219,6 +256,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }
     return '';
   };
+
 
   const validatePassword = (password: string) => {
     if (!password) return '';
@@ -242,10 +280,14 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
 
 
+
+
+
   // Real-time validation with debouncing
   const validateField = useCallback((field: string, value: string) => {
     let debounceRef: React.MutableRefObject<number | null>;
     let setError: (error: string) => void;
+
 
     switch (field) {
       case 'email':
@@ -261,17 +303,21 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
         setError = setConfirmPasswordError;
         break;
 
+
       default:
         return;
     }
+
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
+
     debounceRef.current = window.setTimeout(() => {
       setIsValidating(true);
       let error = '';
+
 
       switch (field) {
         case 'email':
@@ -286,7 +332,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
           }
           break;
 
+
       }
+
 
       setError(error);
       if (error) {
@@ -296,10 +344,12 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }, 1500);
   }, [form.password]);
 
+
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     let formattedValue = value;
+
 
     // Apply formatting based on field type
     switch (name) {
@@ -314,7 +364,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
         formattedValue = value;
     }
 
+
     setForm((prev) => ({ ...prev, [name]: formattedValue }));
+
 
     // Trigger validation for specific fields
     if (['email', 'password', 'confirmPassword'].includes(name)) {
@@ -322,14 +374,19 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+
   // Handle phone input change from CustomPhoneInput
   const handlePhoneChange = (value: string, country: any) => {
     setForm(prev => ({ ...prev, phone: value }));
   };
 
+
   const handlePhoneValidationChange = (isValid: boolean, errorMessage: string) => {
     setPhoneError(errorMessage);
   };
+
+
+
 
 
 
@@ -348,6 +405,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -362,6 +420,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -371,21 +430,22 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
         e.target.value = ''; // Clear the input
         return;
       }
-      
+     
       const allowedTypes = ['.jpg', '.jpeg', '.png', '.webp'];
       const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-      
+     
       if (!allowedTypes.includes(fileExtension)) {
         setPhotoError('Please upload a valid image file (JPG, PNG, WEBP)');
         showErrorToast('Please upload a valid image file (JPG, PNG, WEBP)');
         e.target.value = ''; // Clear the input
         return;
       }
-      
+     
       setPhotoError('');
       setUploadedFiles(prev => ({ ...prev, photo: file }));
     }
   };
+
 
   const handleDriverLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -401,12 +461,13 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+
   // Remove file functions
   const removeFile = (fileType: 'photo' | 'license' | 'resume' | 'video') => {
     setUploadedFiles(prev => ({ ...prev, [fileType]: null }));
     // Clear the file input
     const inputId = fileType === 'photo' ? 'photo-upload' :
-                   fileType === 'license' ? 'license-upload' : 
+                   fileType === 'license' ? 'license-upload' :
                    fileType === 'resume' ? 'resume-upload' : 'introVideo-upload';
     const input = document.getElementById(inputId) as HTMLInputElement;
     if (input) {
@@ -414,9 +475,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+
   // Form validation
   const validateForm = () => {
     const errors: string[] = [];
+
 
     // Required field validation
     if (!form.firstName) errors.push('First name is required');
@@ -436,32 +499,41 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       setLanguageError('');
     }
 
+
     // Field-specific validation
     const emailError = validateEmail(form.email);
     if (emailError) errors.push(emailError);
 
+
     const passwordError = validatePassword(form.password);
     if (passwordError) errors.push(passwordError);
+
 
     if (form.password !== form.confirmPassword) {
       errors.push('Passwords do not match');
     }
 
+
     // Driver license validation removed - now optional
+
 
     return errors;
   };
 
+
   const { handleRegister, loading, error } = useAuth();
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
 
     const errors = validateForm();
     if (errors.length > 0) {
       errors.forEach(error => showErrorToast(error));
       return;
     }
+
 
     // Prepare coach data for backend
     const coachData = {
@@ -479,25 +551,64 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       resume: uploadedFiles.resume,
       video: uploadedFiles.video
     };
-    
+   
     console.log('=== COACH REGISTRATION DEBUG START ===');
     console.log('Form data being sent:', coachData);
     console.log('userType being passed:', 'coach');
-    
+   
     const result = await handleRegister(coachData, 'coach');
-    
+   
     console.log('Result from handleRegister:', result);
     console.log('=== COACH REGISTRATION DEBUG END ===');
-    
+   
     if (result && result.user) {
-      showSuccessToast('Registration successful! Please check your email for verification.');
-      navigate('/login');
+      if (result.requiresVerification) {
+        // Store registration data and move to verification step
+        setRegistrationData(result);
+        setCurrentStep('verification');
+        showSuccessToast('Registration successful! Please check your email for verification code.');
+      } else {
+        // Old flow - direct login (shouldn't happen with new implementation)
+        showSuccessToast('Registration successful! Please check your email for verification.');
+        navigate('/login');
+      }
     } else if (error) {
       showErrorToast(String(error));
     } else {
       showErrorToast('Registration failed. Please try again.');
     }
   };
+
+
+  // Handle successful email verification
+  const handleVerificationSuccess = (userData: any) => {
+    showSuccessToast('Email verified successfully! You can now login.');
+    setTimeout(() => {
+      navigate('/login');
+    }, 1500);
+  };
+
+
+  // Handle back from verification
+  const handleBackFromVerification = () => {
+    setCurrentStep('registration');
+    setRegistrationData(null);
+  };
+
+
+  // Show email verification component if needed
+  if (currentStep === 'verification' && registrationData) {
+    return (
+      <EmailVerification
+        email={form.email}
+        firstName={form.firstName}
+        userType="coach"
+        onVerificationSuccess={handleVerificationSuccess}
+        onBack={handleBackFromVerification}
+      />
+    );
+  }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
@@ -506,11 +617,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       <div className="absolute top-0 left-0 w-72 h-72 bg-indigo-400/30 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-      
+     
       <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 min-w-80 md:min-w-96 max-w-5xl w-full mx-4 my-4 sm:my-6 md:my-8 border border-gray-200">
         {/* Back button */}
         <div className="mb-4 sm:mb-6">
-          <button 
+          <button
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
             onClick={onBack}
           >
@@ -519,10 +630,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
           </button>
         </div>
 
+
         <h1 className="text-center mb-4 sm:mb-6 text-gray-900 text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
           Join Luminary as Coach
         </h1>
-        
+       
         <div className="text-center mb-6 sm:mb-8">
           <p className="text-gray-700 text-sm sm:text-base md:text-lg font-medium leading-relaxed max-w-2xl mx-auto mb-3">
             Share your expertise and help families find the perfect coaching experience.
@@ -531,8 +643,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             Complete your profile to get started ✨
           </p>
         </div>
-        
+       
         <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit} noValidate>
+
 
                 <div>
             <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
@@ -541,9 +654,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             <div className="relative">
               {!uploadedFiles.photo ? (
                 <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 md:p-8 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
-                  <input 
-                    type="file" 
-                    name="photo" 
+                  <input
+                    type="file"
+                    name="photo"
                     id="photo-upload"
                     accept=".jpg,.jpeg,.png,.webp"
                     title="Upload your profile photo"
@@ -566,9 +679,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 </div>
               ) : (
                   <div className="relative">
-                      <img 
-                        src={URL.createObjectURL(uploadedFiles.photo)} 
-                        alt="Profile preview" 
+                      <img
+                        src={URL.createObjectURL(uploadedFiles.photo)}
+                        alt="Profile preview"
                     className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover mx-auto border-4 border-purple-200 shadow-lg"
                       />
                     <button
@@ -591,6 +704,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
           </div>
           </div>
 
+
           {/* Personal Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
@@ -598,10 +712,10 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 First Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-              <input 
-                name="firstName" 
-                placeholder="Enter your first name" 
-                value={form.firstName} 
+              <input
+                name="firstName"
+                placeholder="Enter your first name"
+                value={form.firstName}
                 onChange={handleChange}
                   className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
                 />
@@ -624,10 +738,10 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 Last Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-              <input 
-                name="lastName" 
-                placeholder="Enter your last name" 
-                value={form.lastName} 
+              <input
+                name="lastName"
+                placeholder="Enter your last name"
+                value={form.lastName}
                 onChange={handleChange}
                   className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
                 />
@@ -647,17 +761,18 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Email Address <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <input 
-                  name="email" 
+                <input
+                  name="email"
                   type="text"
-                  placeholder="Enter your email address" 
-                  value={form.email} 
+                  placeholder="Enter your email address"
+                  value={form.email}
                   onChange={handleChange}
                   className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
                 />
@@ -687,17 +802,18 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <input 
-                  name="password" 
+                <input
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Create a strong password" 
-                  value={form.password} 
+                  placeholder="Create a strong password"
+                  value={form.password}
                   onChange={handleChange}
                   className="w-full px-3 py-2 sm:py-2.5 pr-10 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
                 />
@@ -726,11 +842,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 Confirm Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <input 
-                  name="confirmPassword" 
+                <input
+                  name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirm your password" 
-                  value={form.confirmPassword} 
+                  placeholder="Confirm your password"
+                  value={form.confirmPassword}
                   onChange={handleChange}
                   className="w-full px-3 py-2 sm:py-2.5 pr-10 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
                 />
@@ -751,15 +867,16 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Years of Experience <span className="text-red-500">*</span>
               </label>
-                          <input 
-                name="experience" 
-                placeholder="e.g., 5 years" 
-                value={form.experience} 
+                          <input
+                name="experience"
+                placeholder="e.g., 5 years"
+                value={form.experience}
               onChange={handleChange}
                 className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
             />
@@ -768,29 +885,31 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
               <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Area of Expertise <span className="text-red-500">*</span>
               </label>
-              <input 
-                name="domain" 
-                placeholder="e.g., Mathematics, Sports, Music" 
-                value={form.domain} 
+              <input
+                name="domain"
+                placeholder="e.g., Mathematics, Sports, Music"
+                value={form.domain}
                 onChange={handleChange}
                 className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
               />
             </div>
           </div>
 
+
             <div>
             <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
               Address <span className="text-red-500">*</span>
               </label>
-            <textarea 
-              name="address" 
-              placeholder="Enter your full address" 
-              value={form.address} 
+            <textarea
+              name="address"
+              placeholder="Enter your full address"
+              value={form.address}
               onChange={handleChange}
               rows={3}
               className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md resize-none"
             />
           </div>
+
 
             <div>
             <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
@@ -799,8 +918,8 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             <div className="relative" ref={languageDropdownRef}>
               <div className="flex flex-wrap gap-2 mb-3">
                 {selectedLanguages.map((language) => (
-                  <span 
-                    key={language} 
+                  <span
+                    key={language}
                     className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 text-xs sm:text-sm px-2 py-1 rounded-full"
                   >
                     {language}
@@ -817,7 +936,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 ))}
               </div>
               <div className="relative">
-                <input 
+                <input
                   type="text"
                   placeholder="Search and select languages..."
                   value={languageSearch}
@@ -883,6 +1002,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
               </div>
 
+
           {/* File Uploads */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
@@ -892,9 +1012,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 <div className="relative">
                   {!uploadedFiles.resume ? (
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
-              <input 
-                type="file" 
-                name="resume" 
+              <input
+                type="file"
+                name="resume"
                 id="resume-upload"
                       accept=".pdf,.doc,.docx"
                 title="Upload your resume"
@@ -944,6 +1064,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
               </div>
           </div>
 
+
             <div>
               <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
                 Introduction Video <span className="text-red-500">*</span>
@@ -951,9 +1072,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 <div className="relative">
                   {!uploadedFiles.video ? (
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
-              <input 
-                type="file" 
-                      name="video" 
+              <input
+                type="file"
+                      name="video"
                       id="video-upload"
                       accept=".mp4,.avi,.mov,.wmv"
                       title="Upload your introduction video"
@@ -1004,8 +1125,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
+
                            <button
-            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none rounded-lg text-sm sm:text-base font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-indigo-500/20 hover:border-indigo-400/30" 
+            className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none rounded-lg text-sm sm:text-base font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-indigo-500/20 hover:border-indigo-400/30"
             type="submit"
             disabled={isLoading}
           >
@@ -1019,10 +1141,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             )}
           </button>
 
+
           <div className="text-center">
-                         <button 
-              className="bg-transparent border-none text-indigo-600 font-medium cursor-pointer text-xs sm:text-sm transition-all duration-300 hover:text-indigo-800 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded flex items-center justify-center gap-2 mx-auto" 
-               type="button" 
+                         <button
+              className="bg-transparent border-none text-indigo-600 font-medium cursor-pointer text-xs sm:text-sm transition-all duration-300 hover:text-indigo-800 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded flex items-center justify-center gap-2 mx-auto"
+               type="button"
                onClick={onBack}
              >
               <FaArrowLeft className="text-xs" />
@@ -1031,6 +1154,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
           </div>
         </form>
       </div>
+
 
       {/* Success Modal */}
       {showSuccessModal && (
@@ -1053,6 +1177,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
               </p>
             </div>
 
+
             {/* Modal Body */}
             <div className="p-6">
               <div className="space-y-4">
@@ -1073,6 +1198,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                   </div>
                 </div>
 
+
                 {/* Email Notification */}
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
                   <div className="flex items-start gap-3">
@@ -1089,6 +1215,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                     </div>
                   </div>
                 </div>
+
 
                 {/* Next Steps */}
                 <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-100">
@@ -1108,6 +1235,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 </div>
               </div>
             </div>
+
 
             {/* Modal Footer */}
             <div className="p-6 border-t border-gray-100">
@@ -1130,4 +1258,10 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   );
 };
 
+
 export default RegisterCoach;
+
+
+ 
+
+

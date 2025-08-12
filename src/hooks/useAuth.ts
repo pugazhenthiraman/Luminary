@@ -6,6 +6,7 @@ interface AuthResult {
   user?: any;
   accessToken?: string;
   refreshToken?: string;
+requiresVerification?: boolean;
   [key: string]: any;
 }
 
