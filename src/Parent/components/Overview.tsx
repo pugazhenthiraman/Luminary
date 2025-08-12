@@ -15,7 +15,38 @@ import {
   FaDollarSign,
   FaTrophy
 } from 'react-icons/fa';
-import { Enrollment, Session } from '../data/mockData';
+
+// Interfaces
+export interface Enrollment {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  childName: string;
+  childId: string;
+  enrollmentDate: string;
+  status: 'active' | 'completed' | 'cancelled';
+  progress: number;
+  nextSession: string;
+  coachName: string;
+  totalSessions: number;
+  completedSessions: number;
+  grade: string;
+  feedback: string;
+}
+
+export interface Session {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  childName: string;
+  date: string;
+  time: string;
+  duration: string;
+  status: 'upcoming' | 'completed' | 'cancelled';
+  coachName: string;
+  topic: string;
+  meetingLink?: string;
+}
 
 interface ParentUser {
   id: string;

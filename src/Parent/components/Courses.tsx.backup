@@ -28,47 +28,15 @@ import {
   FaChevronRight
 } from 'react-icons/fa';
   import CourseCard from "../../components/CourseCard";
+import { Course } from '../data/mockData';
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
 import { getCoachDetails, getCoachDetailsByCourse } from '../../api/coach';
 import PaymentModal from '../../components/PaymentModel';
-
-// Course interface
-export interface Course {
-  id: string;
-  title: string;
-  description: string;
-  benefits: string;
-  category: string;
-  program: 'morning' | 'afternoon' | 'evening';
-  credits: number;
-  timezone: string;
-  weeklySchedule: {
-    day: string;
-    isActive: boolean;
-    timeSlots: {
-      startTime: string;
-      endTime: string;
-      sessions: number;
-      sessionDuration: number;
-      bufferTime: number;
-    }[];
-  }[];
-  thumbnail: string;
-  introVideo?: string;
-  coach: {
-    id: string;
-    name: string;
-    avatar: string;
-    rating?: number;
-    totalReviews?: number;
-  };
-}
 
 // Minimal type definitions to fix errors
 export interface CoursesProps {
   courses: Course[];
   parentData: any;
-  loading?: boolean;
 }
 
 export interface CoachData {
@@ -118,7 +86,7 @@ const priceRanges = [
   { value: 'premium', label: 'Premium ($300+)' }
 ];
 
-const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false }) => {
+const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
   const [isCoachLoading, setIsCoachLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -387,74 +355,17 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   };
 
   const handleViewCoachDetails = (courseId: string) => {
-    console.log("[Parent] Fetching coach details for course:", courseId);
     setIsCoachLoading(true);
-    
-    // Find the course to get basic info
-    const course = filteredCourses.find(c => c.id === courseId);
-    if (!course || !course.coach) {
-      console.error("[Parent] No course data found for course:", courseId);
-      showErrorToast("Course not found");
-      setIsCoachLoading(false);
-      return;
-    }
-
-    console.log("[Parent] Attempting to fetch coach details from API for course:", courseId);
-    
-    // Only show modal if we get real API data
     getCoachDetailsByCourse(courseId)
       .then((res) => {
-        console.log("[Parent] Coach details API response:", res);
-        
-        if (res.data && res.data.data) {
-          const apiData = res.data.data;
-          
-          // Create coach data from real API response
-          const coachData: CoachData = {
-            id: String(apiData.id || apiData.userId || course.coach.id),
-            firstName: apiData.firstName || 'Coach',
-            lastName: apiData.lastName || '',
-            name: `${apiData.firstName || 'Coach'} ${apiData.lastName || ''}`.trim(),
-            avatarUrl: apiData.avatar || '',
-            bio: `Experienced ${apiData.domain || 'educator'} with ${apiData.experience || '0'} years of experience. Specializes in helping students achieve their academic goals.`,
-            specializations: apiData.domain ? [apiData.domain] : [],
-            rating: Number(apiData.rating) || 0,
-            totalStudents: apiData.totalReviews || 0,
-            experience: `${apiData.experience || '0'} years of experience in ${apiData.domain || 'education'}`,
-            education: [], // Not provided in API
-            certifications: [], // Not provided in API
-            languages: apiData.languages || ['English'],
-            hourlyRate: apiData.hourlyRate || 0,
-            email: apiData.email || '',
-            phone: apiData.phone || '',
-            address: apiData.address || '',
-            status: 'approved', // Assume approved since they have courses
-            registrationDate: new Date().toISOString(),
-            duration: 'Flexible',
-            courses: (apiData.courses || []).map((c: any) => c.title).slice(0, 3), // Show up to 3 courses
-            courseTitle: course.title,
-            courseCategory: course.category,
-            courseCredits: course.credits,
-            adminNotes: '',
-            totalReviews: apiData.totalReviews || 0
-          };
-          
-          console.log("[Parent] Setting coach data from real API:", coachData);
-          setSelectedCoach(coachData);
-          setShowCoachModal(true);
-          setIsCoachLoading(false);
-        } else {
-          throw new Error('No coach data in API response');
-        }
+        setSelectedCoach(res.data);
+        setShowCoachModal(true);
       })
-      .catch((error) => {
-        console.error("[Parent] Failed to fetch coach details:", error.message);
+      .catch(() => {
+        showErrorToast('Coach details not found');
+      })
+      .finally(() => {
         setIsCoachLoading(false);
-        
-        // Show error message to user
-        showErrorToast("Coach details are not available for this course at the moment. Please try again later.");
-        
-        // Don't show the modal at all if API fails
       });
   };
 
@@ -798,10 +709,24 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
       </div>
 
       {/* Courses Grid */}
-      {!loading && filteredCourses.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {filteredCourses.map((course, index) => (
           <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200">
+            <div className="relative h-40 sm:h-48 rounded-xl overflow-hidden mb-4">
+              {course.thumbnail && course.thumbnail !== "" ? (
+                <img
+                  src={course.thumbnail}
+                  alt={course.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div
+                  className={`absolute inset-0 w-full h-full flex items-center justify-center text-white text-lg sm:text-xl font-bold select-none ${getGradient(course.title)}`}
+                >
+                  {course.title}
+                </div>
+              )}
+            </div>
             {/* Course Content (Card) */}
             <CourseCard
               course={{
@@ -816,43 +741,26 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
             />
           </div>
         ))}
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center py-8 sm:py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Loading courses...</h3>
-          <p className="text-xs sm:text-sm text-gray-500">
-            Please wait while we fetch the latest courses for you.
-          </p>
-        </div>
-      )}
+      </div>
 
       {/* No Results */}
-      {!loading && filteredCourses.length === 0 && (
+      {filteredCourses.length === 0 && (
         <div className="text-center py-8 sm:py-12">
           <FaBook className="text-gray-300 text-4xl sm:text-6xl mx-auto mb-4" />
-          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
-            {courses.length === 0 ? "No courses available" : "No courses found"}
-          </h3>
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No courses found</h3>
           <p className="text-xs sm:text-sm text-gray-500 mb-4">
-            {courses.length === 0 
-              ? "There are currently no courses available. Please check back later."
-              : "Try adjusting your search terms or filters to find more courses."
-            }
+            Try adjusting your search terms or filters to find more courses.
           </p>
           <button
             onClick={() => {
-              setSearchTerm("");
-              setSelectedCategory("all");
-              setSelectedPriceRange("all");
-              setSelectedDateRange("all");
+              setSearchTerm('');
+              setSelectedCategory('all');
+              setSelectedPriceRange('all');
+              setSelectedDateRange('all');
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base hover:scale-105 transition-all duration-200"
           >
-            Clear Filters
+            Clear all filters
           </button>
         </div>
       )}
@@ -890,10 +798,10 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                 <div className="lg:col-span-1">
                   <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 sm:p-8 text-center">
                     <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl sm:text-4xl font-bold">
-                      {selectedCoach.firstName?.charAt(0) || 'C'}{selectedCoach.lastName?.charAt(0) || 'N'}
+                      {selectedCoach.firstName.charAt(0)}{selectedCoach.lastName.charAt(0)}
                     </div>
                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                      {selectedCoach.firstName || 'Coach'} {selectedCoach.lastName || 'Name'}
+                      {selectedCoach.firstName} {selectedCoach.lastName}
                     </h1>
                     <p className="text-sm sm:text-base text-gray-600 mb-4">Professional Coach</p>
                     
@@ -913,7 +821,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                           : 'bg-red-500'
                       }`}></div>
                       {selectedCoach.status
-                        ? selectedCoach.status?.charAt(0).toUpperCase() + selectedCoach.status?.slice(1)
+                        ? selectedCoach.status.charAt(0).toUpperCase() + selectedCoach.status.slice(1)
                         : 'Unknown'}
                     </div>
                   </div>
@@ -932,21 +840,21 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                         <FaEnvelope className="text-blue-600 text-sm sm:text-base" />
                         <div>
                           <p className="text-xs sm:text-sm text-gray-600">Email</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.email || 'N/A'}</p>
+                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-3">
                         <FaPhone className="text-blue-600 text-sm sm:text-base" />
                         <div>
                           <p className="text-xs sm:text-sm text-gray-600">Phone</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.phone || 'N/A'}</p>
+                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.phone}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-3 sm:col-span-2">
                         <FaMapMarkerAlt className="text-blue-600 text-sm sm:text-base" />
                          <div>
                           <p className="text-xs sm:text-sm text-gray-600">Address</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.address || 'N/A'}</p>
+                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.address}</p>
                          </div>
                        </div>
                       <div className="flex items-center space-x-3">
@@ -1172,19 +1080,11 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                   <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-indigo-100">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
                       <div className="flex items-center space-x-3 sm:space-x-4">
-                        {selectedCourse.coach.avatar && selectedCourse.coach.avatar !== "" ? (
-                          <img
-                            src={selectedCourse.coach.avatar}
-                            alt={selectedCourse.coach.name}
-                            className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-white shadow-lg"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                            <span className="text-white font-bold text-lg sm:text-xl">
-                              {selectedCourse.coach.name?.charAt(0).toUpperCase() || 'C'}
-                            </span>
-                          </div>
-                        )}
+                        <img
+                          src={selectedCourse.coach.avatar}
+                          alt={selectedCourse.coach.name}
+                          className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-white shadow-lg"
+                        />
                         <div className="flex-1">
                           <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">{selectedCourse.coach.name}</h3>
                           <p className="text-sm sm:text-base text-gray-600">Course Instructor</p>
@@ -1713,7 +1613,6 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
         </div>
       )}
       {/* Payment Modal */}
-      <div>
       <PaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
@@ -1727,9 +1626,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
         onSuccess={handlePaymentSuccess}
         onError={handlePaymentError}
       />
-      </div>
     </div>
-    
   );
 };
 

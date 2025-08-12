@@ -1,5 +1,6 @@
 import { getGradient } from "../utils/getGradient";
-import React from "react";
+import { validateThumbnailUrl } from "../utils/thumbnailUtils";
+import React, { useState, useEffect } from "react";
 import { FaEye, FaGraduationCap, FaCalendarAlt } from "react-icons/fa";
 import Avatar from "./Avatar";
 
@@ -35,7 +36,7 @@ interface CourseCardProps {
   course: Course;
   onViewDetails: (course: Course) => void;
   onEnroll: (course: Course) => void;
-  onViewCoachDetails: (coachId: string) => void;
+  onViewCoachDetails: (courseId: string) => void;
   formatProgram: (program: string) => string;
   formatTime: (time: string) => string;
 }
@@ -48,23 +49,64 @@ const CourseCard: React.FC<CourseCardProps> = ({
   formatProgram,
   formatTime,
 }) => {
+  const [thumbnailError, setThumbnailError] = useState(false);
+  const [thumbnailLoading, setThumbnailLoading] = useState(true);
+
+  useEffect(() => {
+    if (course.thumbnail && validateThumbnailUrl(course.thumbnail)) {
+      setThumbnailLoading(true);
+      setThumbnailError(false);
+    } else {
+      setThumbnailLoading(false);
+      setThumbnailError(true);
+    }
+  }, [course.thumbnail]);
+
+  const handleThumbnailLoad = () => {
+    console.log(`[CourseCard] Successfully loaded thumbnail for: ${course.title}`);
+    setThumbnailLoading(false);
+    setThumbnailError(false);
+  };
+
+  const handleThumbnailError = () => {
+    console.warn(`[CourseCard] Failed to load thumbnail for: ${course.title}, URL: ${course.thumbnail}`);
+    setThumbnailLoading(false);
+    setThumbnailError(true);
+  };
   return (
     <div className="p-4 sm:p-6">
       {/* Thumbnail or Fallback */}
       <div className="relative h-40 sm:h-48 rounded-xl overflow-hidden mb-4">
-        {course.thumbnail && course.thumbnail !== "" ? (
-          <img
-            src={course.thumbnail}
-            alt={course.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div
-            className={`absolute inset-0 w-full h-full flex items-center justify-center text-white text-lg sm:text-xl font-bold select-none ${getGradient(course.title)}`}
-          >
-            {course.title}
+        {course.thumbnail && !thumbnailError ? (
+          <>
+            <img
+              src={course.thumbnail}
+              alt={course.title}
+              className="w-full h-full object-cover"
+              onLoad={handleThumbnailLoad}
+              onError={handleThumbnailError}
+              style={{ display: thumbnailLoading ? 'none' : 'block' }}
+            />
+            {thumbnailLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            )}
+          </>
+        ) : null}
+        <div
+          className={`absolute inset-0 w-full h-full flex items-center justify-center text-white text-lg sm:text-xl font-bold select-none ${getGradient(course.title)}`}
+          style={{ 
+            display: (!course.thumbnail || thumbnailError || thumbnailLoading) ? 'flex' : 'none' 
+          }}
+        >
+          <div className="text-center px-4">
+            <div className="mb-2">{course.title}</div>
+            {thumbnailError && course.thumbnail && (
+              <div className="text-xs opacity-75">Image failed to load</div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
 
@@ -81,7 +123,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
         />
         <span className="text-xs sm:text-sm text-gray-600 truncate">{course.coach.name}</span>
         <button
-          onClick={() => onViewCoachDetails(course.coach.id)}
+          onClick={() => onViewCoachDetails(course.id)}
           className="text-blue-600 hover:text-blue-700 text-xs font-medium hover:scale-105 transition-all duration-200"
         >
           View Profile

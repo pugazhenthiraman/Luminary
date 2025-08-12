@@ -20,7 +20,21 @@ import {
   FaComments,
   FaBook
 } from 'react-icons/fa';
-import { Session } from '../data/mockData';
+
+// Session interface
+export interface Session {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  childName: string;
+  date: string;
+  time: string;
+  duration: string;
+  status: 'upcoming' | 'completed' | 'cancelled';
+  coachName: string;
+  topic: string;
+  meetingLink?: string;
+}
 
 interface ParentUser {
   id: string;

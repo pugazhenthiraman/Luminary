@@ -28,7 +28,24 @@ import {
   FaEnvelope,
   FaPhone
 } from 'react-icons/fa';
-import { Enrollment } from '../data/mockData';
+
+// Enrollment interface
+export interface Enrollment {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  childName: string;
+  childId: string;
+  enrollmentDate: string;
+  status: 'active' | 'completed' | 'cancelled';
+  progress: number;
+  nextSession: string;
+  coachName: string;
+  totalSessions: number;
+  completedSessions: number;
+  grade: string;
+  feedback: string;
+}
 
 interface ParentUser {
   id: string;
