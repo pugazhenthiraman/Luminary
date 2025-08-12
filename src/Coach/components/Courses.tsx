@@ -12,7 +12,8 @@ import {
 } from 'react-icons/fa';
 import CreateCourseForm from './CreateCourseForm';
 import axiosInstance from '../../api/axiosInstance';
-import { showErrorToast } from '../../components/Toast';
+import { updateCourse, deleteCourse, getCourseById } from '../../api/courses';
+import { showErrorToast, showSuccessToast } from '../../components/Toast';
 
 interface TimeSlot {
   id: string;
@@ -32,17 +33,26 @@ interface DaySchedule {
 interface Course {
   id: string | number;
   title: string;
+  description?: string;
+  benefits?: string;
   thumbnail: string;
   students: number;
   rating: number;
-  price: number;
+  price: string | number;  // API returns as string
+  creditCost?: number;
   status: string;
   category: string;
-  duration: string;
+  program?: string;
+  duration: string | number;
+  courseDuration?: string;
+  timezone?: string;
   lessons: number;
   weeklySchedule?: DaySchedule[];
   videoThumbnail?: string;
   hasVideo?: boolean;
+  videoUrl?: string;
+  level?: string;
+  currency?: string;
 }
 
 interface CoursesProps {
@@ -78,6 +88,14 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
   const [localCourses, setLocalCourses] = useState<Course[]>(courses);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | number | null>(null);
+  
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Edit loading state
+  const [isLoadingEditData, setIsLoadingEditData] = useState(false);
   
   // Filter states - simplified
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
@@ -268,33 +286,172 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     setShowCreateForm(false);
   };
 
-  const handleEditCourse = (course: Course) => {
-    setEditingCourse(course);
-    setShowEditForm(true);
+  const handleEditCourse = async (course: Course) => {
+    console.log('[Coach] Editing course:', course);
+    console.log('[Coach] Course data fields:', {
+      title: course.title,
+      description: course.description,
+      benefits: course.benefits,
+      category: course.category,
+      program: course.program,
+      price: course.price,
+      timezone: course.timezone,
+      courseDuration: course.courseDuration,
+      weeklySchedule: course.weeklySchedule
+    });
+    
+    setIsLoadingEditData(true);
+    
+    try {
+      // Fetch complete course details from API
+      console.log('[Coach] Fetching complete course details for editing...');
+      const response = await getCourseById(course.id);
+      console.log('[Coach] Complete course details response:', response);
+      
+      let fullCourseData;
+      if (response.data?.success && response.data?.data) {
+        fullCourseData = response.data.data;
+      } else if (response.data?.data) {
+        fullCourseData = response.data.data;
+      } else if (response.data) {
+        fullCourseData = response.data;
+      } else {
+        throw new Error('Invalid API response');
+      }
+      
+      console.log('[Coach] Full course data for editing:', fullCourseData);
+      
+      // Use the complete course data for editing
+      const completeEditingCourse: Course = {
+        ...course,
+        ...fullCourseData,
+        // Ensure we have all the fields
+        id: course.id,
+        title: fullCourseData.title || course.title,
+        description: fullCourseData.description || '',
+        benefits: fullCourseData.benefits || '',
+        category: fullCourseData.category || course.category,
+        program: fullCourseData.program || '',
+        price: fullCourseData.price || course.price || 0,
+        timezone: fullCourseData.timezone || '',
+        courseDuration: fullCourseData.courseDuration || '',
+        weeklySchedule: fullCourseData.weeklySchedule || course.weeklySchedule || []
+      };
+      
+      console.log('[Coach] Complete editing course object:', completeEditingCourse);
+      
+      setEditingCourse(completeEditingCourse);
+      setShowEditForm(true);
+      
+    } catch (error) {
+      console.error('[Coach] Failed to fetch course details for editing:', error);
+      showErrorToast('Failed to load course details for editing. Please try again.');
+    } finally {
+      setIsLoadingEditData(false);
+    }
   };
 
   const handleUpdateCourse = async (courseData: any) => {
     if (!editingCourse) return;
 
-    const category = courseData.program.charAt(0).toUpperCase() + courseData.program.slice(1);
-    
-    // Update the course object with the form data
-    const updatedCourse: Course = {
-      ...editingCourse,
-      title: courseData.title,
-      thumbnail: courseData.thumbnail ? URL.createObjectURL(courseData.thumbnail) : editingCourse.thumbnail,
-      price: courseData.credits,
-      category: category,
-      weeklySchedule: courseData.weeklySchedule
-    };
+    try {
+      console.log(`[Coach] Updating course: ${editingCourse.id}`);
+      console.log('[Coach] Form data received:', courseData);
+      
+      // Prepare the data for API call - match the backend validation schema
+      const updateData = {
+        title: courseData.title,
+        description: courseData.description || '',
+        benefits: courseData.benefits || '',
+        category: courseData.category,
+        program: courseData.program,
+        price: String(courseData.credits) || '0',  // Backend expects price as string
+        courseDuration: courseData.duration || courseData.courseDuration || '',
+        timezone: courseData.timezone || '',
+        weeklySchedule: courseData.weeklySchedule || [],
+        // Handle file uploads
+        ...(courseData.thumbnail && { thumbnail: courseData.thumbnail }),
+        ...(courseData.videoUrl && { videoUrl: courseData.videoUrl })
+      };
 
-    // Update the course in the local state
-    setLocalCourses(prev => prev.map(course => 
-      course.id === editingCourse.id ? updatedCourse : course
-    ));
-    
-    setShowEditForm(false);
-    setEditingCourse(null);
+      console.log('[Coach] Sending update data:', updateData);
+
+      // Call the PUT API
+      const response = await updateCourse(editingCourse.id, updateData);
+      console.log('[Coach] Update response:', response);
+      
+      // Handle the response
+      let updatedCourseData;
+      if (response.data?.success && response.data?.data) {
+        updatedCourseData = response.data.data;
+      } else if (response.data?.data) {
+        updatedCourseData = response.data.data;
+      } else if (response.data) {
+        updatedCourseData = response.data;
+      } else {
+        throw new Error('Invalid API response');
+      }
+
+      // Update the course in the local state with all the fields
+      const updatedCourse: Course = {
+        ...editingCourse,
+        ...updatedCourseData,
+        // Ensure we maintain the local structure and handle field mappings
+        title: updatedCourseData.title || courseData.title,
+        description: updatedCourseData.description || courseData.description,
+        benefits: updatedCourseData.benefits || courseData.benefits,
+        category: updatedCourseData.category || courseData.category,
+        program: updatedCourseData.program || courseData.program,
+        price: updatedCourseData.price || String(courseData.credits),
+        courseDuration: updatedCourseData.courseDuration || courseData.duration,
+        timezone: updatedCourseData.timezone || courseData.timezone,
+        weeklySchedule: updatedCourseData.weeklySchedule || courseData.weeklySchedule
+      };
+
+      console.log('[Coach] Updated course object:', updatedCourse);
+
+      setLocalCourses(prev => prev.map(course => 
+        course.id === editingCourse.id ? updatedCourse : course
+      ));
+      
+      showSuccessToast(`Course "${courseData.title}" has been updated successfully.`);
+      
+      setShowEditForm(false);
+      setEditingCourse(null);
+      
+    } catch (error) {
+      console.error('[Coach] Failed to update course:', error);
+      console.error('[Coach] Error response:', error.response?.data);
+      
+      let errorMessage = 'Failed to update course. Please try again.';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        // Handle validation errors (422)
+        if (error.response.status === 422) {
+          if (errorData.data && Array.isArray(errorData.data)) {
+            // Extract validation error messages
+            const validationErrors = errorData.data.map(err => err.message || err).join(', ');
+            errorMessage = `Validation failed: ${validationErrors}`;
+          } else if (errorData.message) {
+            errorMessage = `Validation failed: ${errorData.message}`;
+          } else {
+            errorMessage = 'Please check all required fields and try again.';
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showErrorToast(errorMessage);
+    }
   };
 
   const handleAddVideo = (course: Course) => {
@@ -352,9 +509,92 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
   };
 
   const handleDeleteCourse = (course: Course) => {
-    if (window.confirm(`Are you sure you want to delete the course "${course.title}"? This action cannot be undone.`)) {
-      setLocalCourses(prev => prev.filter(c => c.id !== course.id));
+    setCourseToDelete(course);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteCourse = async () => {
+    if (!courseToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      console.log(`[Coach] Deleting course: ${courseToDelete.id}`);
+      console.log(`[Coach] Course details:`, courseToDelete);
+      console.log(`[Coach] API Call: DELETE /api/v1/courses/${courseToDelete.id}`);
+      
+      // First, let's try to get the course details to see if it exists
+      try {
+        const courseCheck = await getCourseById(courseToDelete.id);
+        console.log('[Coach] Course exists, proceeding with deletion:', courseCheck.data);
+      } catch (checkError) {
+        console.log('[Coach] Course check failed:', checkError);
+        if (checkError.response?.status === 404) {
+          showErrorToast('Course not found. It may have already been deleted.');
+          setShowDeleteConfirm(false);
+          setCourseToDelete(null);
+          setIsDeleting(false);
+          return;
+        }
+      }
+      
+      const response = await deleteCourse(courseToDelete.id);
+      console.log('[Coach] Delete response:', response);
+      
+      // Remove from local state
+      setLocalCourses(prev => prev.filter(c => c.id !== courseToDelete.id));
+      
+      showSuccessToast(`Course "${courseToDelete.title}" has been deleted successfully.`);
+      
+      // Close confirmation dialog
+      setShowDeleteConfirm(false);
+      setCourseToDelete(null);
+      
+    } catch (error) {
+      console.error('[Coach] Failed to delete course:', error);
+      console.error('[Coach] Error response:', error.response);
+      console.error('[Coach] Error data:', error.response?.data);
+      
+      let errorMessage = 'Failed to delete course. Please try again.';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        // Handle different error response formats
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+        
+        // Handle specific error cases
+        if (errorMessage.includes('foreign key constraint') || 
+            errorMessage.includes('related records') ||
+            errorMessage.includes('enrolled students')) {
+          errorMessage = 'Cannot delete this course because it has enrolled students or related data. Please contact support if you need to remove this course.';
+        } else if (errorMessage.includes('not found')) {
+          errorMessage = 'Course not found. It may have already been deleted.';
+          // Remove from local state since it doesn't exist
+          setLocalCourses(prev => prev.filter(c => c.id !== courseToDelete.id));
+        } else if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
+          errorMessage = 'You do not have permission to delete this course.';
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Server error occurred. The course may have related data that prevents deletion. Please contact support.';
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showErrorToast(errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const cancelDeleteCourse = () => {
+    setShowDeleteConfirm(false);
+    setCourseToDelete(null);
   };
 
   const handleViewDetails = (courseId: string | number) => {
@@ -663,10 +903,15 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                       e.stopPropagation();
                       handleEditCourse(course);
                     }}
-                    className="w-9 h-9 bg-gray-100 hover:bg-indigo-100 text-gray-600 hover:text-indigo-600 rounded-lg transition-all duration-200 flex items-center justify-center"
+                    disabled={isLoadingEditData}
+                    className="w-9 h-9 bg-gray-100 hover:bg-indigo-100 text-gray-600 hover:text-indigo-600 rounded-lg transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Edit course"
                   >
-                    <FaEdit className="text-xs" />
+                    {isLoadingEditData ? (
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600"></div>
+                    ) : (
+                      <FaEdit className="text-xs" />
+                    )}
                   </button>
 
                   {/* Add Video Button */}
@@ -758,32 +1003,45 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
 
       {/* Edit Course Form Modal */}
       {showEditForm && editingCourse && (
-        <CreateCourseForm
-          onClose={() => {
-            setShowEditForm(false);
-            setEditingCourse(null);
-          }}
-          onSubmit={handleUpdateCourse}
-          initialData={{
-            title: editingCourse.title,
-            description: editingCourse.title, // You might want to add description to Course interface
-            benefits: '', // You might want to add benefits to Course interface
-            category: editingCourse.category.toLowerCase().replace(' ', '-'),
-            program: 'morning' as const, // Default to morning since we don't store this in Course
-            credits: editingCourse.price,
-            timezone: '',
-            weeklySchedule: editingCourse.weeklySchedule || [
-              { day: 'SUNDAYS', isActive: false, timeSlots: [] },
-              { day: 'MONDAYS', isActive: false, timeSlots: [] },
-              { day: 'TUESDAYS', isActive: false, timeSlots: [] },
-              { day: 'WEDNESDAYS', isActive: false, timeSlots: [] },
-              { day: 'THURSDAYS', isActive: false, timeSlots: [] },
-              { day: 'FRIDAYS', isActive: false, timeSlots: [] },
-              { day: 'SATURDAYS', isActive: false, timeSlots: [] }
-            ]
-          }}
-          isEditing={true}
-        />
+        <>
+          {console.log('[Coach] Rendering edit form with data:', {
+            title: editingCourse.title || '',
+            description: editingCourse.description || '',
+            benefits: editingCourse.benefits || '',
+            category: editingCourse.category || '',
+            program: editingCourse.program || 'morning',
+            credits: Number(editingCourse.price) || 0,
+            timezone: editingCourse.timezone || '',
+            duration: editingCourse.courseDuration || editingCourse.duration || ''
+          })}
+          <CreateCourseForm
+            onClose={() => {
+              setShowEditForm(false);
+              setEditingCourse(null);
+            }}
+            onSubmit={handleUpdateCourse}
+            initialData={{
+              title: editingCourse.title || '',
+              description: editingCourse.description || '',
+              benefits: editingCourse.benefits || '',
+              category: editingCourse.category || '',
+              program: editingCourse.program || 'morning' as const,
+              credits: Number(editingCourse.price) || 0,  // API returns price as string
+              timezone: editingCourse.timezone || '',
+              duration: editingCourse.courseDuration || editingCourse.duration || '',
+              weeklySchedule: editingCourse.weeklySchedule || [
+                { day: 'SUNDAYS', isActive: false, timeSlots: [] },
+                { day: 'MONDAYS', isActive: false, timeSlots: [] },
+                { day: 'TUESDAYS', isActive: false, timeSlots: [] },
+                { day: 'WEDNESDAYS', isActive: false, timeSlots: [] },
+                { day: 'THURSDAYS', isActive: false, timeSlots: [] },
+                { day: 'FRIDAYS', isActive: false, timeSlots: [] },
+                { day: 'SATURDAYS', isActive: false, timeSlots: [] }
+              ]
+            }}
+            isEditing={true}
+          />
+        </>
       )}
 
       {/* Coach Course Details Modal */}
@@ -801,6 +1059,74 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
           }
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && courseToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            {/* Header */}
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                <FaTrash className="text-red-600 text-xl" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Delete Course</h3>
+                <p className="text-sm text-gray-600">This action cannot be undone</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="mb-6">
+              <p className="text-gray-700 mb-3">
+                Are you sure you want to delete the course:
+              </p>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <h4 className="font-semibold text-gray-900">{courseToDelete.title}</h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  Category: {courseToDelete.category} • Status: {courseToDelete.status}
+                </p>
+              </div>
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">
+                  <strong>Warning:</strong> This will permanently delete the course and all associated data.
+                </p>
+                <p className="text-xs text-red-600 mt-2">
+                  <strong>Note:</strong> If this course has enrolled students or related sessions, 
+                  deletion may not be possible. In such cases, please contact support for assistance.
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={cancelDeleteCourse}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteCourse}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Course'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
 
     </div>

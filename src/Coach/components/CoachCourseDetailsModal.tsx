@@ -125,7 +125,7 @@ const CoachCourseDetailsModal: React.FC<CoachCourseDetailsModalProps> = ({
       console.log(`[CoachCourseModal] Fetching course details for ID: ${courseId}`);
       console.log(`[CoachCourseModal] API Endpoint: GET /api/v1/courses/${courseId}`);
       
-      const response = await getCourseById(String(courseId));
+      const response = await getCourseById(courseId);
       console.log('[CoachCourseModal] API Response:', response);
 
       // Handle different response structures
