@@ -90,7 +90,7 @@ interface DaySchedule {
   const thumbnailRef = useRef<HTMLInputElement>(null);
   const timezoneDropdownRef = useRef<HTMLDivElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
-  const timeDropdownRef = useRef<HTMLDivElement>(null);
+  const timeDropdownContainerRef = useRef<HTMLDivElement>(null);
   const timezoneButtonRef = useRef<HTMLButtonElement>(null);
   const categoryButtonRef = useRef<HTMLButtonElement>(null);
   const modalContainerRef = useRef<HTMLDivElement>(null);
@@ -198,7 +198,7 @@ interface DaySchedule {
       }
       
       // Check if click is outside time dropdowns
-      if (timeDropdownRef.current && !timeDropdownRef.current.contains(target)) {
+      if (timeDropdownContainerRef.current && !timeDropdownContainerRef.current.contains(target)) {
         setOpenTimeDropdown(null);
       }
     };
@@ -1286,9 +1286,9 @@ interface DaySchedule {
                                   {daySchedule.timeSlots.map((timeSlot, slotIndex) => (
                                     <div key={timeSlot.id} className="flex flex-col space-y-3 p-3 sm:p-4 bg-white rounded-lg sm:rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
                                       {/* Time Range */}
-                                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3" ref={timeDropdownContainerRef}>
                                         {/* Start Time Dropdown */}
-                                        <div className="relative" ref={timeDropdownRef}>
+                                        <div className="relative">
                                           <button
                                             type="button"
                                             onClick={() => setOpenTimeDropdown(openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'start' ? null : { dayIndex, slotId: timeSlot.id, type: 'start' })}
@@ -1325,7 +1325,10 @@ interface DaySchedule {
                                         <div className="relative">
                                           <button
                                             type="button"
-                                            onClick={() => setOpenTimeDropdown(openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'end' ? null : { dayIndex, slotId: timeSlot.id, type: 'end' })}
+                                            onClick={() => {
+                                              console.log(`[CreateCourseForm] End time button clicked: dayIndex=${dayIndex}, slotId=${timeSlot.id}`);
+                                              setOpenTimeDropdown(openTimeDropdown?.dayIndex === dayIndex && openTimeDropdown?.slotId === timeSlot.id && openTimeDropdown?.type === 'end' ? null : { dayIndex, slotId: timeSlot.id, type: 'end' });
+                                            }}
                                             className="appearance-none bg-white border border-gray-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 w-full sm:min-w-[100px] shadow-sm hover:border-gray-300 flex items-center justify-between"
                                             aria-label="End time"
                                           >

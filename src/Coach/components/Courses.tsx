@@ -161,7 +161,7 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     }
   }, []);
 
-  // Function to generate modern text-based thumbnail
+  // Function to generate modern text-based thumbnail with proper text handling
   const generateTextThumbnail = (title: string) => {
     // Generate gradient colors based on title
     const gradients = [
@@ -178,7 +178,56 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     const gradientIndex = title.length % gradients.length;
     const gradient = gradients[gradientIndex];
     
-    // Create SVG with modern design
+    // Function to wrap text into multiple lines
+    const wrapText = (text: string, maxCharsPerLine: number = 20) => {
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        
+        if (testLine.length <= maxCharsPerLine) {
+          currentLine = testLine;
+        } else {
+          if (currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            // Handle very long single words
+            if (word.length > maxCharsPerLine) {
+              lines.push(word.substring(0, maxCharsPerLine - 3) + '...');
+              currentLine = '';
+            } else {
+              currentLine = word;
+            }
+          }
+        }
+      }
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      // Limit to maximum 3 lines
+      if (lines.length > 3) {
+        lines[2] = lines[2].substring(0, 17) + '...';
+        return lines.slice(0, 3);
+      }
+      
+      return lines;
+    };
+    
+    const textLines = wrapText(title);
+    const lineHeight = 28;
+    const startY = textLines.length === 1 ? 140 : 
+                   textLines.length === 2 ? 125 : 115;
+    
+    // Adjust font size based on text length
+    const fontSize = textLines.length > 2 ? 24 : 
+                     textLines.some(line => line.length > 15) ? 26 : 32;
+    
+    // Create SVG with modern design and proper text wrapping
     const svg = `
       <svg width="400" height="240" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -187,7 +236,10 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
             <stop offset="100%" style="stop-color:${gradient.to};stop-opacity:1" />
           </linearGradient>
           <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.1"/>
+            <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.3"/>
+          </filter>
+          <filter id="textShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000000" flood-opacity="0.4"/>
           </filter>
         </defs>
         
@@ -195,19 +247,35 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
         <rect width="400" height="240" fill="url(#gradient)" rx="12"/>
         
         <!-- Decorative elements -->
-        <circle cx="320" cy="60" r="40" fill="rgba(255,255,255,0.1)"/>
-        <circle cx="80" cy="180" r="30" fill="rgba(255,255,255,0.1)"/>
-        <circle cx="350" cy="200" r="20" fill="rgba(255,255,255,0.1)"/>
+        <circle cx="320" cy="60" r="40" fill="rgba(255,255,255,0.08)" opacity="0.6"/>
+        <circle cx="80" cy="180" r="30" fill="rgba(255,255,255,0.08)" opacity="0.6"/>
+        <circle cx="350" cy="200" r="20" fill="rgba(255,255,255,0.08)" opacity="0.6"/>
         
-        <!-- Main text -->
-        <text x="200" y="140" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="700" 
-              text-anchor="middle" fill="white" filter="url(#shadow)">
-          ${title}
-        </text>
+        <!-- Background overlay for better text readability -->
+        <rect x="20" y="${startY - 20}" width="360" height="${textLines.length * lineHeight + 40}" 
+              fill="rgba(0,0,0,0.1)" rx="8" opacity="0.3"/>
+        
+        <!-- Main text lines -->
+        ${textLines.map((line, index) => `
+          <text x="200" y="${startY + (index * lineHeight)}" 
+                font-family="Inter, system-ui, -apple-system, sans-serif" 
+                font-size="${fontSize}" 
+                font-weight="700" 
+                text-anchor="middle" 
+                fill="white" 
+                filter="url(#textShadow)">
+            ${line}
+          </text>
+        `).join('')}
         
         <!-- Subtitle -->
-        <text x="200" y="170" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="500" 
-              text-anchor="middle" fill="rgba(255,255,255,0.8)">
+        <text x="200" y="${startY + (textLines.length * lineHeight) + 25}" 
+              font-family="Inter, system-ui, -apple-system, sans-serif" 
+              font-size="12" 
+              font-weight="500" 
+              text-anchor="middle" 
+              fill="rgba(255,255,255,0.9)"
+              filter="url(#textShadow)">
           Course
         </text>
       </svg>
