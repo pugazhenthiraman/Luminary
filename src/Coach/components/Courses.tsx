@@ -3,7 +3,6 @@ import CoachCourseDetailsModal from './CoachCourseDetailsModal';
 import { 
   FaPlus, 
   FaSearch, 
-  FaFilter, 
   FaEye, 
   FaEdit, 
   FaVideo, 
@@ -58,7 +57,7 @@ function ThumbnailWithFallback({ thumbnail, title, generateTextThumbnail }) {
       <img
         src={generateTextThumbnail(title)}
         alt={title}
-        className="w-full h-32 sm:h-40 lg:h-48 object-cover rounded"
+        className="w-full h-44 sm:h-48 object-cover"
       />
     );
   }
@@ -66,7 +65,7 @@ function ThumbnailWithFallback({ thumbnail, title, generateTextThumbnail }) {
     <img
       src={thumbnail}
       alt={title}
-      className="w-full h-32 sm:h-40 lg:h-48 object-cover"
+      className="w-full h-44 sm:h-48 object-cover"
       onError={() => setImgError(true)}
     />
   );
@@ -77,31 +76,22 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [localCourses, setLocalCourses] = useState<Course[]>(courses);
-  const [showFilterModal, setShowFilterModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | number | null>(null);
   
-  // Filter states
-  const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
-  const [selectedStatus, setSelectedStatus] = useState<string>('All Status');
-  const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All Prices');
-  const [selectedDateRange, setSelectedDateRange] = useState<string>('All Time');
-  const [selectedRating, setSelectedRating] = useState<string>('All Ratings');
+  // Filter states - simplified
+  const [selectedStatus, setSelectedStatus] = useState<string>('All');
+  const [selectedDay, setSelectedDay] = useState<string>('All Days');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   
-  // Filtered courses
+  // Filtered courses with search functionality
   const filteredCourses = useMemo(() => {
     return localCourses.filter(course => {
-      // Category filter
-      if (selectedCategory !== 'All Categories' && course.category !== selectedCategory) {
-        return false;
-      }
-      
       // Status filter
-      if (selectedStatus !== 'All Status') {
-        // Normalize status for comparison
+      if (selectedStatus !== 'All') {
         const normalizedStatus = course.status?.toLowerCase();
         if (
-          (selectedStatus === 'Active' && normalizedStatus !== 'active') ||
+          (selectedStatus === 'Approved' && normalizedStatus !== 'active' && normalizedStatus !== 'approved') ||
           (selectedStatus === 'Pending' && normalizedStatus !== 'pending') ||
           (selectedStatus === 'Rejected' && normalizedStatus !== 'rejected')
         ) {
@@ -109,50 +99,31 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
         }
       }
       
-      // Price range filter
-      if (selectedPriceRange !== 'All Prices') {
-        const coursePrice = course.price || 0;
-        switch (selectedPriceRange) {
-          case 'Free':
-            if (coursePrice !== 0) return false;
-            break;
-          case '$0 - $50':
-            if (coursePrice < 0 || coursePrice > 50) return false;
-            break;
-          case '$50 - $100':
-            if (coursePrice < 50 || coursePrice > 100) return false;
-            break;
-          case '$100 - $200':
-            if (coursePrice < 100 || coursePrice > 200) return false;
-            break;
-          case '$200+':
-            if (coursePrice < 200) return false;
-            break;
+      // Day filter
+      if (selectedDay !== 'All Days') {
+        const hasScheduleForDay = course.weeklySchedule?.some(daySchedule => 
+          daySchedule.isActive && 
+          daySchedule.day.toLowerCase().includes(selectedDay.toLowerCase()) &&
+          daySchedule.timeSlots.length > 0
+        );
+        if (!hasScheduleForDay) {
+          return false;
         }
       }
       
-      // Rating filter
-      if (selectedRating !== 'All Ratings') {
-        const courseRating = course.rating || 0;
-        switch (selectedRating) {
-          case '4+ Stars':
-            if (courseRating < 4) return false;
-            break;
-          case '3+ Stars':
-            if (courseRating < 3) return false;
-            break;
-          case '2+ Stars':
-            if (courseRating < 2) return false;
-            break;
-          case '1+ Star':
-            if (courseRating < 1) return false;
-            break;
-        }
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        return (
+          course.title.toLowerCase().includes(query) ||
+          course.category.toLowerCase().includes(query) ||
+          course.status.toLowerCase().includes(query)
+        );
       }
       
       return true;
     });
-  }, [localCourses, selectedCategory, selectedStatus, selectedPriceRange, selectedRating]);
+  }, [localCourses, selectedStatus, selectedDay, searchQuery]);
 
   // Sync local courses when parent prop changes (API updates)
   useEffect(() => {
@@ -429,182 +400,353 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
         </button>
       </div>
 
-      {/* Search and Quick Filters */}
-      <div className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm border border-gray-200">
-        <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-          {/* Search Bar */}
-          <div className="relative flex-1 sm:flex-none sm:w-80 lg:w-96">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm sm:text-base" />
+      {/* Search and Filters - Professional Layout */}
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+        
+        {/* Search Bar Row */}
+        <div className="mb-4">
+          <div className="relative max-w-md">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
             <input
               type="text"
-              placeholder="Search your courses..."
-              className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
+              placeholder="Search courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
             />
-          </div>
-          
-          {/* Filter and Sort Buttons */}
-          <div className="flex items-center justify-center sm:justify-end space-x-2">
-            <button 
-              onClick={() => setShowFilterModal(true)}
-              className="flex items-center space-x-2 px-3 py-2 sm:px-4 sm:py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all duration-200 text-sm sm:text-base font-medium"
-              title="Open advanced filters"
-            >
-              <FaFilter className="text-sm sm:text-base" />
-              <span className="hidden sm:inline">Advanced Filters</span>
-              <span className="sm:hidden">Filters</span>
-              {((selectedCategory !== 'All Categories') || 
-                (selectedStatus !== 'All Status') || 
-                (selectedPriceRange !== 'All Prices') || 
-                (selectedDateRange !== 'All Time') || 
-                (selectedRating !== 'All Ratings')) && (
-                <span className="ml-1 px-2 py-0.5 bg-indigo-600 text-white text-xs rounded-full">
-                  {[selectedCategory, selectedStatus, selectedPriceRange, selectedDateRange, selectedRating]
-                    .filter(item => !item.includes('All')).length}
-                </span>
-              )}
-            </button>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <FaTimes className="text-sm" />
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          
+          {/* Status Filter Section */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Status:</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'All', label: 'All', count: localCourses.length },
+                { key: 'Approved', label: 'Approved', count: localCourses.filter(c => c.status === 'active' || c.status === 'approved').length },
+                { key: 'Pending', label: 'Pending', count: localCourses.filter(c => c.status === 'pending').length },
+                { key: 'Rejected', label: 'Rejected', count: localCourses.filter(c => c.status === 'rejected').length }
+              ].map((status) => (
+                <button
+                  key={status.key}
+                  onClick={() => setSelectedStatus(status.key)}
+                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                    selectedStatus === status.key
+                      ? status.key === 'All' ? 'bg-indigo-500 text-white shadow-sm' :
+                        status.key === 'Approved' ? 'bg-green-500 text-white shadow-sm' :
+                        status.key === 'Pending' ? 'bg-orange-500 text-white shadow-sm' :
+                        'bg-red-500 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+                  }`}
+                >
+                  <span>{status.label}</span>
+                  <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedStatus === status.key ? 'bg-white/20 text-white' : 'bg-white text-gray-700'
+                  }`}>
+                    {status.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Day Filter Section */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Schedule Day:</label>
+            <div className="relative min-w-[180px]">
+              <select
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(e.target.value)}
+                className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 pr-10 text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors"
+              >
+                <option value="All Days">
+                  All Days ({localCourses.filter(c => c.weeklySchedule?.some(d => d.isActive && d.timeSlots.length > 0)).length})
+                </option>
+                {[
+                  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+                ].map((day) => {
+                  const dayCount = localCourses.filter(c => 
+                    c.weeklySchedule?.some(d => 
+                      d.isActive && 
+                      d.day.toLowerCase().includes(day.toLowerCase()) && 
+                      d.timeSlots.length > 0
+                    )
+                  ).length;
+                  
+                  return (
+                    <option key={day} value={day}>
+                      {day} ({dayCount})
+                    </option>
+                  );
+                })}
+              </select>
+              {/* Custom dropdown arrow */}
+              <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Results Summary */}
+        {(searchQuery || selectedStatus !== 'All' || selectedDay !== 'All Days') && (
+          <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">{filteredCourses.length}</span> of <span className="font-medium">{localCourses.length}</span> courses
+              {searchQuery && (
+                <span> matching "<span className="font-medium text-indigo-600">{searchQuery}</span>"</span>
+              )}
+              {selectedDay !== 'All Days' && (
+                <span> scheduled on <span className="font-medium text-blue-600">{selectedDay}</span></span>
+              )}
+              {selectedStatus !== 'All' && (
+                <span> with <span className="font-medium text-gray-800">{selectedStatus.toLowerCase()}</span> status</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                >
+                  Clear search
+                </button>
+              )}
+              {(selectedStatus !== 'All' || selectedDay !== 'All Days') && (
+                <button
+                  onClick={() => {
+                    setSelectedStatus('All');
+                    setSelectedDay('All Days');
+                  }}
+                  className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                >
+                  Reset filters
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Courses Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {filteredCourses.map((course) => (
-          <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200 animate-in slide-in-from-bottom duration-500">
-            <div className="relative">
+          <div 
+            key={course.id} 
+            className="group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:border-blue-200 transition-all duration-300 cursor-pointer"
+            onDoubleClick={() => handleViewDetails(course.id)}
+            title="Double-click to view details"
+          >
+            <div className="relative overflow-hidden">
               {/* Thumbnail or Fallback with error handling */}
-              <ThumbnailWithFallback thumbnail={course.thumbnail} title={course.title} generateTextThumbnail={generateTextThumbnail} />
-              <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  course.status === 'active' ? 'bg-green-100 text-green-800' :
-                  course.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  course.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+              <ThumbnailWithFallback 
+                thumbnail={course.thumbnail} 
+                title={course.title} 
+                generateTextThumbnail={generateTextThumbnail} 
+              />
+              
+              {/* Status Badge */}
+              <div className="absolute top-2 right-2">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                  course.status === 'active' || course.status === 'approved' ? 'bg-green-500 text-white' :
+                  course.status === 'pending' ? 'bg-orange-500 text-white' :
+                  course.status === 'rejected' ? 'bg-red-500 text-white' : 
+                  'bg-gray-500 text-white'
                 }`}>
-                  {course.status.charAt(0).toUpperCase() + course.status.slice(1)}
+                  {course.status === 'active' ? 'Approved' : 
+                   course.status.charAt(0).toUpperCase() + course.status.slice(1)}
                 </span>
               </div>
-              <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
-                <span className="bg-black/70 text-white px-2 py-1 rounded text-xs">
+              
+              {/* Price Badge */}
+              <div className="absolute bottom-2 left-2">
+                <span className="bg-black/80 text-white px-2 py-1 rounded-md text-xs font-semibold">
                   ${course.price}
+                </span>
+              </div>
+
+              {/* Duration Badge */}
+              <div className="absolute bottom-2 right-2">
+                <span className="bg-blue-500/90 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                  {course.duration || '12 weeks'}
                 </span>
               </div>
             </div>
             
-            <div className="p-3 sm:p-4 lg:p-6">
-              <div className="flex items-start justify-between mb-2 sm:mb-3">
-                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 line-clamp-2 flex-1 mr-2">{course.title}</h3>
+            <div className="p-4">
+              {/* Course Header */}
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-900 line-clamp-2 flex-1 mr-2 group-hover:text-blue-600 transition-colors">
+                  {course.title}
+                </h3>
                 <div className="flex items-center space-x-1 text-yellow-500 flex-shrink-0">
-                  <FaStar className="text-xs sm:text-sm" />
-                  <span className="text-xs sm:text-sm font-medium">{course.rating}</span>
+                  <FaStar className="text-xs" />
+                  <span className="text-xs font-semibold">{course.rating}</span>
                 </div>
               </div>
               
-              <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
-                <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
-                  <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium">
-                    {course.category}
-                  </span>
-                </div>
-                
-                {/* Schedule Information */}
-                {course.weeklySchedule && course.weeklySchedule.some(day => day.isActive) && (
-                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Category */}
+              <div className="mb-3">
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700">
+                  {course.category}
+                </span>
+              </div>
+              
+              {/* Schedule Information - Compact */}
+              {course.weeklySchedule && course.weeklySchedule.some(day => day.isActive) && (
+                <div className="mb-3 p-2 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-1">
+                      <svg className="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="text-xs font-medium text-gray-700">Schedule</span>
+                      <span className="font-medium text-gray-700">Schedule</span>
                     </div>
-                    <div className="space-y-1">
-                      {course.weeklySchedule
-                        .filter(day => day.isActive && day.timeSlots.length > 0)
-                        .slice(0, 2) // Show only first 2 active days on mobile
-                        .map((day, index) => (
-                          <div key={day.day} className="flex items-center justify-between text-xs text-gray-600">
-                            <span className="font-medium truncate">{day.day}</span>
-                            <div className="flex items-center space-x-1 ml-2">
-                              {day.timeSlots.slice(0, 1).map((slot, slotIndex) => (
-                                <span key={slotIndex} className="bg-gray-100 px-1 sm:px-2 py-0.5 sm:py-1 rounded text-xs truncate">
-                                  {formatTimeDisplay(slot.startTime)}
-                                </span>
-                              ))}
-                              {day.timeSlots.length > 1 && (
-                                <span className="text-gray-400 text-xs">+{day.timeSlots.length - 1}</span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      {course.weeklySchedule.filter(day => day.isActive && day.timeSlots.length > 0).length > 2 && (
-                        <div className="text-xs text-gray-400 text-center pt-1">
-                          +{course.weeklySchedule.filter(day => day.isActive && day.timeSlots.length > 0).length - 2} more days
-                        </div>
-                      )}
-                    </div>
+                    <span className="text-gray-500">
+                      {course.weeklySchedule.filter(day => day.isActive).length} days/week
+                    </span>
                   </div>
-                )}
-
-                {/* Video Thumbnail */}
-                {course.hasVideo && course.videoThumbnail && (
-                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <FaVideo className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                      <span className="text-xs font-medium text-gray-700">Course Video</span>
-                    </div>
-                    <div className="relative">
-                      <img
-                        src={course.videoThumbnail}
-                        alt="Course video thumbnail"
-                        className="w-full h-16 sm:h-20 lg:h-24 object-cover rounded-lg border border-gray-200"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
-                          <FaVideo className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                        </div>
+                  {/* Show first active day time */}
+                  {course.weeklySchedule
+                    .filter(day => day.isActive && day.timeSlots.length > 0)
+                    .slice(0, 1)
+                    .map((day, index) => (
+                      <div key={day.day} className="mt-1 text-xs text-gray-600">
+                        <span className="font-medium">{day.day.slice(0, 3)}</span>: {formatTimeDisplay(day.timeSlots[0].startTime)}
+                        {day.timeSlots.length > 1 && <span className="text-gray-400"> +{day.timeSlots.length - 1}</span>}
                       </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                    ))}
+                </div>
+              )}
 
-              <div className="flex items-center space-x-2">
+              {/* Video Indicator - Compact */}
+              {course.hasVideo && course.videoThumbnail && (
+                <div className="mb-3 flex items-center space-x-2 text-xs text-green-600">
+                  <FaVideo className="w-3 h-3" />
+                  <span className="font-medium">Video Available</span>
+                </div>
+              )}
+
+              {/* Action Buttons - Compact */}
+              <div className="flex items-center gap-2">
+                {/* Primary Action - View with different design */}
                 <button 
-                  onClick={() => handleEditCourse(course)}
-                  className="flex-1 flex items-center justify-center space-x-2 bg-indigo-50 text-indigo-600 py-2 px-3 rounded-lg hover:bg-indigo-100 transition-colors duration-200 text-xs sm:text-sm font-medium"
-                  title="Edit course"
-                >
-                  <FaEdit className="text-xs sm:text-sm" />
-                  <span className="hidden sm:inline">Edit</span>
-                </button>
-                <button 
-                  onClick={() => handleViewDetails(course.id)}
-                  className="flex-1 flex items-center justify-center space-x-2 bg-blue-50 text-blue-600 py-2 px-3 rounded-lg hover:bg-blue-100 transition-colors duration-200 text-xs sm:text-sm font-medium"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDetails(course.id);
+                  }}
+                  className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white py-2.5 px-3 rounded-lg font-medium text-xs transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center space-x-1"
                   title="View course details"
                 >
-                  <FaEye className="text-xs sm:text-sm" />
-                  <span className="hidden sm:inline">View Details</span>
-                  <span className="sm:hidden">View</span>
+                  <FaEye className="text-xs" />
+                  <span>Details</span>
                 </button>
-                <button 
-                  onClick={() => handleAddVideo(course)}
-                  className="flex-1 flex items-center justify-center space-x-2 bg-green-50 text-green-600 py-2 px-3 rounded-lg hover:bg-green-100 transition-colors duration-200 text-xs sm:text-sm font-medium"
-                  title="Add video to course"
-                >
-                  <FaVideo className="text-xs sm:text-sm" />
-                  <span className="hidden sm:inline">Add Video</span>
-                  <span className="sm:hidden">Video</span>
-                </button>
-                <button 
-                  onClick={() => handleDeleteCourse(course)}
-                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                  title="Delete course"
-                >
-                  <FaTrash className="text-xs sm:text-sm" />
-                </button>
+
+                {/* Secondary Actions - More compact */}
+                <div className="flex items-center gap-1">
+                  {/* Edit Button */}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditCourse(course);
+                    }}
+                    className="w-9 h-9 bg-gray-100 hover:bg-indigo-100 text-gray-600 hover:text-indigo-600 rounded-lg transition-all duration-200 flex items-center justify-center"
+                    title="Edit course"
+                  >
+                    <FaEdit className="text-xs" />
+                  </button>
+
+                  {/* Add Video Button */}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddVideo(course);
+                    }}
+                    className="w-9 h-9 bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-600 rounded-lg transition-all duration-200 flex items-center justify-center"
+                    title="Add video to course"
+                  >
+                    <FaVideo className="text-xs" />
+                  </button>
+
+                  {/* Delete Button */}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCourse(course);
+                    }}
+                    className="w-9 h-9 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 rounded-lg transition-all duration-200 flex items-center justify-center"
+                    title="Delete course"
+                  >
+                    <FaTrash className="text-xs" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* No Courses Found State */}
+      {filteredCourses.length === 0 && (
+        <div className="text-center py-12">
+          <div className="bg-gray-50 rounded-xl p-8 border-2 border-dashed border-gray-300 max-w-md mx-auto">
+            <FaSearch className="text-4xl text-gray-400 mb-4 mx-auto" />
+            <h3 className="text-lg font-semibold text-gray-600 mb-2">
+              {searchQuery ? 'No courses found' : 
+               selectedDay !== 'All Days' ? `No courses scheduled on ${selectedDay}` :
+               'No courses match the selected filters'}
+            </h3>
+            <p className="text-gray-500 mb-4">
+              {searchQuery 
+                ? `No courses found for "${searchQuery}". Try adjusting your search terms.`
+                : selectedDay !== 'All Days'
+                  ? `No courses are scheduled on ${selectedDay}. Try selecting a different day or create a course with ${selectedDay} schedule.`
+                  : selectedStatus === 'All' 
+                    ? 'You haven\'t created any courses yet. Click "Create New Course" to get started.'
+                    : `No courses with "${selectedStatus}" status found.`
+              }
+            </p>
+            {searchQuery ? (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Clear Search
+              </button>
+            ) : (selectedStatus !== 'All' || selectedDay !== 'All Days') ? (
+              <button
+                onClick={() => {
+                  setSelectedStatus('All');
+                  setSelectedDay('All Days');
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Clear All Filters
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Create Your First Course
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Create Course Form Modal */}
       {showCreateForm && (
@@ -642,169 +784,6 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
           }}
           isEditing={true}
         />
-      )}
-
-      {/* Advanced Filter Modal */}
-      {showFilterModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-2 sm:p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[95vh] flex flex-col">
-            {/* Header */}
-            <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <FaFilter className="text-indigo-600 text-sm sm:text-lg" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">Advanced Filters</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">Filter your courses by multiple criteria</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowFilterModal(false)}
-                  className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200 flex items-center justify-center"
-                  title="Close filter modal"
-                  aria-label="Close filter modal"
-                >
-                  <FaTimes className="text-sm sm:text-lg" />
-                </button>
-              </div>
-            </div>
-
-            {/* Filter Content */}
-            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
-              {/* Category Filter */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">Category</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {['All Categories', 'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'English', 'History', 'Academic Enrichment', 'Creative Arts', 'Life Skills', 'Performing Arts', 'Sports & Physical', 'Technology & STEM', 'Mindfulness & Wellbeing', 'Languages & Communication'].map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`px-3 py-2 text-sm border rounded-lg transition-all duration-200 text-left ${
-                        selectedCategory === category
-                          ? 'border-indigo-500 bg-indigo-100 text-indigo-700'
-                          : 'border-gray-300 hover:border-indigo-500 hover:bg-indigo-50'
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Status Filter */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">Status</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['All Status', 'Active', 'Pending', 'Rejected'].map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => setSelectedStatus(status)}
-                      className={`px-3 py-2 text-sm border rounded-lg transition-all duration-200 text-left ${
-                        selectedStatus === status
-                          ? 'border-indigo-500 bg-indigo-100 text-indigo-700'
-                          : 'border-gray-300 hover:border-indigo-500 hover:bg-indigo-50'
-                      }`}
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price Range */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">Price Range</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {['All Prices', 'Free', '$0 - $50', '$50 - $100', '$100 - $200', '$200+'].map((price) => (
-                    <button
-                      key={price}
-                      onClick={() => setSelectedPriceRange(price)}
-                      className={`px-3 py-2 text-sm border rounded-lg transition-all duration-200 text-left ${
-                        selectedPriceRange === price
-                          ? 'border-indigo-500 bg-indigo-100 text-indigo-700'
-                          : 'border-gray-300 hover:border-indigo-500 hover:bg-indigo-50'
-                      }`}
-                    >
-                      {price}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Date Range */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">Created Date</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {['All Time', 'Last 7 days', 'Last 30 days', 'Last 3 months', 'Last 6 months', 'Last year'].map((date) => (
-                    <button
-                      key={date}
-                      onClick={() => setSelectedDateRange(date)}
-                      className={`px-3 py-2 text-sm border rounded-lg transition-all duration-200 text-left ${
-                        selectedDateRange === date
-                          ? 'border-indigo-500 bg-indigo-100 text-indigo-700'
-                          : 'border-gray-300 hover:border-indigo-500 hover:bg-indigo-50'
-                      }`}
-                    >
-                      {date}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rating Filter */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-3">Rating</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {['All Ratings', '4+ Stars', '3+ Stars', '2+ Stars', '1+ Star'].map((rating) => (
-                    <button
-                      key={rating}
-                      onClick={() => setSelectedRating(rating)}
-                      className={`px-3 py-2 text-sm border rounded-lg transition-all duration-200 text-left ${
-                        selectedRating === rating
-                          ? 'border-indigo-500 bg-indigo-100 text-indigo-700'
-                          : 'border-gray-300 hover:border-indigo-500 hover:bg-indigo-50'
-                      }`}
-                    >
-                      {rating}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-              <div className="flex items-center justify-between space-x-2">
-                <button
-                  onClick={() => setShowFilterModal(false)}
-                  className="flex-1 px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all duration-200 font-medium text-xs sm:text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedCategory('All Categories');
-                    setSelectedStatus('All Status');
-                    setSelectedPriceRange('All Prices');
-                    setSelectedDateRange('All Time');
-                    setSelectedRating('All Ratings');
-                  }}
-                  className="flex-1 px-3 py-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-lg transition-all duration-200 font-medium text-xs sm:text-sm"
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={() => setShowFilterModal(false)}
-                  className="flex-1 px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition-all duration-200 font-medium text-xs sm:text-sm"
-                >
-                  Apply
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Coach Course Details Modal */}
