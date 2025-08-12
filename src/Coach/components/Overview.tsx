@@ -92,7 +92,7 @@ const Overview: React.FC<OverviewProps> = ({ coachData, recentActivity, upcoming
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 text-sm font-medium">Total Earnings</p>
-              <p className="text-3xl font-bold">${coachData.totalEarnings.toLocaleString()}</p>
+              <p className="text-3xl font-bold">${(coachData.totalEarnings ?? 0).toLocaleString()}</p>
               <p className="text-purple-100 text-sm">+18% this month</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">

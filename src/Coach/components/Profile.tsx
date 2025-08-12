@@ -124,7 +124,7 @@ const Profile: React.FC<ProfileProps> = ({ coachData }) => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm sm:text-base text-gray-600">Total Earnings</span>
-                <span className="text-sm sm:text-base font-semibold">${coachData.totalEarnings.toLocaleString()}</span>
+                <span className="text-sm sm:text-base font-semibold">${(coachData.totalEarnings ?? 0).toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm sm:text-base text-gray-600">Experience</span>

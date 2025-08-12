@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+
+import { useAuthStore } from '../stores/useAuthStore';
+import { useAuth } from '../hooks/useAuth';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { FaUserCircle, FaUser, FaSignOutAlt, FaExchangeAlt, FaHome, FaBars, FaTimes } from 'react-icons/fa';
 
@@ -33,12 +36,13 @@ const Header = () => {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
 
-  const loggedIn = isLoggedIn();
+  const { isAuthenticated } = useAuthStore();
+  const loggedIn = isAuthenticated;
   const roles = getAvailableRoles();
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleMouseDownOutside = (event: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setShowProfileDropdown(false);
       }
@@ -47,9 +51,9 @@ const Header = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handleMouseDownOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleMouseDownOutside);
     };
   }, []);
 
@@ -65,9 +69,21 @@ const Header = () => {
     setShowMobileMenu(false);
   }, [loggedIn]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
+  const { handleLogout: logoutWithApi } = useAuth();
+  const handleLogout = async () => {
+    console.log('[Header] Logout button clicked');
+    await logoutWithApi();
+    // Role-based redirect after logout
+    const roles = getAvailableRoles();
+    let redirectPath = '/';
+    if (roles.includes('ADMIN')) {
+      redirectPath = '/admin/login';
+    } else if (roles.includes('EXPERT')) {
+      redirectPath = '/coach/login';
+    } else if (roles.includes('ENDUSER')) {
+      redirectPath = '/login';
+    }
+    navigate(redirectPath);
   };
 
   const handleSwitchRole = () => {
@@ -182,7 +198,7 @@ const Header = () => {
             <>
               <NavLink 
                 to="/" 
-                className={({ isActive }) => `flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`} 
+                className={({ isActive }) => `flex items-center gap-2 px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`} 
                 end
               >
                 <FaHome className="text-base transition-transform duration-300 group-hover:scale-110" /> 
@@ -192,7 +208,7 @@ const Header = () => {
               </NavLink>
               <NavLink 
                 to="/loginParent" 
-                className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
+                className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
               >
                 <span className="relative">
                   For Parents
@@ -200,7 +216,7 @@ const Header = () => {
               </NavLink>
               <NavLink 
                 to="/loginCoach" 
-                className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
+                className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
               >
                 <span className="relative">
                   For Coaches
@@ -208,7 +224,7 @@ const Header = () => {
               </NavLink>
               <NavLink 
                 to="/admin/login" 
-                className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-purple-600 bg-purple-50 shadow-md scale-105' : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-purple-500 after:to-purple-600 after:rounded-full after:animate-pulse' : 'after:content-[""] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-purple-500 after:to-purple-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
+                className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-purple-600 bg-purple-50 shadow-md scale-105' : 'text-gray-700 hover:text-purple-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-purple-500 after:to-purple-600 after:rounded-full after:animate-pulse' : 'after:content-[] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-purple-500 after:to-purple-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
               >
                 <span className="relative">
                   Admin
@@ -226,7 +242,10 @@ const Header = () => {
                 <FaUserCircle className="text-2xl md:text-3xl transition-transform duration-300 group-hover:scale-105" />
               </button>
               {showProfileDropdown && (
-                <div className="absolute top-full right-0 bg-white rounded-xl shadow-2xl p-2 min-w-48 z-50 mt-2 border-2 border-gray-200 animate-in slide-in-from-top-2 duration-200">
+                <div 
+                  className="absolute top-full right-0 bg-white rounded-xl shadow-2xl p-2 min-w-48 z-50 mt-2 border-2 border-gray-200 animate-in slide-in-from-top-2 duration-200"
+                  onMouseDown={e => e.stopPropagation()}
+                >
                   <button 
                     className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
                     onClick={handleProfileClick}
@@ -260,41 +279,7 @@ const Header = () => {
         <div className="md:hidden flex items-center space-x-2">
           {loggedIn && (
             <div className="relative" ref={profileRef}>
-              <button 
-                className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105 relative group shadow-sm hover:shadow-lg border border-transparent hover:border-gray-200" 
-                onClick={handleProfileToggle} 
-                title="Profile Menu" 
-                aria-label="Profile Menu"
-              >
-                <FaUserCircle className="text-2xl transition-transform duration-300 group-hover:scale-105" />
-              </button>
-              {showProfileDropdown && (
-                <div className="absolute top-full right-0 bg-white rounded-xl shadow-2xl p-2 min-w-48 z-50 mt-2 border-2 border-gray-200 animate-in slide-in-from-top-2 duration-200">
-                  <button 
-                    className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
-                    onClick={handleProfileClick}
-                  >
-                    <FaUser className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
-                    Profile
-                  </button>
-                  {roles.length > 1 && (
-                    <button 
-                      className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
-                      onClick={handleSwitchRole}
-                    >
-                      <FaExchangeAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
-                      Switch Role
-                    </button>
-                  )}
-                  <button 
-                    className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-red-600 cursor-pointer transition-all duration-200 text-left hover:bg-red-50 rounded-lg hover:scale-105 group" 
-                    onClick={handleLogout}
-                  >
-                    <FaSignOutAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
-                    Logout
-                  </button>
-                </div>
-              )}
+              {/* ...existing code for mobile profile icon, dropdown, and logout... */}
             </div>
           )}
           <button

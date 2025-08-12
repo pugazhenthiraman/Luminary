@@ -2,7 +2,8 @@ import axios from "axios";
 import { useAuthStore } from "../stores/useAuthStore";
 
 // Use environment variable or default to localhost:5000
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -26,7 +27,7 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
+// Response interceptor to handle token refresh and auto-logout on 401
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
@@ -39,19 +40,17 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const { refreshToken } = useAuthStore.getState();
+        const { refreshToken, logout } = useAuthStore.getState();
 
         if (refreshToken) {
           // Try to refresh the token
-          const response = await axios.post(
-            `${API_BASE_URL}/auth/refresh`,
-            { refreshToken }
-          );
+          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+            refreshToken,
+          });
 
           if (response.data?.accessToken) {
             // Update the store with new tokens
-            const { login } = useAuthStore.getState();
-            const { user } = useAuthStore.getState();
+            const { login, user } = useAuthStore.getState();
             login(user, response.data.accessToken, refreshToken);
 
             // Retry the original request with new token
@@ -59,14 +58,26 @@ axiosInstance.interceptors.response.use(
             return axiosInstance(originalRequest);
           }
         }
-      } catch {
-        // If refresh fails, logout the user
+        // If no refreshToken or refresh fails, logout
+        logout();
+        window.location.href = "/login";
+        return Promise.reject(error);
+      } catch (refreshError) {
+        // If refresh fails, logout
         const { logout } = useAuthStore.getState();
         logout();
         window.location.href = "/login";
+        return Promise.reject(refreshError);
       }
     }
 
+    // If not handled above, reject
+    if (error.response?.status === 401) {
+      // If already retried or no refresh, force logout
+      const { logout } = useAuthStore.getState();
+      logout();
+      window.location.href = "/login";
+    }
     return Promise.reject(error);
   }
 );

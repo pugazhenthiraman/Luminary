@@ -255,23 +255,7 @@ console.log('Loaded coaches:', normalized);
             </div>
             </div>
 
-            {/* Right side - Live status and logout */}
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <div className="hidden sm:flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-gray-600">Live</span>
-              </div>
-              <button
-                onClick={() => {
-                  localStorage.removeItem('user');
-                  navigate('/');
-                }}
-                className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 text-sm"
-              >
-                <FaSignOutAlt className="text-sm" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
+
             </div>
           </div>
         </header>

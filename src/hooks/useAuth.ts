@@ -107,6 +107,9 @@ export function useAuth() {
     setLoading(true);
     setError(null);
     try {
+      const { accessToken } = useAuthStore.getState();
+      console.log('[useAuth] accessToken before logout:', accessToken);
+      console.log('[useAuth] Calling logoutApi (POST /auth/logout)');
       await logoutApi();
     } catch (err: any) {
       // Even if API call fails, clear local state
