@@ -287,7 +287,7 @@ const Header = () => {
             onClick={handleMobileMenuToggle}
             className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105"
             aria-label={showMobileMenu ? "Close mobile menu" : "Open mobile menu"}
-            aria-expanded={showMobileMenu ? "true" : "false"}
+            aria-expanded={showMobileMenu}
             aria-controls="mobile-menu"
           >
             {showMobileMenu ? (

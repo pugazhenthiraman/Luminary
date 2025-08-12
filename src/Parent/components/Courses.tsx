@@ -820,7 +820,9 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                           ? 'bg-yellow-500'
                           : 'bg-red-500'
                       }`}></div>
-                      {selectedCoach.status.charAt(0).toUpperCase() + selectedCoach.status.slice(1)}
+                      {selectedCoach.status
+                        ? selectedCoach.status.charAt(0).toUpperCase() + selectedCoach.status.slice(1)
+                        : 'Unknown'}
                     </div>
                   </div>
                 </div>
@@ -860,7 +862,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
                         <div>
                           <p className="text-xs sm:text-sm text-gray-600">Member Since</p>
                           <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                            {new Date(selectedCoach.registrationDate).toLocaleDateString()}
+                            {selectedCoach.registrationDate ? new Date(selectedCoach.registrationDate).toLocaleDateString() : 'N/A'}
                           </p>
                         </div>
                       </div>
@@ -1615,9 +1617,11 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData }) => {
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         course={selectedCourse}
-        selectedChildren={enrollmentData.selectedChildren.map(childId =>
-          parentData.children.find(child => child.id === childId)
-        ).filter(Boolean)}
+        selectedChildren={
+          enrollmentData.selectedChildren
+            .map(childId => parentData.children.find(child => child.id === childId))
+            .filter(Boolean) as typeof parentData.children
+        }
         totalAmount={selectedCourse?.credits && enrollmentData.selectedChildren.length > 0 ? Math.max(selectedCourse.credits * enrollmentData.selectedChildren.length * 25, 1) : 1}
         onSuccess={handlePaymentSuccess}
         onError={handlePaymentError}

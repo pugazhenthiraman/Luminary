@@ -209,7 +209,7 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
             {verificationCode.map((digit, index) => (
               <input
                 key={index}
-                ref={el => inputRefs.current[index] = el}
+                ref={el => { inputRefs.current[index] = el; }}
                 type="text"
                 maxLength={1}
                 value={digit}
@@ -218,6 +218,8 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
                 onPaste={handlePaste}
                 className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition-colors"
                 disabled={isLoading}
+                placeholder="0"
+                title="Verification code digit"
               />
             ))}
           </div>

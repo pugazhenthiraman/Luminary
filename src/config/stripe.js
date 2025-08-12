@@ -11,7 +11,7 @@ export const getStripeConfig = async () => {
     if (response.data.success) {
       stripePublishableKey = response.data.data.publishableKey;
     }
-  } catch (error) {
+  } catch {
     console.warn(
       "Failed to fetch Stripe config from backend, using environment variable"
     );

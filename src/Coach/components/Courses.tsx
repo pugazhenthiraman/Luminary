@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import Avatar from '../../components/Avatar';
+import CoachCourseDetailsModal from './CoachCourseDetailsModal';
 import { 
   FaPlus, 
   FaSearch, 
   FaFilter, 
-  FaSort, 
+  FaEye, 
   FaEdit, 
   FaVideo, 
   FaTrash, 
@@ -13,7 +13,6 @@ import {
 } from 'react-icons/fa';
 import CreateCourseForm from './CreateCourseForm';
 import axiosInstance from '../../api/axiosInstance';
-import { getCourseById } from '../../api/courses';
 import { showErrorToast } from '../../components/Toast';
 
 interface TimeSlot {
@@ -80,8 +79,7 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
   const [localCourses, setLocalCourses] = useState<Course[]>(courses);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [selectedCourseDetails, setSelectedCourseDetails] = useState<any | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | number | null>(null);
   
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
@@ -388,19 +386,10 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     }
   };
 
-  const handleViewDetails = async (courseId: string | number) => {
-    try {
-      setDetailsLoading(true);
-      setShowDetailsModal(true);
-      const resp = await getCourseById(String(courseId));
-      const data = resp.data?.data || resp.data;
-      setSelectedCourseDetails(data);
-    } catch (e) {
-      console.error('Failed to load course details:', e);
-      setSelectedCourseDetails(null);
-    } finally {
-      setDetailsLoading(false);
-    }
+  const handleViewDetails = (courseId: string | number) => {
+    console.log(`[Coach] Opening course details modal for course ID: ${courseId}`);
+    setSelectedCourseId(courseId);
+    setShowDetailsModal(true);
   };
 
   // Utility: pick a gradient based on course title for variety
@@ -589,10 +578,11 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                 <button 
                   onClick={() => handleViewDetails(course.id)}
                   className="flex-1 flex items-center justify-center space-x-2 bg-blue-50 text-blue-600 py-2 px-3 rounded-lg hover:bg-blue-100 transition-colors duration-200 text-xs sm:text-sm font-medium"
-                  title="View details"
+                  title="View course details"
                 >
-                  <FaSort className="text-xs sm:text-sm" />
-                  <span className="hidden sm:inline">View</span>
+                  <FaEye className="text-xs sm:text-sm" />
+                  <span className="hidden sm:inline">View Details</span>
+                  <span className="sm:hidden">View</span>
                 </button>
                 <button 
                   onClick={() => handleAddVideo(course)}
@@ -817,118 +807,21 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
         </div>
       )}
 
-      {/* Course Details Modal */}
-      {showDetailsModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-2 sm:p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900">Course Details</h3>
-              <button
-                onClick={() => { setShowDetailsModal(false); setSelectedCourseDetails(null); }}
-                className="w-8 h-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
-                aria-label="Close details"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            <div className="p-4 sm:p-6">
-              {detailsLoading ? (
-                <div className="flex items-center justify-center py-10 text-gray-500">Loading...</div>
-              ) : selectedCourseDetails ? (
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-6">
-                    {/* Thumbnail Section */}
-                    <div className="flex flex-col items-center">
-                      <div className="mb-2 font-semibold text-gray-700">Course Thumbnail</div>
-                      {selectedCourseDetails.thumbnail && selectedCourseDetails.thumbnail !== "" ? (
-                        <div className="w-32 h-20">
-                          <img src={selectedCourseDetails.thumbnail} alt={selectedCourseDetails.title} className="w-full h-full object-cover rounded border" />
-                        </div>
-                      ) : (
-                        <div className={`w-32 h-20 rounded border flex items-center justify-center text-white text-base font-bold select-none ${getGradient(selectedCourseDetails.title)}`}> 
-                          <span className="mx-auto text-center w-full">{selectedCourseDetails.title}</span>
-                        </div>
-                      )}
-                    </div>
-                    {/* Video Section */}
-                    <div className="flex flex-col items-center">
-                      <div className="mb-2 font-semibold text-gray-700">Introduction Video</div>
-                      <button
-                        onClick={() => {
-                          if (selectedCourseDetails.videoUrl) {
-                            window.open(selectedCourseDetails.videoUrl, '_blank');
-                          } else {
-                            showErrorToast('No introduction video available for this course');
-                          }
-                        }}
-                        className={`w-32 py-2 rounded bg-blue-600 text-white font-semibold flex items-center justify-center gap-2 shadow ${selectedCourseDetails.videoUrl ? 'hover:bg-blue-700' : 'opacity-50 cursor-not-allowed'}`}
-                        disabled={!selectedCourseDetails.videoUrl}
-                        title={selectedCourseDetails.videoUrl ? 'Watch Introduction Video' : 'No video available'}
-                      >
-                        <FaVideo className="text-lg" />
-                        {selectedCourseDetails.videoUrl ? 'Watch Introduction Video' : 'No Video Available'}
-                      </button>
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-semibold text-gray-900">{selectedCourseDetails.title}</h4>
-                      <div className="text-sm text-gray-600 mt-1">Status: <span className="font-medium">{
-                        selectedCourseDetails.status
-                          ? selectedCourseDetails.status.charAt(0).toUpperCase() + selectedCourseDetails.status.slice(1)
-                          : (selectedCourseDetails.isActive ? 'Active' : 'Pending')
-                      }</span></div>
-                      <div className="text-sm text-gray-600">Category: <span className="font-medium">{selectedCourseDetails.category || '—'}</span></div>
-                      <div className="text-sm text-gray-600">Credits: <span className="font-medium">{selectedCourseDetails.creditCost ?? selectedCourseDetails.price ?? 0}</span></div>
-                      <div className="text-sm text-gray-600">Duration: <span className="font-medium">{selectedCourseDetails.courseDuration || selectedCourseDetails.duration || '—'}</span></div>
-                    </div>
-                  </div>
-                  {selectedCourseDetails.description && (
-                    <div>
-                      <h5 className="font-semibold text-gray-800 mb-1">Description</h5>
-                      <p className="text-gray-700 text-sm whitespace-pre-line">{selectedCourseDetails.description}</p>
-                    </div>
-                  )}
-                  {selectedCourseDetails.benefits && (
-                    <div>
-                      <h5 className="font-semibold text-gray-800 mb-1">Benefits</h5>
-                      <p className="text-gray-700 text-sm whitespace-pre-line">{selectedCourseDetails.benefits}</p>
-                    </div>
-                  )}
-                  {selectedCourseDetails.coach && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-50 rounded border">
-                        <div className="text-xs uppercase text-gray-500">Coach</div>
-                        <div className="text-sm text-gray-800 font-medium">{selectedCourseDetails.coach.firstName} {selectedCourseDetails.coach.lastName}</div>
-                        <div className="text-xs text-gray-600">{selectedCourseDetails.coach.email}</div>
-                      </div>
-                    </div>
-                  )}
-                  {(selectedCourseDetails.sessions?.length || selectedCourseDetails.weeklySchedule?.length) && (
-                    <div>
-                      <h5 className="font-semibold text-gray-800 mb-2">Schedule</h5>
-                      <div className="space-y-1 text-sm text-gray-700">
-                        {selectedCourseDetails.sessions?.map((s: any, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between">
-                            <span>{s.day || s.date}</span>
-                            <span>{s.startTime} - {s.endTime}</span>
-                          </div>
-                        ))}
-                        {!selectedCourseDetails.sessions && selectedCourseDetails.weeklySchedule?.filter((d: any) => d.isActive).map((d: any) => (
-                          <div key={d.day} className="flex items-center justify-between">
-                            <span>{d.day}</span>
-                            <span>{d.timeSlots?.[0]?.startTime || ''}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-gray-500">No details available.</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Coach Course Details Modal */}
+      <CoachCourseDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedCourseId(null);
+        }}
+        courseId={selectedCourseId}
+        onEdit={(courseId) => {
+          const course = localCourses.find(c => c.id === courseId);
+          if (course) {
+            handleEditCourse(course);
+          }
+        }}
+      />
 
 
     </div>
