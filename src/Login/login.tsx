@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { USER_TYPE } from '../constants';
 import RegisterCoach from './RegisterCoach';
 import RegisterParent from './RegisterParent';
+import AuthRedirect from '../components/AuthRedirect';
 import { FaEye, FaEyeSlash, FaSpinner, FaArrowLeft, FaUser, FaGraduationCap, FaShieldAlt, FaEnvelope, FaLock, FaCheckCircle } from 'react-icons/fa';
 
 const Login = () => {
@@ -45,14 +46,7 @@ const Login = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [registerRole, setRegisterRole] = useState<'coach' | 'parent' | null>(null);
 
-  // Check if user is already logged in
-  useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      // User is already logged in, no need to redirect here
-      // The App.tsx or routing logic should handle this
-    }
-  }, []);
+
 
   // Reset registration state when URL changes
   useEffect(() => {
@@ -231,6 +225,10 @@ const Login = () => {
 
     setLoading(true);
     
+    // Store current form values for preservation in case of error
+    const currentEmail = email;
+    const currentPassword = password;
+    
     try {
       console.log('Attempting login with:', { email, password });
       
@@ -351,11 +349,15 @@ const Login = () => {
         errorMessage = 'Network error. Please check your connection.';
       }
       
-      showErrorToast(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+             showErrorToast(errorMessage);
+       
+       // Preserve email for better UX, but clear password for security
+       setEmail(currentEmail);
+       setPassword(''); // Clear password for security
+     } finally {
+       setLoading(false);
+     }
+   };
 
       const handleRoleSelect = async (role: string) => {
       // No selectRole function in new useAuth, so this function is removed.
@@ -761,7 +763,8 @@ const Login = () => {
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${userTypeInfo.bgGradient} relative overflow-hidden`}>
+    <AuthRedirect isLoginAttempt={true}>
+      <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${userTypeInfo.bgGradient} relative overflow-hidden`}>
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-400/5 to-purple-400/5"></div>
       <div className="absolute top-0 left-0 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
@@ -952,7 +955,8 @@ const Login = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AuthRedirect>
   );
 };
 

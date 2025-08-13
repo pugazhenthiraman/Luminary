@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 
 interface ProtectedRouteProps {
@@ -11,6 +11,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
   const { isAuthenticated, user } = useAuthStore();
   const [isHydrated, setIsHydrated] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Debug logs
   console.log('ProtectedRoute - isAuthenticated:', isAuthenticated);
@@ -39,10 +40,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
     );
   }
 
-  // If not authenticated, redirect to login
+      // If not authenticated, redirect to appropriate login based on required role
   if (!isAuthenticated) {
     console.log('ProtectedRoute - Redirecting to login (not authenticated)');
-    return <Navigate to="/login" replace />;
+    console.log('ProtectedRoute - Current path:', location.pathname);
+    console.log('ProtectedRoute - Required role:', requiredRole);
+    
+    // Redirect to appropriate login page based on required role
+    switch (requiredRole) {
+      case 'ADMIN':
+        return <Navigate to="/admin/login" replace />;
+      case 'COACH':
+        return <Navigate to="/loginCoach" replace />;
+      case 'PARENT':
+        return <Navigate to="/loginParent" replace />;
+      default:
+        return <Navigate to="/loginParent" replace />;
+    }
   }
 
   // If role is required and user doesn't have it, redirect to appropriate dashboard
@@ -56,7 +70,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
       case 'ADMIN':
         return <Navigate to="/admin/dashboard" replace />;
       default:
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/loginParent" replace />;
     }
   }
 

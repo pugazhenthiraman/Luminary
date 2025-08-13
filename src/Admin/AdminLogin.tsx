@@ -1,15 +1,50 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
 import { FaEye, FaEyeSlash, FaSpinner, FaShieldAlt, FaArrowLeft, FaEnvelope, FaLock } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useAuthStore } from '../stores/useAuthStore';
+import AuthRedirect from '../components/AuthRedirect';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { handleAdminLogin, loading, error } = useAuth();
-  const { login: loginToStore } = useAuthStore();
+  const { login: loginToStore, isAuthenticated, user } = useAuthStore();
+  
+  // Use ref to track if component has mounted to prevent multiple logs
+  const hasMounted = React.useRef(false);
+  
+  React.useEffect(() => {
+    if (!hasMounted.current) {
+      console.log('🏗️ AdminLogin component mounted');
+      console.log('📊 Initial auth state:', { isAuthenticated, user: user ? { id: user.id, email: user.email, role: user.role } : null });
+      hasMounted.current = true;
+    }
+  }, [isAuthenticated, user]);
+  
+  // Monitor authentication state changes
+  React.useEffect(() => {
+    if (hasMounted.current) {
+      console.log('🔍 Auth state changed in AdminLogin:', { 
+        isAuthenticated, 
+        user: user ? { id: user.id, email: user.email, role: user.role } : null 
+      });
+    }
+  }, [isAuthenticated, user]);
+  
+  // Only clear auth state once on initial mount, not on every re-render
+  const [hasClearedAuth, setHasClearedAuth] = React.useState(false);
+  
+  React.useEffect(() => {
+    if (!hasClearedAuth) {
+      console.log('🧹 Clearing any existing auth state for debugging...');
+      const { logout } = useAuthStore.getState();
+      logout();
+      setHasClearedAuth(true);
+      console.log('✅ Auth state cleared');
+    }
+  }, [hasClearedAuth]);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,16 +55,7 @@ const AdminLogin = () => {
   const [lastPasswordError, setLastPasswordError] = useState('');
   const debounceTimerRef = useRef<number | null>(null);
 
-  // Check if user is already logged in as admin
-  useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      const userData = JSON.parse(user);
-      if (userData.role === 'ADMIN') {
-        navigate('/admin/dashboard');
-      }
-    }
-  }, [navigate]);
+
 
   // Real-time validation with proper debouncing
   const validateField = useCallback((field: 'email' | 'password', value: string) => {
@@ -103,8 +129,16 @@ const AdminLogin = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🚀 AdminLogin handleSubmit started');
+    console.log('🔒 Current auth state before login attempt:', { isAuthenticated, user: user ? { id: user.id, email: user.email, role: user.role } : null });
+    
+    // Prevent any navigation during login process
+    const currentPath = window.location.pathname;
+    console.log('📍 Current path:', currentPath);
+    
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
+      console.log('❌ Validation errors:', validationErrors);
       if (validationErrors.email) {
         showErrorToast(validationErrors.email);
         return;
@@ -116,26 +150,59 @@ const AdminLogin = () => {
       return;
     }
 
+    // Store current form values for preservation in case of error
+    const currentEmail = email;
+    const currentPassword = password;
+
+    console.log('📧 Attempting admin login with email:', email);
+
     try {
       // Call backend admin login
       const result = await handleAdminLogin({ email: email.trim(), password });
       
+      console.log('✅ Admin login result:', result);
+      
       if (result && result.user) {
         const { user, accessToken, refreshToken } = result;
         
+        console.log('👤 User data received:', { 
+          id: user.id, 
+          email: user.email, 
+          role: user.role 
+        });
+        console.log('🔑 Tokens received:', { 
+          accessToken: accessToken ? 'Present' : 'Missing', 
+          refreshToken: refreshToken ? 'Present' : 'Missing' 
+        });
+        
         // Store in Zustand (automatically persists to localStorage)
+        console.log('💾 Storing user in auth store...');
         loginToStore(user, accessToken || '', refreshToken || '');
+        console.log('✅ User stored successfully');
         
         showSuccessToast('Admin login successful!');
         
         // Redirect to admin dashboard
+        console.log('🔄 Scheduling redirect to admin dashboard...');
         setTimeout(() => {
+          console.log('🔄 Executing redirect to admin dashboard');
           navigate('/admin/dashboard');
         }, 1000);
       } else if (error) {
+        console.log('❌ Login error from hook:', error);
         showErrorToast(error);
+      } else {
+        console.log('❌ No user data in result');
+        showErrorToast('Invalid admin credentials. Please check your email and password.');
       }
     } catch (err: any) {
+      console.error('💥 Admin login error:', err);
+      console.log('📊 Error details:', {
+        response: err.response?.data,
+        status: err.response?.status,
+        message: err.message
+      });
+      
       // Handle specific backend errors
       let errorMessage = 'Admin login failed. Please try again.';
       
@@ -149,12 +216,29 @@ const AdminLogin = () => {
         errorMessage = 'Network error. Please check your connection.';
       }
       
+      console.log('🚨 Showing error toast:', errorMessage);
       showErrorToast(errorMessage);
+       
+      // Preserve email for better UX, but clear password for security
+      console.log('🔄 Preserving email and clearing password');
+      setEmail(currentEmail);
+      setPassword(''); // Clear password for security
+      
+      // Check auth state after error
+      console.log('🔒 Auth state after error:', { isAuthenticated, user: user ? { id: user.id, email: user.email, role: user.role } : null });
+      
+      // Check if we're still on the same path
+      const finalPath = window.location.pathname;
+      console.log('📍 Final path after error:', finalPath);
+      if (currentPath !== finalPath) {
+        console.log('⚠️ WARNING: Path changed during login error!');
+      }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 relative overflow-hidden px-4 sm:px-6">
+    <AuthRedirect isLoginAttempt={true}>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 relative overflow-hidden px-4 sm:px-6">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-to-r from-purple-400/5 to-blue-400/5"></div>
       <div className="absolute top-0 left-0 w-72 h-72 bg-purple-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
@@ -281,7 +365,8 @@ const AdminLogin = () => {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </AuthRedirect>
   );
 };
 

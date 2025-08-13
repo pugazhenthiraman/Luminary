@@ -58,7 +58,7 @@ const ParentDashboard: React.FC = () => {
         console.log('ParentDashboard: Authentication check failed');
         console.log('isAuthenticated:', isAuthenticated);
         console.log('user:', user);
-        navigate('/login');
+        navigate('/loginParent');
         return;
       }
 
@@ -160,7 +160,7 @@ const ParentDashboard: React.FC = () => {
 
   const handleLogout = () => {
     logoutFromStore();
-    navigate('/login');
+    navigate('/loginParent');
   };
 
   const handleToggleSidebar = () => {

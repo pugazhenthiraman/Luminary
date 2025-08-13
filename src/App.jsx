@@ -18,7 +18,6 @@ function App() {
       <Header />
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
         <Route path="/loginParent" element={<Login />} />
         <Route path="/loginCoach" element={<Login />} />
         <Route path="/admin/login" element={<AdminLogin />} />

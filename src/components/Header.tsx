@@ -78,10 +78,10 @@ const Header = () => {
     let redirectPath = '/';
     if (roles.includes('ADMIN')) {
       redirectPath = '/admin/login';
-    } else if (roles.includes('EXPERT')) {
-      redirectPath = '/coach/login';
-    } else if (roles.includes('ENDUSER')) {
-      redirectPath = '/login';
+    } else if (roles.includes('COACH')) {
+      redirectPath = '/loginCoach';
+    } else if (roles.includes('PARENT')) {
+      redirectPath = '/loginParent';
     }
     navigate(redirectPath);
   };
@@ -113,10 +113,10 @@ const Header = () => {
     const currentRole = activeRole || (roles.length > 0 ? roles[0] : '');
 
     // Navigate to role-specific dashboard
-    if (currentRole === 'EXPERT') {
-      navigate('/expert/dashboard');
-    } else if (currentRole === 'ENDUSER') {
-      navigate('/user/dashboard');
+    if (currentRole === 'COACH') {
+      navigate('/coach/dashboard');
+    } else if (currentRole === 'PARENT') {
+      navigate('/parent/dashboard');
     } else if (currentRole === 'ADMIN') {
       navigate('/admin/dashboard');
     } else {
@@ -136,10 +136,10 @@ const Header = () => {
     const currentRole = activeRole || (roles.length > 0 ? roles[0] : '');
 
     // Navigate to role-specific profile page
-    if (currentRole === 'EXPERT') {
-      navigate('/expert/profile');
-    } else if (currentRole === 'ENDUSER') {
-      navigate('/user/profile');
+    if (currentRole === 'COACH') {
+      navigate('/coach/profile');
+    } else if (currentRole === 'PARENT') {
+      navigate('/parent/profile');
     } else if (currentRole === 'ADMIN') {
       navigate('/admin/profile'); // You can create this later if needed
     } else {
@@ -153,10 +153,10 @@ const Header = () => {
     setShowProfileDropdown(false);
     setShowMobileMenu(false);
     // Redirect to selected role's dashboard
-    if (role === 'EXPERT') {
-      navigate('/expert/dashboard');
-    } else if (role === 'ENDUSER') {
-      navigate('/user/dashboard');
+    if (role === 'COACH') {
+      navigate('/coach/dashboard');
+    } else if (role === 'PARENT') {
+      navigate('/parent/dashboard');
     } else if (role === 'ADMIN') {
       navigate('/admin/dashboard');
     } else {

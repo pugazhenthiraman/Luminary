@@ -60,13 +60,13 @@ axiosInstance.interceptors.response.use(
         }
         // If no refreshToken or refresh fails, logout
         logout();
-        window.location.href = "/login";
+        // Don't redirect here - let the component handle it based on context
         return Promise.reject(error);
       } catch (refreshError) {
         // If refresh fails, logout
         const { logout } = useAuthStore.getState();
         logout();
-        window.location.href = "/login";
+        // Don't redirect here - let the component handle it based on context
         return Promise.reject(refreshError);
       }
     }
@@ -76,7 +76,7 @@ axiosInstance.interceptors.response.use(
       // If already retried or no refresh, force logout
       const { logout } = useAuthStore.getState();
       logout();
-      window.location.href = "/login";
+      // Don't redirect here - let the component handle it based on context
     }
     return Promise.reject(error);
   }

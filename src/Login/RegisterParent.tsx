@@ -249,7 +249,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
         // Old flow - direct login (shouldn't happen with new implementation)
         showSuccessToast('Registration successful! Please login to continue.');
         setTimeout(() => {
-          navigate('/login');
+          navigate('/loginParent');
         }, 1500);
       }
     } else if (error) {
@@ -262,7 +262,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
   const handleVerificationSuccess = (userData: any) => {
     showSuccessToast('Email verified successfully! You can now login.');
     setTimeout(() => {
-      navigate('/login');
+      navigate('/loginParent');
     }, 1500);
   };
 

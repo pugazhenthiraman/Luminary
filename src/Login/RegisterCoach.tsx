@@ -669,7 +669,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       } else {
         // Old flow - direct login (shouldn't happen with new implementation)
         showSuccessToast('Registration successful! Please check your email for verification.');
-        navigate('/login');
+        navigate('/loginCoach');
       }
     } else if (error) {
       showErrorToast(String(error));
@@ -683,7 +683,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   const handleVerificationSuccess = (userData: any) => {
     showSuccessToast('Email verified successfully! You can now login.');
     setTimeout(() => {
-      navigate('/login');
+      navigate('/loginCoach');
     }, 1500);
   };
 

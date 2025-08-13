@@ -82,6 +82,7 @@ export const ToastContainerComponent = () => {
 
 // Individual toast functions
 export const showSuccessToast = (message) => {
+  console.log('✅ showSuccessToast called with message:', message);
   const config = getMobileToastConfig();
   toast.success(message, {
     ...config,
@@ -112,6 +113,7 @@ export const showSuccessToast = (message) => {
 };
 
 export const showErrorToast = (message) => {
+  console.log('🚨 showErrorToast called with message:', message);
   const config = getMobileToastConfig();
   toast.error(message, {
     ...config,

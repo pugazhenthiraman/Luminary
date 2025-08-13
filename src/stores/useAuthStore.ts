@@ -34,21 +34,33 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
 
-      login: (user, accessToken, refreshToken) => set({
-        user,
-        accessToken,
-        refreshToken,
-        isAuthenticated: true,
-        isLoading: false,
-      }),
+      login: (user, accessToken, refreshToken) => {
+        console.log('🔐 useAuthStore login called with:', {
+          user: { id: user.id, email: user.email, role: user.role },
+          accessToken: accessToken ? 'Present' : 'Missing',
+          refreshToken: refreshToken ? 'Present' : 'Missing'
+        });
+        set({
+          user,
+          accessToken,
+          refreshToken,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        console.log('✅ useAuthStore state updated - user is now authenticated');
+      },
 
-      logout: () => set({
-        user: null,
-        accessToken: null,
-        refreshToken: null,
-        isAuthenticated: false,
-        isLoading: false,
-      }),
+      logout: () => {
+        console.log('🚪 useAuthStore logout called');
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        console.log('✅ useAuthStore state cleared - user is now logged out');
+      },
 
       setLoading: (isLoading) => set({ isLoading }),
 

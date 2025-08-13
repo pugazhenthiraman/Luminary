@@ -73,7 +73,7 @@ const CoachDashboard: React.FC = () => {
         console.log('CoachDashboard: Authentication check failed');
         console.log('isAuthenticated:', isAuthenticated);
         console.log('user:', user);
-        navigate('/login');
+        navigate('/loginCoach');
         return;
       }
       
@@ -155,7 +155,7 @@ const CoachDashboard: React.FC = () => {
 
   const handleLogout = () => {
     logoutFromStore();
-    navigate('/login');
+    navigate('/loginCoach');
   };
 
   const handleToggleSidebar = () => {

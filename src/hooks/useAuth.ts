@@ -46,27 +46,39 @@ export function useAuth() {
   };
 
   const handleAdminLogin = async (credentials: any): Promise<AuthResult | null> => {
+    console.log('🔐 useAuth handleAdminLogin started with credentials:', { email: credentials.email });
     setLoading(true);
     setError(null);
     try {
       const response = await adminLogin(credentials);
-      console.log('Admin login response:', response.data);
+      console.log('📡 Admin login API response:', response);
+      console.log('📊 Admin login response data:', response.data);
       
       // Backend returns { success, message, data: { user, accessToken, refreshToken } }
       if (response.data && response.data.success && response.data.data) {
+        console.log('✅ Admin login successful, returning data:', response.data.data);
         return response.data.data;
       } else if (response.data && response.data.user) {
         // Fallback for direct user data
+        console.log('✅ Admin login successful (fallback), returning user data:', response.data);
         return response.data;
       } else {
-        console.error('Unexpected admin response structure:', response.data);
+        console.error('❌ Unexpected admin response structure:', response.data);
         return null;
       }
     } catch (err: any) {
+      console.error('💥 Admin login error in useAuth:', err);
+      console.log('📊 Error details:', {
+        response: err.response?.data,
+        status: err.response?.status,
+        message: err.message
+      });
       const errorMessage = err.response?.data?.message || err.message || "Admin login failed";
       setError(errorMessage);
+      console.log('🚨 Setting error state:', errorMessage);
       return null;
     } finally {
+      console.log('🏁 Admin login finished, setting loading to false');
       setLoading(false);
     }
   };
