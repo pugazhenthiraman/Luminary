@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Avatar from '../../components/Avatar';
 import { 
   FaUser, 
@@ -25,6 +25,7 @@ import {
   FaLock
 } from 'react-icons/fa';
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
+import childrenApi from '../../api/children';
 
 interface Child {
   id: string;
@@ -42,6 +43,7 @@ interface ParentUser {
   firstName: string;
   lastName: string;
   role: string;
+  avatar?: string;
   children: Child[];
 }
 
@@ -50,8 +52,27 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ parentData }) => {
+  // Helper to normalize any date-like value to YYYY-MM-DD for <input type="date">
+  const toDateInput = (value: any): string => {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      // If ISO string with time, take the date part to avoid timezone shifts
+      if (value.includes('T')) return value.slice(0, 10);
+      // Already in YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+    }
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+    }
+    return '';
+  };
+
   const [isEditing, setIsEditing] = useState(false);
   const [children, setChildren] = useState<Child[]>(parentData.children);
+  const [childrenLoading, setChildrenLoading] = useState<boolean>(false);
+  const [savingChild, setSavingChild] = useState<boolean>(false);
   const [showChildModal, setShowChildModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
@@ -86,6 +107,37 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
       [field]: value
     }));
   };
+
+  // Fetch children from backend on mount
+  useEffect(() => {
+    const fetchChildren = async () => {
+      setChildrenLoading(true);
+      try {
+    const res = await childrenApi.getChildren();
+        const payload = res?.data;
+        // Backend wraps responses in ApiResponse { success, message, data }
+        // For list: data = { children: Child[], pagination: {...} }
+        const list = (payload?.data?.children ?? payload?.children ?? []) as any[];
+        if (Array.isArray(list)) {
+          const normalized: Child[] = list.map((c: any) => ({
+            id: c.id ?? c._id ?? `${c.firstName ?? ''}-${c.lastName ?? ''}-${c.dateOfBirth ?? ''}`,
+            firstName: c.firstName ?? '',
+            lastName: c.lastName ?? '',
+      dateOfBirth: toDateInput(c.dateOfBirth ?? c.dob ?? ''),
+            gender: (c.gender ?? '').toLowerCase(),
+            currentGrade: c.currentGrade ?? c.grade ?? '',
+            schoolName: c.schoolName ?? c.school ?? ''
+          }));
+          setChildren(normalized);
+        }
+      } catch (err: any) {
+        showErrorToast(err?.response?.data?.message || 'Failed to load children');
+      } finally {
+        setChildrenLoading(false);
+      }
+    };
+    fetchChildren();
+  }, []);
 
   const handleSave = () => {
     // Simulate save with mock data
@@ -203,8 +255,8 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
     setChildForm({
       firstName: child.firstName,
       lastName: child.lastName,
-      dateOfBirth: child.dateOfBirth,
-      gender: child.gender,
+  dateOfBirth: toDateInput(child.dateOfBirth),
+  gender: (child.gender || '').toLowerCase(),
       currentGrade: child.currentGrade,
       schoolName: child.schoolName
     });
@@ -227,7 +279,7 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
   const handleChildFormChange = (field: string, value: string) => {
     setChildForm(prev => ({
       ...prev,
-      [field]: value
+  [field]: field === 'gender' ? value.toLowerCase() : value
     }));
   };
 
@@ -275,56 +327,73 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
     return true;
   };
 
-  const saveChild = () => {
+  const saveChild = async () => {
     if (!validateChildForm()) return;
+    setSavingChild(true);
 
-    const childData: Child = {
-      id: editingChild ? editingChild.id : Date.now().toString(),
+    const payload = {
       firstName: childForm.firstName.trim(),
       lastName: childForm.lastName.trim(),
       dateOfBirth: childForm.dateOfBirth,
-      gender: childForm.gender,
+  gender: (childForm.gender || '').toLowerCase(),
       currentGrade: childForm.currentGrade,
       schoolName: childForm.schoolName.trim()
     };
 
-    if (editingChild) {
-      // Edit existing child
-      setChildren(prev => prev.map(child => 
-        child.id === editingChild.id ? childData : child
-      ));
-      showSuccessToast('Child updated successfully!');
-    } else {
-      // Add new child
-      setChildren(prev => [...prev, childData]);
-      showSuccessToast('Child added successfully!');
+    try {
+      if (editingChild) {
+        const res = await childrenApi.updateChild(editingChild.id, payload);
+        const updated = (res?.data?.data ?? res?.data ?? payload) as any;
+        const updatedChild: Child = {
+          id: updated.id ?? updated._id ?? editingChild.id,
+          firstName: updated.firstName ?? payload.firstName,
+          lastName: updated.lastName ?? payload.lastName,
+          dateOfBirth: toDateInput(updated.dateOfBirth ?? updated.dob ?? payload.dateOfBirth),
+          gender: updated.gender ?? payload.gender,
+          currentGrade: updated.currentGrade ?? updated.grade ?? payload.currentGrade,
+          schoolName: updated.schoolName ?? updated.school ?? payload.schoolName
+        };
+        setChildren(prev => prev.map(c => (c.id === editingChild.id ? updatedChild : c)));
+        showSuccessToast('Child updated successfully!');
+      } else {
+        const res = await childrenApi.createChild(payload);
+        const created = (res?.data?.data ?? res?.data ?? payload) as any;
+        const newChild: Child = {
+          id: created.id ?? created._id ?? Date.now().toString(),
+          firstName: created.firstName ?? payload.firstName,
+          lastName: created.lastName ?? payload.lastName,
+          dateOfBirth: toDateInput(created.dateOfBirth ?? created.dob ?? payload.dateOfBirth),
+          gender: created.gender ?? payload.gender,
+          currentGrade: created.currentGrade ?? created.grade ?? payload.currentGrade,
+          schoolName: created.schoolName ?? created.school ?? payload.schoolName
+        };
+        setChildren(prev => [...prev, newChild]);
+        showSuccessToast('Child added successfully!');
+      }
+      closeChildModal();
+    } catch (err: any) {
+      const resp = err?.response?.data;
+      const firstValidation = Array.isArray(resp?.data) && resp.data.length
+        ? `${resp.data[0].field}: ${resp.data[0].message}`
+        : null;
+      showErrorToast(firstValidation || resp?.message || 'Failed to save child');
+    } finally {
+      setSavingChild(false);
     }
-
-    // Update localStorage
-    const updatedParentData = {
-      ...parentData,
-      children: editingChild 
-        ? children.map(child => child.id === editingChild.id ? childData : child)
-        : [...children, childData]
-    };
-    localStorage.setItem('user', JSON.stringify(updatedParentData));
-
-    closeChildModal();
   };
 
-  const removeChild = (childId: string) => {
-    const childToRemove = children.find(child => child.id === childId);
-    if (childToRemove) {
-      setChildren(prev => prev.filter(child => child.id !== childId));
-      
-      // Update localStorage
-      const updatedParentData = {
-        ...parentData,
-        children: children.filter(child => child.id !== childId)
-      };
-      localStorage.setItem('user', JSON.stringify(updatedParentData));
-      
+  const removeChild = async (childId: string) => {
+    const childToRemove = children.find(c => c.id === childId);
+    if (!childToRemove) return;
+    const confirm = window.confirm(`Remove ${childToRemove.firstName} ${childToRemove.lastName}?`);
+    if (!confirm) return;
+
+    try {
+      await childrenApi.deleteChild(childId);
+      setChildren(prev => prev.filter(c => c.id !== childId));
       showSuccessToast(`${childToRemove.firstName} ${childToRemove.lastName} removed successfully!`);
+    } catch (err: any) {
+      showErrorToast(err?.response?.data?.message || 'Failed to remove child');
     }
   };
 
@@ -368,15 +437,9 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
       }
     ];
 
-    setChildren(mockChildren);
-    
-    // Update localStorage
-    const updatedParentData = {
-      ...parentData,
-      children: mockChildren
-    };
-    localStorage.setItem('user', JSON.stringify(updatedParentData));
-    
+  // Dev helper: local-only mock data
+  setChildren(mockChildren);
+  // Not persisted to backend
     showSuccessToast('4 mock children added successfully!');
   };
 
@@ -392,6 +455,12 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
     }
     
     return age;
+  };
+
+  // Map card index to a Tailwind animation delay utility to avoid inline styles
+  const getDelayClass = (i: number) => {
+    const delays = ['delay-0', 'delay-100', 'delay-200', 'delay-300', 'delay-500'];
+    return delays[Math.min(i, delays.length - 1)];
   };
 
   return (
@@ -567,10 +636,14 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
                 <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                   <FaChild className="text-indigo-600 text-xl sm:text-2xl" />
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-3">No Children Added</h3>
-                <p className="text-gray-600 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
-                  Add your children to start enrolling them in courses and track their learning journey.
-                </p>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-3">
+                  {childrenLoading ? 'Loading children...' : 'No Children Added'}
+                </h3>
+                {!childrenLoading && (
+                  <p className="text-gray-600 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
+                    Add your children to start enrolling them in courses and track their learning journey.
+                  </p>
+                )}
                 <button
                   onClick={openAddChildModal}
                   className="inline-flex items-center space-x-2 px-4 sm:px-6 py-2 sm:py-3 text-indigo-600 border-2 border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors duration-200 font-medium text-sm sm:text-base"
@@ -581,11 +654,10 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {children.map((child, index) => (
+        {children.map((child, index) => (
                   <div 
                     key={child.id} 
-                    className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-indigo-200 hover:shadow-md transition-all duration-200 animate-in slide-in-from-left duration-500"
-                    style={{ animationDelay: `${index * 100}ms` }}
+          className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-indigo-200 hover:shadow-md transition-all duration-200 animate-in slide-in-from-left duration-500 ${getDelayClass(index)}`}
                   >
                     <div className="flex items-start justify-between mb-3 sm:mb-4">
                       <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
@@ -597,7 +669,7 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
                             {child.firstName} {child.lastName}
                           </h3>
                           <p className="text-xs sm:text-sm text-indigo-600 font-medium">
-                            {child.gender} • Age {calculateAge(child.dateOfBirth)}
+                            {child.gender ? `${child.gender.charAt(0).toUpperCase()}${child.gender.slice(1).toLowerCase()}` : ''} • Age {calculateAge(child.dateOfBirth)}
                           </p>
                         </div>
                       </div>
@@ -956,9 +1028,9 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
                     title="Select gender"
                   >
                     <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
 
@@ -1020,10 +1092,11 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
                 </button>
                 <button
                   onClick={saveChild}
+                  disabled={savingChild}
                   className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm"
                 >
                   <FaCheck className="text-sm" />
-                  {editingChild ? 'Update Child' : 'Add Child'}
+                  {savingChild ? (editingChild ? 'Updating...' : 'Adding...') : (editingChild ? 'Update Child' : 'Add Child')}
                 </button>
               </div>
             </div>
