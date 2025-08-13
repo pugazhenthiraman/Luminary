@@ -661,19 +661,24 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     console.log('=== COACH REGISTRATION DEBUG END ===');
    
     if (result && result.user) {
+      console.log('✅ Registration successful, result:', result);
       if (result.requiresVerification) {
+        console.log('🔐 Verification required, moving to verification step');
         // Store registration data and move to verification step
         setRegistrationData(result);
         setCurrentStep('verification');
         showSuccessToast('Registration successful! Please check your email for verification code.');
       } else {
-        // Old flow - direct login (shouldn't happen with new implementation)
+        console.log('🚀 No verification required, redirecting to coach login');
+        // If no verification required, redirect to coach login
         showSuccessToast('Registration successful! Please check your email for verification.');
         navigate('/loginCoach');
       }
     } else if (error) {
+      console.log('❌ Registration error:', error);
       showErrorToast(String(error));
     } else {
+      console.log('❌ Registration failed with no result');
       showErrorToast('Registration failed. Please try again.');
     }
   };
@@ -681,10 +686,10 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
   // Handle successful email verification
   const handleVerificationSuccess = (userData: any) => {
+    console.log('🎯 Email verification successful, redirecting to home page');
     showSuccessToast('Email verified successfully! You can now login.');
-    setTimeout(() => {
-      navigate('/loginCoach');
-    }, 1500);
+    // Redirect to home page after verification
+    navigate('/');
   };
 
 
@@ -696,7 +701,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
 
   // Show email verification component if needed
+  console.log('🔍 Current step:', currentStep, 'Registration data:', registrationData);
   if (currentStep === 'verification' && registrationData) {
+    console.log('📱 Rendering EmailVerification component');
     return (
       <EmailVerification
         email={form.email}

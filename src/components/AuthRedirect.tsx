@@ -30,10 +30,10 @@ const AuthRedirect: React.FC<AuthRedirectProps> = ({ children, allowedRoles = []
 
     // Check if we're already on a login page to prevent unnecessary redirects
     const currentPath = window.location.pathname;
-    const isOnLoginPage = currentPath.includes('/login') || currentPath.includes('/admin/login');
+    const isOnLoginPage = currentPath.includes('/login') || currentPath.includes('/admin/login') || currentPath.includes('/register');
     
     if (isOnLoginPage) {
-      console.log('🚫 Already on login page, preventing redirects');
+      console.log('🚫 Already on login page or registration page, preventing redirects');
       setShouldRedirect(false);
       return;
     }

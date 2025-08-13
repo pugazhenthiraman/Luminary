@@ -197,6 +197,9 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
             We've sent a 6-digit verification code to
           </p>
           <p className="text-indigo-600 font-semibold">{email}</p>
+          <p className="text-gray-500 text-xs mt-2">
+            After verification, you'll be redirected to the home page
+          </p>
         </div>
 
 

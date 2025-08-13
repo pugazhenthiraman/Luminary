@@ -59,6 +59,8 @@ const CourseApproval: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'coach' | 'category'>('date');
   const [isLoading, setIsLoading] = useState(false); // loading state
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   const [showAdvancedFilterModal, setShowAdvancedFilterModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All Prices');
@@ -70,6 +72,12 @@ const CourseApproval: React.FC = () => {
   const [selectedCoachForDetails, setSelectedCoachForDetails] = useState(null);
   const [showCoachModal, setShowCoachModal] = useState(false);
   const [coachLoading, setCoachLoading] = useState(false);
+
+  // Course approval confirmation states
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [courseToApprove, setCourseToApprove] = useState<number | null>(null);
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [courseToReject, setCourseToReject] = useState<CourseSubmission | null>(null);
 
 
   // Debug: Log current modal state on every render (after state declarations)
@@ -167,26 +175,6 @@ const CourseApproval: React.FC = () => {
           status: c.status,
           rejectionReason: c.rejectionReason,
         };
-        
-        return {
-          id: c.id,
-          coachName: coachName,
-          coachEmail: coachEmail,
-          coachPhoto: c.coachPhoto || coachData.coachPhoto || coachData.photo || coachData.profileImage,
-          coachPhone: phoneNumber, // Use the extracted phone number
-          courseTitle: c.courseTitle || c.title,
-          courseDescription: c.courseDescription || c.description,
-          category: c.category,
-          price: c.price,
-          duration: String(c.duration ?? ''),
-          lessons: c.lessons || 0,
-          thumbnail: c.thumbnail || c.image || c.coverImage,
-          videoUrl: c.videoUrl || c.previewVideo,
-          weeklySchedule: c.weeklySchedule || [],
-          submittedAt: c.submittedAt || c.createdAt,
-          status: c.status,
-          rejectionReason: c.rejectionReason,
-        };
       });
       
       // Debug: Log the final mapped data
@@ -263,31 +251,45 @@ const CourseApproval: React.FC = () => {
     sortedCourses.sort((a, b) => b.price - a.price);
   }
 
+  const confirmApprove = (courseId: number) => {
+    setCourseToApprove(courseId);
+    setShowApproveConfirm(true);
+  };
+
+  const confirmReject = (course: CourseSubmission) => {
+    setCourseToReject(course);
+    setShowRejectConfirm(true);
+  };
+
   const handleApprove = async (courseId: number) => {
-    setIsLoading(true);
+    setIsApproving(true);
     try {
       await approveAdminCourse(courseId, adminNotes || undefined);
       setShowModal(false);
+      setShowApproveConfirm(false);
+      setCourseToApprove(null);
       await loadCourses();
     } catch (error) {
       console.error('Error approving course:', error);
     } finally {
-      setIsLoading(false);
+      setIsApproving(false);
     }
   };
 
   const handleReject = async (courseId: number, reason: string) => {
-    setIsLoading(true);
+    setIsRejecting(true);
     try {
       await rejectAdminCourse(courseId, reason, adminNotes || undefined);
       setShowModal(false);
       setShowRejectModal(false);
+      setShowRejectConfirm(false);
+      setCourseToReject(null);
       setRejectReason('');
       await loadCourses();
     } catch (error) {
       console.error('Error rejecting course:', error);
     } finally {
-      setIsLoading(false);
+      setIsRejecting(false);
     }
   };
 
@@ -416,16 +418,7 @@ const CourseApproval: React.FC = () => {
     }
   };
 
-  const confirmReject = async (courseId: number) => {
-    setIsLoading(true);
-    try {
-      await handleReject(courseId, rejectReason);
-    } catch (error) {
-      console.error("Error rejecting course:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -788,14 +781,14 @@ const CourseApproval: React.FC = () => {
                     {course.status === 'pending' && (
                       <>
                         <button
-                          onClick={() => handleApprove(course.id)}
+                          onClick={() => confirmApprove(course.id)}
                           className="text-green-600 hover:text-green-800 p-1.5 sm:p-2 rounded-lg hover:bg-green-50 transition-colors duration-200"
                           title="Approve Course"
                         >
                           <FaCheck className="text-sm" />
                         </button>
                         <button
-                          onClick={() => handleRejectClick(course)}
+                          onClick={() => confirmReject(course)}
                           className="text-red-600 hover:text-red-800 p-1.5 sm:p-2 rounded-lg hover:bg-red-50 transition-colors duration-200"
                           title="Reject Course"
                         >
@@ -828,9 +821,9 @@ const CourseApproval: React.FC = () => {
           selectedCourse={selectedCourse}
           showModal={showModal}
           onClose={() => setShowModal(false)}
-          onApprove={(courseId) => handleApprove(courseId, adminNotes)}
-          onReject={() => setShowRejectModal(true)}
-          isLoading={isLoading}
+          onApprove={(courseId) => confirmApprove(courseId)}
+          onReject={() => confirmReject(selectedCourse)}
+          isLoading={isApproving || isRejecting}
           formatTimeDisplay={formatTimeDisplay}
           getStatusBadge={getStatusBadge}
           onViewCoachDetails={(coachEmail) => handleViewCoachDetails(coachEmail)}
@@ -899,6 +892,87 @@ const CourseApproval: React.FC = () => {
           isLoading={coachLoading}
           showActions={false}
         />
+      )}
+
+      {/* Approve Confirmation Modal */}
+      {showApproveConfirm && courseToApprove && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => { setShowApproveConfirm(false); setCourseToApprove(null); }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaCheck className="text-green-600 text-xl sm:text-2xl" />
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Approve Course</h3>
+              <p className="text-sm text-gray-600 mb-4">Are you sure you want to approve this course?</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button 
+                onClick={() => { setShowApproveConfirm(false); setCourseToApprove(null); }} 
+                className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => courseToApprove && handleApprove(courseToApprove)} 
+                disabled={isApproving} 
+                className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isApproving ? <FaSpinner className="animate-spin" /> : 'Confirm Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Confirmation Modal */}
+      {showRejectConfirm && courseToReject && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => { setShowRejectConfirm(false); setCourseToReject(null); }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaTimes className="text-red-600 text-xl sm:text-2xl" />
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Reject Course</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Please provide a reason for rejecting "{courseToReject.courseTitle}"
+              </p>
+            </div>
+
+            <div className="mb-4 sm:mb-6">
+              <label htmlFor="rejectReasonConfirm" className="block text-sm font-medium text-gray-700 mb-2">
+                Rejection Reason
+              </label>
+              <textarea
+                id="rejectReasonConfirm"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Enter the reason for rejection..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                rows={4}
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button 
+                onClick={() => { 
+                  setShowRejectConfirm(false); 
+                  setCourseToReject(null); 
+                  setRejectReason('');
+                }} 
+                className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => courseToReject && handleReject(courseToReject.id, rejectReason)} 
+                disabled={!rejectReason.trim() || isRejecting} 
+                className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRejecting ? <FaSpinner className="animate-spin" /> : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

@@ -884,27 +884,31 @@ interface DaySchedule {
 
                   {/* Course Credits */}
                   <div className="group">
-                                          <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
-                        <span>Course Credits</span>
-                        <span className="text-red-500 text-lg font-bold">*</span>
-                      </label>
+                    <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
+                      <span>Course Credits</span>
+                      <span className="text-red-500 text-lg font-bold">*</span>
+                    </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-5">
                         <FaDollarSign className="text-gray-400 text-lg" />
                       </div>
                       <input
-                        type="number"
+                        type="text"
                         value={formData.credits === 0 ? '' : formData.credits}
-                        onChange={(e) => handleCreditsChange(e.target.value)}
-                        className={`w-full pl-12 pr-5 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white group-hover:border-gray-300 ${
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Only allow numbers and decimal point
+                          if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                            handleCreditsChange(value);
+                          }
+                        }}
+                        className={`w-full pl-12 pr-20 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white group-hover:border-gray-300 ${
                           errors.credits ? 'border-red-300 focus:ring-red-100 focus:border-red-500' : ''
                         }`}
                         placeholder="99.99"
-                        min="0"
-                        step="0.01"
                       />
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-4">
-                        <span className="text-gray-400 text-sm">USD</span>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-5">
+                        <span className="text-gray-400 text-sm font-medium">USD</span>
                       </div>
                     </div>
                     {errors.credits && (
@@ -921,25 +925,28 @@ interface DaySchedule {
                   <div className="group">
                     <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
                       <span>Course Duration</span>
-                      
+                      <span className="text-red-500 text-lg font-bold">*</span>
                     </label>
                     <div className="relative">
                       <input
-                        type="number"
-                        min={1}
+                        type="text"
                         value={formData.courseDurationNumber === undefined ? '' : formData.courseDurationNumber}
                         onChange={(e) => {
-                          const val = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
-                          setFormData(prev => ({
-                            ...prev,
-                            courseDurationNumber: val
-                          }));
+                          const value = e.target.value;
+                          // Only allow numbers
+                          if (value === '' || /^\d+$/.test(value)) {
+                            const val = value === '' ? undefined : parseInt(value, 10);
+                            setFormData(prev => ({
+                              ...prev,
+                              courseDurationNumber: val
+                            }));
+                          }
                         }}
-                        className="w-full pl-4 pr-16 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white group-hover:border-gray-300"
-                        placeholder="12 Weeks"
+                        className="w-full pl-4 pr-20 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white group-hover:border-gray-300"
+                        placeholder="12"
                       />
                       <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none">
-                        <span className="text-gray-400 text-base">weeks</span>
+                        <span className="text-gray-400 text-base font-medium">weeks</span>
                       </div>
                     </div>
                   </div>

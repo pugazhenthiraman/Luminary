@@ -31,8 +31,12 @@ const CoachApproval: React.FC = () => {
   const [filter, setFilter] = useState(() => localStorage.getItem('adminFilter') || 'all');
   const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem('adminSearchTerm') || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [coachToReject, setCoachToReject] = useState<string | null>(null);
+  const [coachToApprove, setCoachToApprove] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [currentPage, setCurrentPage] = useState(() => parseInt(localStorage.getItem('adminCurrentPage') || '1'));
   const itemsPerPage = 10;
@@ -85,20 +89,22 @@ const CoachApproval: React.FC = () => {
   }, []);
 
   const handleApprove = async (coachId: string) => {
-    setIsLoading(true);
+    setIsApproving(true);
     try {
       await approveCoach(coachId);
       showSuccessToast('Coach approved successfully!');
+      setShowApproveConfirm(false);
+      setCoachToApprove(null);
       loadCoaches();
     } catch {
       showErrorToast('Failed to approve coach');
     } finally {
-      setIsLoading(false);
+      setIsApproving(false);
     }
   };
 
   const handleReject = async (coachId: string) => {
-    setIsLoading(true);
+    setIsRejecting(true);
     try {
       await rejectCoach(coachId, rejectReason || 'Rejected by admin');
       showSuccessToast('Coach rejected successfully');
@@ -109,13 +115,18 @@ const CoachApproval: React.FC = () => {
     } catch {
       showErrorToast('Failed to reject coach');
     } finally {
-      setIsLoading(false);
+      setIsRejecting(false);
     }
   };
 
   const confirmReject = (coachId: string) => {
     setCoachToReject(coachId);
     setShowRejectConfirm(true);
+  };
+
+  const confirmApprove = (coachId: string) => {
+    setCoachToApprove(coachId);
+    setShowApproveConfirm(true);
   };
 
   const handleViewDetails = (coach: CoachData) => {
@@ -230,8 +241,8 @@ const CoachApproval: React.FC = () => {
                     <button onClick={() => handleViewDetails(coach)} className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200" title="View Details"><FaEye className="text-sm" /></button>
                     {coach.status === 'pending' && (
                       <>
-                        <button onClick={() => handleApprove(coach.id)} disabled={isLoading} className="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 disabled:opacity-50" title="Approve">{isLoading ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}</button>
-                        <button onClick={() => confirmReject(coach.id)} disabled={isLoading} className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200 disabled:opacity-50" title="Reject">{isLoading ? <FaSpinner className="animate-spin text-sm" /> : <FaTimes className="text-sm" />}</button>
+                        <button onClick={() => confirmApprove(coach.id)} disabled={isApproving || isRejecting} className="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 disabled:opacity-50" title="Approve">{isApproving ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}</button>
+                        <button onClick={() => confirmReject(coach.id)} disabled={isApproving || isRejecting} className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200 disabled:opacity-50" title="Reject">{isRejecting ? <FaSpinner className="animate-spin text-sm" /> : <FaTimes className="text-sm" />}</button>
                       </>
                     )}
                   </div>
@@ -312,8 +323,8 @@ const CoachApproval: React.FC = () => {
                         <button onClick={() => handleViewDetails(coach)} className="text-blue-600 hover:text-blue-900 p-1" title="View Details"><FaEye /></button>
                         {coach.status === 'pending' && (
                           <>
-                            <button onClick={() => handleApprove(coach.id)} disabled={isLoading} className="text-green-600 hover:text-green-900 p-1 disabled:opacity-50" title="Approve">{isLoading ? <FaSpinner className="animate-spin" /> : <FaCheck />}</button>
-                            <button onClick={() => confirmReject(coach.id)} disabled={isLoading} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" title="Reject">{isLoading ? <FaSpinner className="animate-spin" /> : <FaTimes />}</button>
+                            <button onClick={() => confirmApprove(coach.id)} disabled={isApproving || isRejecting} className="text-green-600 hover:text-green-900 p-1 disabled:opacity-50" title="Approve">{isApproving ? <FaSpinner className="animate-spin" /> : <FaCheck />}</button>
+                            <button onClick={() => confirmReject(coach.id)} disabled={isApproving || isRejecting} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" title="Reject">{isRejecting ? <FaSpinner className="animate-spin" /> : <FaTimes />}</button>
                           </>
                         )}
                       </div>
@@ -350,9 +361,9 @@ const CoachApproval: React.FC = () => {
               console.log("[DEBUG] Modal closed");
               setShowDetails(false);
             }}
-            onApprove={() => { handleApprove(selectedCoach.id); setShowDetails(false); }}
+            onApprove={() => { confirmApprove(selectedCoach.id); setShowDetails(false); }}
             onReject={() => confirmReject(selectedCoach.id)}
-            isLoading={isLoading}
+            isLoading={isApproving || isRejecting}
             showActions={true}
             confirmReject={confirmReject}
           />
@@ -361,8 +372,14 @@ const CoachApproval: React.FC = () => {
 
       {/* Reject Confirmation Modal */}
       {showRejectConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => { setShowRejectConfirm(false); setCoachToReject(null); setRejectReason(''); }}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="text-center mb-4 sm:mb-6">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><FaTimes className="text-red-600 text-xl sm:text-2xl" /></div>
               <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Reject Coach</h3>
@@ -374,7 +391,30 @@ const CoachApproval: React.FC = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button onClick={() => { setShowRejectConfirm(false); setCoachToReject(null); setRejectReason(''); }} className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm">Cancel</button>
-              <button onClick={() => coachToReject && handleReject(coachToReject)} disabled={isLoading || !rejectReason.trim()} className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">{isLoading ? <FaSpinner className="animate-spin" /> : 'Confirm Reject'}</button>
+              <button onClick={() => coachToReject && handleReject(coachToReject)} disabled={isRejecting || !rejectReason.trim()} className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">{isRejecting ? <FaSpinner className="animate-spin" /> : 'Confirm Reject'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Confirmation Modal */}
+      {showApproveConfirm && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => { setShowApproveConfirm(false); setCoachToApprove(null); }}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><FaCheck className="text-green-600 text-xl sm:text-2xl" /></div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Approve Coach</h3>
+              <p className="text-sm text-gray-600 mb-4">Are you sure you want to approve this coach application?</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button onClick={() => { setShowApproveConfirm(false); setCoachToApprove(null); }} className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm">Cancel</button>
+              <button onClick={() => coachToApprove && handleApprove(coachToApprove)} disabled={isApproving} className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">{isApproving ? <FaSpinner className="animate-spin" /> : 'Confirm Approve'}</button>
             </div>
           </div>
         </div>
