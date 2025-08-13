@@ -71,6 +71,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
 
   // Validation states
+  const [firstNameError, setFirstNameError] = useState('');
+  const [lastNameError, setLastNameError] = useState('');
+  const [domainError, setDomainError] = useState('');
+  const [experienceError, setExperienceError] = useState('');
+  const [addressError, setAddressError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
@@ -237,9 +242,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
   // Input formatting functions
   const formatName = (value: string) => {
+    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  };
+  const formatCapitalizeWords = (value: string) => {
     return value.replace(/\b\w/g, (char) => char.toUpperCase());
   };
-
 
 
 
@@ -364,7 +371,36 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
         formattedValue = value;
     }
 
-
+    // Clear individual field errors when user starts typing
+    switch (name) {
+      case 'firstName':
+        setFirstNameError('');
+        break;
+      case 'lastName':
+        setLastNameError('');
+        break;
+      case 'email':
+        setEmailError('');
+        break;
+      case 'phone':
+        setPhoneError('');
+        break;
+      case 'domain':
+        setDomainError('');
+        break;
+      case 'experience':
+        setExperienceError('');
+        break;
+      case 'address':
+        setAddressError('');
+        break;
+      case 'password':
+        setPasswordError('');
+        break;
+      case 'confirmPassword':
+        setConfirmPasswordError('');
+        break;
+    }
     setForm((prev) => ({ ...prev, [name]: formattedValue }));
 
 
@@ -396,7 +432,6 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     if (file) {
       if (file.size > RESUME_MAX_SIZE) {
       setResumeError('Resume file size must be less than 10MB.');
-      showErrorToast('Resume file size must be less than 10MB.');
         e.target.value = ''; // Clear the input
     } else {
       setResumeError('');
@@ -411,7 +446,6 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     if (file) {
       if (file.size > VIDEO_MAX_SIZE) {
       setVideoError('Intro video size must be less than 50MB.');
-      showErrorToast('Intro video size must be less than 50MB.');
         e.target.value = ''; // Clear the input
     } else {
       setVideoError('');
@@ -426,7 +460,6 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit for photos
         setPhotoError('Photo size must be less than 5MB');
-        showErrorToast('Photo size must be less than 5MB');
         e.target.value = ''; // Clear the input
         return;
       }
@@ -436,7 +469,6 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
      
       if (!allowedTypes.includes(fileExtension)) {
         setPhotoError('Please upload a valid image file (JPG, PNG, WEBP)');
-        showErrorToast('Please upload a valid image file (JPG, PNG, WEBP)');
         e.target.value = ''; // Clear the input
         return;
       }
@@ -452,7 +484,6 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     if (file) {
       if (file.size > LICENSE_MAX_SIZE) {
         setDriverLicenseError('License file size must be less than 5MB.');
-        showErrorToast('License file size must be less than 5MB.');
         e.target.value = ''; // Clear the input
       } else {
         setDriverLicenseError('');
@@ -479,19 +510,70 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   // Form validation
   const validateForm = () => {
     const errors: string[] = [];
-
+    // Clear all previous errors first
+    setFirstNameError('');
+    setLastNameError('');
+    setEmailError('');
+    setPhoneError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
+    setDomainError('');
+    setExperienceError('');
+    setAddressError('');
+    setPhotoError('');
+    setLanguageError('');
 
     // Required field validation
-    if (!form.firstName) errors.push('First name is required');
-    if (!form.lastName) errors.push('Last name is required');
-    if (!form.email) errors.push('Email is required');
-    if (!form.phone) errors.push('Phone number is required');
-    if (!form.password) errors.push('Password is required');
-    if (!form.confirmPassword) errors.push('Confirm password is required');
-    if (!form.domain) errors.push('Domain is required');
-    if (!form.experience) errors.push('Experience is required');
-    if (!form.address) errors.push('Address is required');
-    if (!uploadedFiles.photo) errors.push('Profile photo is required');
+    if (!form.firstName) {
+      const error = 'First name is required';
+      errors.push(error);
+      setFirstNameError(error);
+    }
+    if (!form.lastName) {
+      const error = 'Last name is required';
+      errors.push(error);
+      setLastNameError(error);
+    }
+    if (!form.email) {
+      const error = 'Email is required';
+      errors.push(error);
+      setEmailError(error);
+    }
+    if (!form.phone) {
+      const error = 'Phone number is required';
+      errors.push(error);
+      setPhoneError(error);
+    }
+    if (!form.password) {
+      const error = 'Password is required';
+      errors.push(error);
+      setPasswordError(error);
+    }
+    if (!form.confirmPassword) {
+      const error = 'Confirm password is required';
+      errors.push(error);
+      setConfirmPasswordError(error);
+    }
+    if (!form.domain) {
+      const error = 'Area of expertise is required';
+      errors.push(error);
+      setDomainError(error);
+    }
+    if (!form.experience) {
+      const error = 'Experience is required';
+      errors.push(error);
+      setExperienceError(error);
+    }
+    if (!form.address) {
+      const error = 'Address is required';
+      errors.push(error);
+      setAddressError(error);
+    }
+    if (!uploadedFiles.photo) {
+      const error = 'Profile photo is required';
+      errors.push(error);
+      setPhotoError(error);
+    }
     if (selectedLanguages.length === 0) {
       errors.push('At least one language is required');
       setLanguageError('At least one language is required');
@@ -502,15 +584,23 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
     // Field-specific validation
     const emailError = validateEmail(form.email);
-    if (emailError) errors.push(emailError);
+    if (emailError) {
+      errors.push(emailError);
+      setEmailError(emailError);
+    }
 
 
     const passwordError = validatePassword(form.password);
-    if (passwordError) errors.push(passwordError);
+    if (passwordError) {
+      errors.push(passwordError);
+      setPasswordError(passwordError);
+    }
 
 
     if (form.password !== form.confirmPassword) {
-      errors.push('Passwords do not match');
+      const error = 'Passwords do not match';
+      errors.push(error);
+      setConfirmPasswordError(error);
     }
 
 
@@ -530,7 +620,16 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
     const errors = validateForm();
     if (errors.length > 0) {
-      errors.forEach(error => showErrorToast(error));
+      // Show only first 3 errors in one toast message with numbered format
+      const displayErrors = errors.slice(0, 3);
+      const hasMoreErrors = errors.length > 3;
+      
+      let errorMessage = displayErrors.map((error, index) => `${index + 1}. ${error}`).join('\n');
+      if (hasMoreErrors) {
+        errorMessage += '\netc.';
+      }
+      
+      showErrorToast(errorMessage);
       return;
     }
 
@@ -725,11 +824,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                   </div>
                 )}
               </div>
-              {/* lastFirstNameError is not defined, assuming it's a typo or intended to be emailError */}
-              {emailError && (
+
+              {firstNameError && (
                 <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                  {emailError}
+                  {firstNameError}
                 </div>
               )}
             </div>
@@ -751,11 +850,10 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                   </div>
                 )}
               </div>
-              {/* lastLastNameError is not defined, assuming it's a typo or intended to be passwordError */}
-              {passwordError && (
+              {lastNameError && (
                 <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                  {passwordError}
+                  {lastNameError}
                 </div>
               )}
             </div>
@@ -880,7 +978,12 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
               onChange={handleChange}
                 className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
             />
-            </div>
+            {experienceError && (
+              <div className="flex items-center mt-1 text-red-500 text-xs">
+                <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
+                {experienceError}
+              </div>
+            )}            </div>
             <div>
               <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Area of Expertise <span className="text-red-500">*</span>
@@ -892,7 +995,12 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 onChange={handleChange}
                 className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
               />
-            </div>
+              {domainError && (
+                <div className="flex items-center mt-1 text-red-500 text-xs">
+                  <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
+                  {domainError}
+                </div>
+              )}            </div>
           </div>
 
 
@@ -908,7 +1016,12 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
               rows={3}
               className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md resize-none"
             />
-          </div>
+            {addressError && (
+              <div className="flex items-center mt-1 text-red-500 text-xs">
+                <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
+                {addressError}
+              </div>
+            )}          </div>
 
 
             <div>
@@ -1007,7 +1120,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
               <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
-                Resume/CV <span className="text-red-500">*</span>
+                Resume/CV 
               </label>
                 <div className="relative">
                   {!uploadedFiles.resume ? (
@@ -1067,7 +1180,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
             <div>
               <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
-                Introduction Video <span className="text-red-500">*</span>
+                Introduction Video 
               </label>
                 <div className="relative">
                   {!uploadedFiles.video ? (
