@@ -38,10 +38,10 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-1 sm:p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[98vh] overflow-hidden touch-pan-y">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-2 sm:p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[98vh] overflow-hidden touch-pan-y">
         {/* Mobile drag indicator */}
-        <div className="sm:hidden w-12 h-1 bg-gray-300 rounded-full mx-auto mt-2 mb-1"></div>
+        <div className="sm:hidden w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-2"></div>
         
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 sm:p-6 rounded-t-xl">
@@ -71,30 +71,44 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
           </div>
         </div>
 
-        {/* Coach Information Card - Mobile optimized */}
+        {/* Coach Information Card - Perfect Mobile, Fixed Desktop */}
         <div className="p-3 sm:p-6">
-          <div className="bg-blue-50 rounded-xl p-3 sm:p-6 mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-lg sm:text-3xl font-bold flex-shrink-0">
-                {coach.firstName.charAt(0)}{coach.lastName.charAt(0)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-1 truncate">{coach.firstName} {coach.lastName}</h2>
-                <div className="flex items-center gap-2 mb-1">
-                  <FaEnvelope className="text-blue-600 text-sm flex-shrink-0" />
-                  <span className="text-xs sm:text-sm text-gray-700 truncate">{coach.email}</span>
+          <div className="bg-blue-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+            {/* Mobile: Stack vertically, Desktop: Side by side */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+              
+              {/* Coach Info Section */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 flex-1">
+                {/* Avatar */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl sm:text-3xl font-bold flex-shrink-0 mx-auto sm:mx-0">
+                  {coach.firstName.charAt(0)}{coach.lastName.charAt(0)}
                 </div>
-                <div className="flex items-center gap-2">
-                  <FaPhone className="text-green-600 text-sm flex-shrink-0" />
-                  <span className="text-xs sm:text-sm text-gray-700">{coach.phone}</span>
+                
+                {/* Contact Details - Better desktop spacing */}
+                <div className="flex-1 space-y-2 sm:space-y-3">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 text-center sm:text-left mb-2 sm:mb-3">{coach.firstName} {coach.lastName}</h2>
+                  
+                  {/* Email - Better desktop spacing */}
+                  <div className="flex items-center gap-3 justify-center sm:justify-start py-1 sm:py-2">
+                    <FaEnvelope className="text-blue-600 text-sm flex-shrink-0" />
+                    <span className="text-sm sm:text-base text-gray-700 break-all text-center sm:text-left">{coach.email}</span>
+                  </div>
+                  
+                  {/* Phone - Better desktop spacing */}
+                  <div className="flex items-center gap-3 justify-center sm:justify-start py-1 sm:py-2">
+                    <FaPhone className="text-green-600 text-sm flex-shrink-0" />
+                    <span className="text-sm sm:text-base text-gray-700 text-center sm:text-left font-mono">{coach.phone}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-row sm:flex-col gap-2 items-start sm:items-end">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${coach.status === 'approved' ? 'bg-green-100 text-green-800' : coach.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                {coach.status.charAt(0).toUpperCase() + coach.status.slice(1)}
-              </span>
-              <span className="text-xs text-gray-500 whitespace-nowrap">Applied on {formatDate(coach.registrationDate)}</span>
+              
+              {/* Status Section */}
+              <div className="flex flex-row sm:flex-col gap-3 sm:gap-2 items-center sm:items-end justify-center sm:justify-start">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${coach.status === 'approved' ? 'bg-green-100 text-green-800' : coach.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                  {coach.status.charAt(0).toUpperCase() + coach.status.slice(1)}
+                </span>
+                <span className="text-xs text-gray-500 whitespace-nowrap text-center sm:text-right">Applied on {formatDate(coach.registrationDate)}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -160,46 +174,67 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
               </div>
             )}
 
-            {/* Contact Information - Updated */}
-            <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
-              <h4 className="text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center">
+            {/* Contact Information - Fixed Desktop Width */}
+            <div className="bg-gray-50 rounded-lg p-4 sm:p-8">
+              <h4 className="text-base sm:text-xl font-bold text-gray-900 mb-4 sm:mb-8 flex items-center">
                 <FaUser className="text-blue-600 mr-2" />Contact Information
               </h4>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                <div className="space-y-3 sm:space-y-4">
-                  <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Full Name</label>
-                    <p className="text-sm sm:text-base text-gray-900 font-medium">{coach.firstName} {coach.lastName}</p>
+              
+              {/* Mobile: Single column, Desktop: Single wide column for better spacing */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-12">
+                
+                {/* Left Column - Wider cards */}
+                <div className="space-y-5 sm:space-y-6">
+                  <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3">Full Name</label>
+                    <p className="text-sm sm:text-lg text-gray-900 font-medium">{coach.firstName} {coach.lastName}</p>
                   </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Email</label>
-                    <p className="text-sm sm:text-base text-gray-900 break-all">{coach.email}</p>
+                  
+                  <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                      <FaEnvelope className="text-blue-600 mr-2 text-xs" />Email Address
+                    </label>
+                    <p className="text-sm sm:text-lg text-gray-900 break-all leading-relaxed font-medium">{coach.email}</p>
                   </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Phone</label>
-                    <p className="text-sm sm:text-base text-gray-900">{coach.phone}</p>
+                  
+                  <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                      <FaPhone className="text-green-600 mr-2 text-xs" />Phone Number
+                    </label>
+                    <p className="text-sm sm:text-lg text-gray-900 font-mono tracking-wide font-medium">{coach.phone}</p>
                   </div>
                 </div>
-                <div className="space-y-3 sm:space-y-4">
-                  <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Address</label>
-                    <p className="text-sm sm:text-base text-gray-900">{coach.address || 'Not provided'}</p>
+                
+                {/* Right Column - Wider cards */}
+                <div className="space-y-5 sm:space-y-6">
+                  <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3">Address</label>
+                    <p className="text-sm sm:text-lg text-gray-900 leading-relaxed font-medium">{coach.address || 'Not provided'}</p>
                   </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Languages</label>
+                  
+                  <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                      <FaGlobe className="text-blue-600 mr-2 text-xs" />Languages
+                    </label>
                     <div className="flex flex-wrap gap-2">
                       {coach.languages?.map((lang, index) => (
-                        <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span key={index} className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                           {lang}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Rating</label>
-                    <div className="flex items-center">
-                      <span className="text-sm sm:text-base text-gray-900 font-medium">{coach.rating || 0}/5</span>
-                      <span className="text-xs text-gray-500 ml-2">({coach.totalReviews || 0} reviews)</span>
+                  
+                  <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-3">Rating & Reviews</label>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm sm:text-lg text-gray-900 font-medium">{coach.rating || 0}/5</span>
+                      <div className="flex text-yellow-400">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className={`text-lg ${i < (coach.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-500">({coach.totalReviews || 0} reviews)</span>
                     </div>
                   </div>
                 </div>

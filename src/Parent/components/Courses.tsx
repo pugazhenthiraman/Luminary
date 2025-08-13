@@ -860,7 +860,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
       {/* Coach Details Modal */}
       {showCoachModal && selectedCoach && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[95vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-xl">
               <div className="flex items-center justify-between">
@@ -922,12 +922,12 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                 {/* Coach Info */}
                 <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                   {/* Contact Information */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-100">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-8 border border-blue-100">
                     <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                       <FaEnvelope className="text-blue-600 text-sm sm:text-base" />
                       Contact Information
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-12">
                       <div className="flex items-center space-x-3">
                         <FaEnvelope className="text-blue-600 text-sm sm:text-base" />
                         <div>
@@ -1216,13 +1216,13 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
               {/* Course Details Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
                 {/* Course Overview */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-100">
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-8 border border-blue-100">
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <FaBook className="text-blue-600 text-sm sm:text-base" />
                     Course Overview
                   </h3>
                   <div className="space-y-3 sm:space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-12">
                       <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
                         <div className="text-xs sm:text-sm text-blue-600 font-medium mb-1">Category</div>
                         <div className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCourse.category}</div>
