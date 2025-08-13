@@ -12,7 +12,7 @@ import { FaEye, FaEyeSlash, FaSpinner, FaArrowLeft, FaUser, FaGraduationCap, FaS
 const Login = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { handleLogin, loading, error } = useAuth();
+  const { handleLogin, handleForgotPassword, handleCheckEmailStatus, loading, error, setError: setAuthError } = useAuth();
   const { login: loginToStore, setLoading } = useAuthStore();
 
   const [email, setEmail] = useState('');
@@ -393,22 +393,32 @@ const Login = () => {
       return;
     }
 
-    // Determine role based on path
-    let role = '';
-    if (location.pathname === '/loginAdmin') {
-      role = USER_TYPE.admin;
-    } else if (location.pathname === '/loginCoach') {
-      role = USER_TYPE.coach;
-    } else if (location.pathname === '/loginParent') {
-      role = USER_TYPE.parent;
+    // Optional pre-check: see if email exists and role matches for better UX
+    setAuthError(null);
+    const status = await handleCheckEmailStatus(forgotPasswordEmail);
+    if (status && status.success && status.data) {
+      const { role } = status.data as any;
+      const expectedRole = location.pathname === '/loginAdmin' ? 'ADMIN' : location.pathname === '/loginCoach' ? 'COACH' : 'PARENT';
+      if (role && role !== expectedRole) {
+        showErrorToast(`This email belongs to a different account type (${role}).`);
+        return;
+      }
+    } else if (status && status.message === 'User not found') {
+      showErrorToast('No account found with this email.');
+      return;
     }
 
-    // No forgotPassword function in new useAuth, so this function is removed.
-    // If forgot password logic is managed elsewhere, this might need adjustment.
-    // For now, we'll just show a success toast.
-    showSuccessToast('Reset email sent successfully!');
-    setShowForgotPassword(false);
-    setShowResetPassword(true);
+    // Call API to send reset email; backend sends a link to /reset-password/:token
+    const res = await handleForgotPassword(forgotPasswordEmail);
+    if (res) {
+      showSuccessToast('If an account exists, a reset link has been sent. Check your email.');
+      setShowForgotPassword(false);
+  setForgotPasswordEmail('');
+      // We do NOT show inline reset form; user uses the email link
+    } else {
+      // Error is already set in hook; surface a generic toast too
+      showErrorToast('Could not send reset email. Please try again.');
+    }
   };
 
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
@@ -430,27 +440,8 @@ const Login = () => {
       return;
     }
 
-    // Determine role based on path
-    let role = '';
-    if (location.pathname === '/loginAdmin') {
-      role = USER_TYPE.admin;
-    } else if (location.pathname === '/loginCoach') {
-      role = USER_TYPE.coach;
-    } else if (location.pathname === '/loginParent') {
-      role = USER_TYPE.parent;
-    }
-
-    // No resetPassword function in new useAuth, so this function is removed.
-    // If reset password logic is managed elsewhere, this might need adjustment.
-    // For now, we'll just show a success toast.
-    showSuccessToast('Password reset successfully!');
-    setShowResetPassword(false);
-    setShowForgotPassword(false);
-    // Reset all state
-    setForgotPasswordEmail('');
-    setResetToken('');
-    setNewPassword('');
-    setConfirmPassword('');
+    // This inline reset flow is deprecated; instruct user to use the email link
+    showErrorToast('Please use the password reset link sent to your email.');
   };
 
   // Determine the register link based on the current path
@@ -557,7 +548,10 @@ const Login = () => {
           {/* Back button */}
           <div className="mb-3 sm:mb-4">
             <button
-              onClick={() => setShowForgotPassword(false)}
+              onClick={() => {
+                setShowForgotPassword(false);
+                setForgotPasswordEmail('');
+              }}
               className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
             >
               <FaArrowLeft className="text-sm" />
@@ -580,18 +574,19 @@ const Login = () => {
           </p>
           </div>
 
-          <form onSubmit={handleForgotPasswordSubmit} role="form">
+          <form onSubmit={handleForgotPasswordSubmit} role="form" autoComplete="off">
             <div className="mb-3 sm:mb-4">
               <label htmlFor="forgotEmail" className="block mb-1 sm:mb-1.5 font-medium text-gray-700 text-xs sm:text-sm">
                 Email Address
               </label>
               <div className="relative">
-              <input
+        <input
                 type="email"
                 name="forgotEmail"
                 id="forgotEmail"
                 placeholder="Enter your email address"
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
+          autoComplete="off" autoCorrect="off" autoCapitalize="none"
+          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm bg-gray-50 transition-all duration-300 focus:outline-none focus:border-blue-500 focus:bg-white focus:shadow-md"
                 value={forgotPasswordEmail}
                 onChange={(e) => {
                   setForgotPasswordEmail(e.target.value);

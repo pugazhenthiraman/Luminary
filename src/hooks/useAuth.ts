@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { login, register, logout as logoutApi, adminLogin } from "../api/auth";
+import { login, register, logout as logoutApi, adminLogin, refreshToken as refreshApi, getProfile, verifyEmailToken, forgotPassword as forgotPasswordApi, resetPasswordWithToken, checkVerificationStatus, verifyCurrentPassword as verifyCurrentPasswordApi, checkNewPasswordSame as checkNewPasswordSameApi } from "../api/auth";
 import { useAuthStore } from "../stores/useAuthStore";
 
 interface AuthResult {
@@ -134,11 +134,121 @@ export function useAuth() {
     }
   };
 
+  // New: Refresh access token explicitly (rarely needed since axios interceptor handles this)
+  const handleRefresh = async () => {
+  const { refreshToken, user, login } = useAuthStore.getState();
+    if (!refreshToken) return null;
+    try {
+      const res = await refreshApi(refreshToken);
+      const newAccess = res?.data?.accessToken;
+      if (newAccess) {
+        if (user) {
+          login(user as any, newAccess, refreshToken);
+        }
+        return newAccess;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // New: Get current user profile
+  const handleGetProfile = async () => {
+    try {
+      const res = await getProfile();
+      return res?.data?.data || res?.data;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // New: Verify email via token from link
+  const handleVerifyEmailToken = async (token: string) => {
+    try {
+      const res = await verifyEmailToken(token);
+      return res?.data;
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e.message || 'Verification failed');
+      return null;
+    }
+  };
+
+  // New: Forgot and reset password helpers
+  const handleForgotPassword = async (email: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await forgotPasswordApi(email);
+      return res?.data;
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e.message || 'Request failed');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPasswordWithToken = async (token: string, password: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await resetPasswordWithToken(token, password);
+      return res?.data;
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e.message || 'Reset failed');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCurrentPassword = async (token: string, currentPassword: string) => {
+    try {
+      const res = await verifyCurrentPasswordApi(token, currentPassword);
+      return res?.data; // { success, data: { match }, message }
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e.message || 'Verification failed');
+      return null;
+    }
+  };
+
+  const handleCheckNewPasswordSame = async (token: string, password: string) => {
+    try {
+      const res = await checkNewPasswordSameApi(token, password);
+      return res?.data; // { success, data: { same } }
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e.message || 'Check failed');
+      return null;
+    }
+  };
+
+  // Optional: Check email existence/verification status
+  const handleCheckEmailStatus = async (email: string) => {
+    try {
+      const res = await checkVerificationStatus(email);
+      return res?.data;
+    } catch (e: any) {
+      // 404 user not found is a valid state we return as null data
+      if (e?.response?.status === 404) return { success: false, message: 'User not found' };
+      setError(e?.response?.data?.message || e.message || 'Lookup failed');
+      return null;
+    }
+  };
+
   return {
     handleLogin,
     handleAdminLogin,
     handleRegister,
     handleLogout,
+  handleRefresh,
+  handleGetProfile,
+  handleVerifyEmailToken,
+  handleForgotPassword,
+  handleResetPasswordWithToken,
+  handleCheckEmailStatus,
+  handleVerifyCurrentPassword,
+  handleCheckNewPasswordSame,
     loading,
     error,
     setError

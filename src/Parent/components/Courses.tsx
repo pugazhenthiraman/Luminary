@@ -30,9 +30,10 @@ import {
   import CourseCard from "../../components/CourseCard";
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
 import { getCoachDetails, getCoachDetailsByCourse } from '../../api/coach';
-import PaymentModal from '../../components/PaymentModel';
+import CheckoutModal from '../../components/CheckoutModal';
 import childrenApi from '../../api/children';
 import ChildDetailsModal from '../../components/ChildDetailsModal';
+import creditsApi from '../../api/credits';
 
 // Course interface
 export interface Course {
@@ -164,18 +165,20 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   const [currentStep, setCurrentStep] = useState<'children' | 'payment' | 'confirmation'>('children');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  // Restored state for enrollment flow and coach modal
+  const [availableChildren, setAvailableChildren] = useState<ChildItem[]>([]);
+  const [childrenLoading, setChildrenLoading] = useState<boolean>(false);
+  const [searchChild, setSearchChild] = useState<string>('');
+  const [detailsChild, setDetailsChild] = useState<ChildItem | null>(null);
+  const [showChildModal, setShowChildModal] = useState<boolean>(false);
+  const [isCoachLoading, setIsCoachLoading] = useState<boolean>(false);
+  const [creditBalance, setCreditBalance] = useState<number>(0);
   const [enrollmentData, setEnrollmentData] = useState<EnrollmentData>({
     courseId: '',
     selectedChildren: [],
     totalPrice: 0
   });
-  const [isCoachLoading, setIsCoachLoading] = useState(false);
-  const [availableChildren, setAvailableChildren] = useState<ChildItem[]>(Array.isArray(parentData?.children) ? parentData.children : []);
-  const [childrenLoading, setChildrenLoading] = useState<boolean>(false);
-  const [searchChild, setSearchChild] = useState<string>('');
-  const [detailsChild, setDetailsChild] = useState<ChildItem | null>(null);
-  const [showChildModal, setShowChildModal] = useState<boolean>(false);
-
+  
   // Payment steps configuration
   const paymentSteps: PaymentStep[] = [
     {
@@ -580,7 +583,21 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
         showErrorToast('Please select at least one child to enroll');
         return;
       }
-      setCurrentStep('payment');
+      // Open the redesigned checkout (credits-first) instead of old payment form
+      (async () => {
+        try {
+          const uid = String(parentData?.id || parentData?.userId || '');
+          if (uid) {
+            const data = await creditsApi.getBalance(uid);
+            const balance = Number(data?.balance ?? data?.creditBalance?.balance ?? 0);
+            setCreditBalance(balance);
+          }
+        } catch (e) {
+          console.warn('Failed to load credit balance', e);
+        }
+        setShowPaymentModal(true);
+      })();
+      return;
     } else if (currentStep === 'payment') {
       // Validate payment information
       if (!enrollmentData.paymentMethod?.cardNumber || 
@@ -648,10 +665,10 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
     setIsProcessingPayment(true);
     
     try {
-      // Simulate Stripe payment processing
-      setShowPaymentModal(true);
-      setIsProcessingPayment(false);
-      return;
+  // Open redesigned checkout modal (credit-first UX)
+  setShowPaymentModal(true);
+  setIsProcessingPayment(false);
+  return;
 
 
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -704,6 +721,35 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
       selectedChildren: [],
       totalPrice: 0
     });
+  };
+
+  // Checkout actions are triggered from the Next button after children selection
+
+  const buyWithCredits = async () => {
+    if (!selectedCourse) return;
+    try {
+      const uid = String(parentData?.id || parentData?.userId || '');
+      const childrenIds = enrollmentData.selectedChildren;
+      if (!uid || childrenIds.length === 0) {
+        showErrorToast('Please select at least one child');
+        return;
+      }
+      const requiredCredits = selectedCourse.credits * childrenIds.length;
+      if (creditBalance < requiredCredits) {
+        showErrorToast(`Not enough credits. Required ${requiredCredits}, you have ${creditBalance}.`);
+        return;
+      }
+      const res = await creditsApi.enrollWithCredits(uid, { courseId: selectedCourse.id, childrenIds });
+      if (res?.success) {
+        showSuccessToast('Enrollment completed using credits');
+        setShowPaymentModal(false);
+        resetEnrollmentFlow();
+      } else {
+        throw new Error(res?.message || 'Enrollment failed');
+      }
+    } catch (e:any) {
+      showErrorToast(e.message || 'Unable to enroll with credits');
+    }
   };
 
   // Utility: pick a gradient based on course title for variety
@@ -1796,28 +1842,28 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
           </div>
         </div>
       )}
-      {/* Payment Modal */}
-      <div>
-      <PaymentModal
-        isOpen={showPaymentModal}
+      {/* Checkout Modal (credits-first) */}
+      <CheckoutModal
+        open={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         course={selectedCourse}
         selectedChildren={
           enrollmentData.selectedChildren
-            .map(childId => availableChildren.find(child => child.id === childId))
+            .map(childId => availableChildren.find(child => child.id === childId)!)
             .filter(Boolean) as any
         }
-        totalAmount={selectedCourse?.credits && enrollmentData.selectedChildren.length > 0 ? Math.max(selectedCourse.credits * enrollmentData.selectedChildren.length * 25, 1) : 1}
-        onSuccess={handlePaymentSuccess}
-        onError={handlePaymentError}
+        creditBalance={creditBalance}
+        onBuyWithCredits={buyWithCredits}
+        onBuyCash={() => showErrorToast('Cash checkout coming soon')}
+        onAddToCart={() => showErrorToast('Cart coming soon')}
       />
+
       {/* Child Details Modal */}
       <ChildDetailsModal
         isOpen={showChildModal}
         onClose={() => setShowChildModal(false)}
         child={detailsChild}
       />
-      </div>
     </div>
     
   );
