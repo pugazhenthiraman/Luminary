@@ -31,6 +31,8 @@ import {
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
 import { getCoachDetails, getCoachDetailsByCourse } from '../../api/coach';
 import PaymentModal from '../../components/PaymentModel';
+import childrenApi from '../../api/children';
+import ChildDetailsModal from '../../components/ChildDetailsModal';
 
 // Course interface
 export interface Course {
@@ -87,6 +89,7 @@ export interface CoachData {
   name?: string;
   bio?: string;
   avatarUrl?: string;
+  specializations?: string[];
   certifications?: string[];
   languages?: string[];
   status?: string;
@@ -98,6 +101,14 @@ export interface CoachData {
   duration?: string;
   courses?: any[];
   adminNotes?: string;
+  rating?: number;
+  totalStudents?: number;
+  education?: any[];
+  hourlyRate?: number;
+  courseTitle?: string;
+  courseCategory?: string;
+  courseCredits?: number;
+  totalReviews?: number;
 }
 
 export interface EnrollmentData {
@@ -110,6 +121,17 @@ export interface EnrollmentData {
     cvv?: string;
     cardholderName?: string;
   };
+}
+
+// Minimal child type for enrollment UI
+interface ChildItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  gender?: string;
+  currentGrade?: string;
+  schoolName?: string;
 }
 
 export interface PaymentStep {
@@ -148,6 +170,11 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
     totalPrice: 0
   });
   const [isCoachLoading, setIsCoachLoading] = useState(false);
+  const [availableChildren, setAvailableChildren] = useState<ChildItem[]>(Array.isArray(parentData?.children) ? parentData.children : []);
+  const [childrenLoading, setChildrenLoading] = useState<boolean>(false);
+  const [searchChild, setSearchChild] = useState<string>('');
+  const [detailsChild, setDetailsChild] = useState<ChildItem | null>(null);
+  const [showChildModal, setShowChildModal] = useState<boolean>(false);
 
   // Payment steps configuration
   const paymentSteps: PaymentStep[] = [
@@ -350,6 +377,54 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
     
     return age;
   };
+
+  // Normalize to YYYY-MM-DD for consistency
+  const toDateInput = (value: any): string => {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      if (value.includes('T')) return value.slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+    }
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+  };
+
+  const cap = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
+
+  // Load children when opening enrollment modal (fresh from backend)
+  useEffect(() => {
+    const loadChildren = async () => {
+      if (!showEnrollmentModal) return;
+      setChildrenLoading(true);
+      try {
+        const res = await childrenApi.getChildren();
+        const payload = res?.data;
+        const list = (payload?.data?.children ?? payload?.children ?? []) as any[];
+        if (Array.isArray(list)) {
+          const normalized: ChildItem[] = list.map((c: any) => ({
+            id: c.id ?? c._id ?? `${c.firstName ?? ''}-${c.lastName ?? ''}-${c.dateOfBirth ?? ''}`,
+            firstName: c.firstName ?? '',
+            lastName: c.lastName ?? '',
+            dateOfBirth: toDateInput(c.dateOfBirth ?? c.dob ?? ''),
+            gender: (c.gender ?? '').toLowerCase(),
+            currentGrade: c.currentGrade ?? c.grade ?? '',
+            schoolName: c.schoolName ?? c.school ?? ''
+          }));
+          setAvailableChildren(normalized);
+          return;
+        }
+      } catch (err) {
+        // Fallback to parentData if API fails
+        setAvailableChildren(Array.isArray(parentData?.children) ? parentData.children : []);
+      } finally {
+        setChildrenLoading(false);
+      }
+    };
+    loadChildren();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showEnrollmentModal]);
 
   const handleEnroll = (course: Course) => {
     setSelectedCourse(course);
@@ -1379,38 +1454,65 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                     Select Children to Enroll
                   </h4>
                   
-                  {parentData.children && parentData.children.length > 0 ? (
+                  {availableChildren && availableChildren.length > 0 ? (
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {/* Search */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={searchChild}
+                          onChange={(e) => setSearchChild(e.target.value)}
+                          placeholder="Search children by name, grade, school..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                          aria-label="Search children"
+                        />
+                      </div>
+
+                      <label className="block text-sm font-medium text-gray-700 mt-1">
                         Choose children to enroll in this course:
                       </label>
-                      <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                        {parentData.children.map((child) => {
-                          const isSelected = enrollmentData.selectedChildren.includes(child.id);
-                          const age = calculateAge(child.dateOfBirth);
-                          
-                          return (
-                            <label
-                              key={child.id}
-                              className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors duration-200"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleChildSelection(child.id)}
-                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 flex-shrink-0 mt-0.5"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <span className="font-medium text-gray-900 text-sm sm:text-base block break-words">
-                                  {child.firstName} {child.lastName}
-                                </span>
-                                <span className="text-xs sm:text-sm text-gray-500 block break-words">
-                                  ({age} years old • {child.currentGrade})
-                                </span>
-                              </div>
-                            </label>
-                          );
-                        })}
+                      <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2 sm:p-3">
+                        {availableChildren
+                          .filter((c) => {
+                            if (!searchChild) return true;
+                            const q = searchChild.toLowerCase();
+                            return (
+                              `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
+                              (c.currentGrade || '').toLowerCase().includes(q) ||
+                              (c.schoolName || '').toLowerCase().includes(q)
+                            );
+                          })
+                          .map((child) => {
+                              const isSelected = enrollmentData.selectedChildren.includes(child.id);
+                              const age = calculateAge(child.dateOfBirth);
+                              return (
+                                <div key={child.id} className="flex items-start justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors duration-200">
+                                  <label className="flex items-start gap-3 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => handleChildSelection(child.id)}
+                                      className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 flex-shrink-0"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-gray-900 text-sm sm:text-base break-words">
+                                        {child.firstName} {child.lastName}
+                                      </div>
+                                      <div className="text-xs sm:text-sm text-gray-500 break-words">
+                                        ({age} years old • {child.currentGrade || 'N/A'})
+                                      </div>
+                                    </div>
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setDetailsChild(child); setShowChildModal(true); }}
+                                    className="text-xs text-indigo-600 hover:text-indigo-700 px-2 py-1 border border-indigo-200 rounded"
+                                  >
+                                    View details
+                                  </button>
+                                </div>
+                              );
+                            })}
                       </div>
                       {enrollmentData.selectedChildren.length > 0 && (
                         <div className="mt-3 p-3 bg-indigo-50 rounded-lg">
@@ -1702,12 +1804,18 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
         course={selectedCourse}
         selectedChildren={
           enrollmentData.selectedChildren
-            .map(childId => parentData.children.find(child => child.id === childId))
-            .filter(Boolean) as typeof parentData.children
+            .map(childId => availableChildren.find(child => child.id === childId))
+            .filter(Boolean) as any
         }
         totalAmount={selectedCourse?.credits && enrollmentData.selectedChildren.length > 0 ? Math.max(selectedCourse.credits * enrollmentData.selectedChildren.length * 25, 1) : 1}
         onSuccess={handlePaymentSuccess}
         onError={handlePaymentError}
+      />
+      {/* Child Details Modal */}
+      <ChildDetailsModal
+        isOpen={showChildModal}
+        onClose={() => setShowChildModal(false)}
+        child={detailsChild}
       />
       </div>
     </div>
