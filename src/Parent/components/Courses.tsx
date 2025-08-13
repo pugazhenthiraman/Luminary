@@ -61,6 +61,15 @@ export interface Course {
     avatar: string;
     rating?: number;
     totalReviews?: number;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    domain?: string;
+    experience?: string;
+    address?: string;
+    languages?: string[];
+    courses?: any[];
   };
 }
 
@@ -119,7 +128,7 @@ const priceRanges = [
 ];
 
 const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false }) => {
-  const [isCoachLoading, setIsCoachLoading] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
@@ -138,6 +147,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
     selectedChildren: [],
     totalPrice: 0
   });
+  const [isCoachLoading, setIsCoachLoading] = useState(false);
 
   // Payment steps configuration
   const paymentSteps: PaymentStep[] = [
@@ -387,75 +397,106 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   };
 
   const handleViewCoachDetails = (courseId: string) => {
-    console.log("[Parent] Fetching coach details for course:", courseId);
-    setIsCoachLoading(true);
-    
-    // Find the course to get basic info
-    const course = filteredCourses.find(c => c.id === courseId);
-    if (!course || !course.coach) {
-      console.error("[Parent] No course data found for course:", courseId);
-      showErrorToast("Course not found");
-      setIsCoachLoading(false);
+    console.log('[Parent] handleViewCoachDetails start → courseId:', courseId);
+
+    const course = filteredCourses.find((c) => c.id === courseId);
+    if (!course) {
+      console.warn('[Parent] Course not found for courseId:', courseId);
+      showErrorToast('Course not found');
       return;
     }
 
-    console.log("[Parent] Attempting to fetch coach details from API for course:", courseId);
-    
-    // Only show modal if we get real API data
+    setIsCoachLoading(true);
+    console.log('[Parent] Calling API: /parent/coach/by-course/', courseId);
     getCoachDetailsByCourse(courseId)
-      .then((res) => {
-        console.log("[Parent] Coach details API response:", res);
-        
-        if (res.data && res.data.data) {
-          const apiData = res.data.data;
-          
-          // Create coach data from real API response
-          const coachData: CoachData = {
-            id: String(apiData.id || apiData.userId || course.coach.id),
-            firstName: apiData.firstName || 'Coach',
-            lastName: apiData.lastName || '',
-            name: `${apiData.firstName || 'Coach'} ${apiData.lastName || ''}`.trim(),
-            avatarUrl: apiData.avatar || '',
-            bio: `Experienced ${apiData.domain || 'educator'} with ${apiData.experience || '0'} years of experience. Specializes in helping students achieve their academic goals.`,
-            specializations: apiData.domain ? [apiData.domain] : [],
-            rating: Number(apiData.rating) || 0,
-            totalStudents: apiData.totalReviews || 0,
-            experience: `${apiData.experience || '0'} years of experience in ${apiData.domain || 'education'}`,
-            education: [], // Not provided in API
-            certifications: [], // Not provided in API
-            languages: apiData.languages || ['English'],
-            hourlyRate: apiData.hourlyRate || 0,
-            email: apiData.email || '',
-            phone: apiData.phone || '',
-            address: apiData.address || '',
-            status: 'approved', // Assume approved since they have courses
+      .then((response) => {
+        console.log('[Parent] Coach API response:', response?.data);
+        const api = response?.data?.data || response?.data;
+        if (!api) throw new Error('Empty coach data');
+
+        // Normalize API → UI shape
+        const normalizedCoach: CoachData = {
+          id: String(api.id ?? api.userId ?? course.coach?.id ?? ''),
+          firstName: api.firstName ?? '',
+          lastName: api.lastName ?? '',
+          name:
+            (api.firstName || api.lastName)
+              ? `${api.firstName ?? ''} ${api.lastName ?? ''}`.trim()
+              : (course.coach?.name ?? 'Coach'),
+          avatarUrl: api.avatar ?? course.coach?.avatar ?? '',
+          bio:
+            api.domain || api.experience
+              ? `Experienced ${api.domain ?? 'coach'} with ${api.experience ?? '0'} years of experience.`
+              : '',
+          specializations: api.domain ? [api.domain] : [],
+          rating: Number(api.rating ?? 0),
+          totalStudents: Number(api.totalReviews ?? 0),
+          experience: api.experience ?? '',
+          education: [],
+          certifications: [],
+          languages: Array.isArray(api.languages) ? api.languages : [],
+          hourlyRate: Number(api.hourlyRate ?? 0),
+          email: api.email ?? '',
+          phone: api.phone ?? '',
+          address: api.address ?? '',
+          status: 'approved',
+          registrationDate: new Date().toISOString(),
+          duration: 'Flexible',
+          courses: Array.isArray(api.courses)
+            ? api.courses.map((c: any) => (typeof c === 'string' ? c : c.title ?? 'Untitled'))
+            : [],
+          courseTitle: course.title,
+          courseCategory: course.category,
+          courseCredits: course.credits,
+          adminNotes: '',
+          totalReviews: Number(api.totalReviews ?? 0),
+        };
+
+        console.log('[Parent] Normalized coach data:', normalizedCoach);
+        setSelectedCoach(normalizedCoach);
+        setShowCoachModal(true);
+      })
+      .catch((err) => {
+        console.error('[Parent] Coach API failed, falling back to course.coach:', err);
+        // Fallback to course.coach if API fails (still open modal)
+        if (course.coach) {
+          const fallbackCoach: CoachData = {
+            id: String(course.coach.id ?? ''),
+            firstName: course.coach.firstName ?? '',
+            lastName: course.coach.lastName ?? '',
+            name: course.coach.name ?? 'Coach',
+            avatarUrl: course.coach.avatar ?? '',
+            bio: '',
+            specializations: course.coach.domain ? [course.coach.domain] : [],
+            rating: Number(course.coach.rating ?? 0),
+            totalStudents: Number(course.coach.totalReviews ?? 0),
+            experience: course.coach.experience ?? '',
+            education: [],
+            certifications: [],
+            languages: Array.isArray(course.coach.languages) ? course.coach.languages : [],
+            hourlyRate: 0,
+            email: course.coach.email ?? '',
+            phone: course.coach.phone ?? '',
+            address: course.coach.address ?? '',
+            status: 'approved',
             registrationDate: new Date().toISOString(),
             duration: 'Flexible',
-            courses: (apiData.courses || []).map((c: any) => c.title).slice(0, 3), // Show up to 3 courses
+            courses: Array.isArray(course.coach.courses)
+              ? course.coach.courses.map((c: any) => (typeof c === 'string' ? c : c.title ?? 'Untitled'))
+              : [],
             courseTitle: course.title,
             courseCategory: course.category,
             courseCredits: course.credits,
             adminNotes: '',
-            totalReviews: apiData.totalReviews || 0
+            totalReviews: Number(course.coach.totalReviews ?? 0),
           };
-          
-          console.log("[Parent] Setting coach data from real API:", coachData);
-          setSelectedCoach(coachData);
+          setSelectedCoach(fallbackCoach);
           setShowCoachModal(true);
-          setIsCoachLoading(false);
         } else {
-          throw new Error('No coach data in API response');
+          showErrorToast('Unable to load coach details at the moment');
         }
       })
-      .catch((error) => {
-        console.error("[Parent] Failed to fetch coach details:", error.message);
-        setIsCoachLoading(false);
-        
-        // Show error message to user
-        showErrorToast("Coach details are not available for this course at the moment. Please try again later.");
-        
-        // Don't show the modal at all if API fails
-      });
+      .finally(() => setIsCoachLoading(false));
   };
 
   const handleNextStep = () => {
@@ -858,7 +899,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
       )}
 
       {/* Coach Details Modal */}
-      {showCoachModal && selectedCoach && (
+      {showCoachModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4">
           <div className="bg-white rounded-xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
             {/* Modal Header */}
@@ -883,186 +924,121 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
               </div>
             </div>
 
-            <div className="p-4 sm:p-6">
-              {/* Coach Hero Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
-                {/* Coach Avatar */}
-                <div className="lg:col-span-1">
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 sm:p-8 text-center">
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 sm:mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl sm:text-4xl font-bold">
-                      {selectedCoach.firstName?.charAt(0) || 'C'}{selectedCoach.lastName?.charAt(0) || 'N'}
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                      {selectedCoach.firstName || 'Coach'} {selectedCoach.lastName || 'Name'}
-                    </h1>
-                    <p className="text-sm sm:text-base text-gray-600 mb-4">Professional Coach</p>
-                    
-                    {/* Status Badge */}
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
-                      selectedCoach.status === 'approved' 
-                        ? 'bg-green-100 text-green-800' 
-                        : selectedCoach.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full mr-2 ${
-                        selectedCoach.status === 'approved' 
-                          ? 'bg-green-500' 
-                          : selectedCoach.status === 'pending'
-                          ? 'bg-yellow-500'
-                          : 'bg-red-500'
-                      }`}></div>
-                      {selectedCoach.status
-                        ? selectedCoach.status?.charAt(0).toUpperCase() + selectedCoach.status?.slice(1)
-                        : 'Unknown'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Coach Info */}
-                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-                  {/* Contact Information */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-8 border border-blue-100">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FaEnvelope className="text-blue-600 text-sm sm:text-base" />
-                      Contact Information
-                    </h3>
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-12">
-                      <div className="flex items-center space-x-3">
-                        <FaEnvelope className="text-blue-600 text-sm sm:text-base" />
-                        <div>
-                          <p className="text-xs sm:text-sm text-gray-600">Email</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.email || 'N/A'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <FaPhone className="text-blue-600 text-sm sm:text-base" />
-                        <div>
-                          <p className="text-xs sm:text-sm text-gray-600">Phone</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.phone || 'N/A'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3 sm:col-span-2">
-                        <FaMapMarkerAlt className="text-blue-600 text-sm sm:text-base" />
-                         <div>
-                          <p className="text-xs sm:text-sm text-gray-600">Address</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.address || 'N/A'}</p>
-                         </div>
-                       </div>
-                      <div className="flex items-center space-x-3">
-                        <FaCalendarAlt className="text-blue-600 text-sm sm:text-base" />
-                        <div>
-                          <p className="text-xs sm:text-sm text-gray-600">Member Since</p>
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                            {selectedCoach.registrationDate ? new Date(selectedCoach.registrationDate).toLocaleDateString() : 'N/A'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Professional Information */}
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FaBriefcase className="text-green-600 text-sm sm:text-base" />
-                      Professional Information
-                    </h3>
-                    <div className="space-y-3 sm:space-y-4">
-                      <div>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Experience</p>
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.experience}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Duration</p>
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCoach.duration}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Languages */}
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 sm:p-6 border border-purple-100">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <FaLanguage className="text-purple-600 text-sm sm:text-base" />
-                      Languages Spoken
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {(selectedCoach.languages ?? []).map((language, index) => (
-                        <span
-                          key={index}
-                          className="bg-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium text-purple-700 border border-purple-200"
-                        >
-                          {language}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+            {/* Loading state */}
+            {isCoachLoading ? (
+              <div className="p-8 sm:p-12 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+                  <div className="text-gray-600 text-sm">Loading coach details...</div>
                 </div>
               </div>
+            ) : (
+              selectedCoach && (
+                <div className="p-4 sm:p-6 space-y-6">
+                  {/* Hero */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 sm:p-8 text-center">
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-4 sm:mb-5 rounded-full border-4 border-white shadow-md flex items-center justify-center overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600">
+                      {selectedCoach.avatarUrl ? (
+                        <img src={selectedCoach.avatarUrl} alt={selectedCoach.name || 'Coach'} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-white text-2xl sm:text-3xl font-bold">
+                          {(selectedCoach.name || 'C').charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{selectedCoach.name || 'Coach'}</h1>
+                    {selectedCoach.bio && (
+                      <p className="mt-2 text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">{selectedCoach.bio}</p>
+                    )}
+                  </div>
 
-              {/* Additional Information */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {/* Courses Taught */}
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-indigo-100">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaBook className="text-indigo-600 text-sm sm:text-base" />
-                    Courses Taught
-                  </h3>
-                  <div className="space-y-3">
-                    {(selectedCoach.courses && selectedCoach.courses.length > 0) ? (
-                      selectedCoach.courses.map((course, index) => (
-                        <div key={index} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
-                          <div className="font-semibold text-gray-900 text-sm sm:text-base">{course}</div>
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    {/* Contact */}
+                    <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <FaEnvelope className="text-blue-600" /> Contact
+                      </h3>
+                      <div className="space-y-3 text-sm sm:text-base">
+                        <div className="flex items-start gap-3">
+                          <FaEnvelope className="text-blue-600 mt-0.5" />
+                          <div>
+                            <p className="text-gray-600 text-xs sm:text-sm">Email</p>
+                            <p className="font-medium text-gray-900 break-all">{selectedCoach.email || 'N/A'}</p>
+                          </div>
                         </div>
-                      ))
+                        <div className="flex items-start gap-3">
+                          <FaPhone className="text-blue-600 mt-0.5" />
+                          <div>
+                            <p className="text-gray-600 text-xs sm:text-sm">Phone</p>
+                            <p className="font-medium text-gray-900 break-words">{selectedCoach.phone || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <FaMapMarkerAlt className="text-blue-600 mt-0.5" />
+                          <div>
+                            <p className="text-gray-600 text-xs sm:text-sm">Address</p>
+                            <p className="font-medium text-gray-900 break-words">{selectedCoach.address || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Professional */}
+                    <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <FaBriefcase className="text-green-600" /> Professional
+                      </h3>
+                      <div className="space-y-3 text-sm sm:text-base">
+                        <div>
+                          <p className="text-gray-600 text-xs sm:text-sm">Domain</p>
+                          <p className="font-medium text-gray-900">{selectedCoach.specializations?.[0] || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 text-xs sm:text-sm">Experience</p>
+                          <p className="font-medium text-gray-900">{selectedCoach.experience || 'N/A'}</p>
+                        </div>
+                        {!!selectedCoach.languages?.length && (
+                          <div>
+                            <p className="text-gray-600 text-xs sm:text-sm mb-2">Languages</p>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedCoach.languages.map((lang, idx) => (
+                                <span key={idx} className="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs sm:text-sm border border-purple-200">
+                                  {lang}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Courses Taught */}
+                  <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <FaBook className="text-indigo-600" /> Courses Taught
+                    </h3>
+                    {selectedCoach.courses && selectedCoach.courses.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {selectedCoach.courses.map((c, idx) => (
+                          <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <p className="font-medium text-gray-900 text-sm sm:text-base">
+                              {typeof c === 'string' ? c : c.title || 'Untitled Course'}
+                            </p>
+                            {typeof c === 'object' && c.category && (
+                              <p className="text-xs text-gray-500 mt-1">Category: {c.category}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     ) : (
-                      <p className="text-gray-600 italic text-sm sm:text-base">No courses listed yet</p>
+                      <p className="text-sm text-gray-600">No courses listed.</p>
                     )}
                   </div>
                 </div>
-
-                {/* Statistics */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaUsers className="text-green-600 text-sm sm:text-base" />
-                    Statistics
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-blue-600">5.0</div>
-                      <div className="text-xs sm:text-sm text-gray-600">Average Rating</div>
-                      <div className="flex justify-center mt-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <FaStar key={star} className="text-yellow-400 text-xs sm:text-sm" />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-green-600">150+</div>
-                      <div className="text-xs sm:text-sm text-gray-600">Students Taught</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-purple-600">25+</div>
-                      <div className="text-xs sm:text-sm text-gray-600">Courses Created</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-orange-600">98%</div>
-                      <div className="text-xs sm:text-sm text-gray-600">Success Rate</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Admin Notes (if any) */}
-              {selectedCoach.adminNotes && (
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 sm:p-6 border border-yellow-100 mt-4 sm:mt-6">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaUser className="text-yellow-600 text-sm sm:text-base" />
-                    Admin Notes
-                  </h3>
-                  <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{selectedCoach.adminNotes}</p>
-                </div>
-              )}
-            </div>
+              )
+            )}
           </div>
         </div>
       )}
@@ -1188,6 +1164,12 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                         <div className="flex-1">
                           <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">{selectedCourse.coach.name}</h3>
                           <p className="text-sm sm:text-base text-gray-600">Course Instructor</p>
+                          {selectedCourse.coach.domain && (
+                            <p className="text-xs text-gray-500">Specialization: {selectedCourse.coach.domain}</p>
+                          )}
+                          {selectedCourse.coach.experience && (
+                            <p className="text-xs text-gray-500">Experience: {selectedCourse.coach.experience} years</p>
+                          )}
                         </div>
                       </div>
                       <button

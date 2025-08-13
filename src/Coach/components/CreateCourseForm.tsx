@@ -884,10 +884,10 @@ interface DaySchedule {
 
                   {/* Course Credits */}
                   <div className="group">
-                    <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
-                      <span>Course Credits</span>
-                      <span className="text-red-500 text-lg font-bold">*</span>
-                    </label>
+                                          <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
+                        <span>Course Credits</span>
+                        <span className="text-red-500 text-lg font-bold">*</span>
+                      </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-5">
                         <FaDollarSign className="text-gray-400 text-lg" />
@@ -936,10 +936,10 @@ interface DaySchedule {
                           // Only allow numbers
                           if (value === '' || /^\d+$/.test(value)) {
                             const val = value === '' ? undefined : parseInt(value, 10);
-                            setFormData(prev => ({
-                              ...prev,
-                              courseDurationNumber: val
-                            }));
+                          setFormData(prev => ({
+                            ...prev,
+                            courseDurationNumber: val
+                          }));
                           }
                         }}
                         className="w-full pl-4 pr-20 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white group-hover:border-gray-300"

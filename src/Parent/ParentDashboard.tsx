@@ -185,6 +185,13 @@ const ParentDashboard: React.FC = () => {
         const apiCourses = (res.data?.data?.courses || []).map((c: any) => {
           console.log(`[Parent] Course ${c.title} thumbnail:`, c.thumbnail);
           console.log(`[Parent] Course ${c.title} coach data:`, c.coach);
+          
+          // Extract coach information from the nested coach object
+          const coach = c.coach || {};
+          const coachName = coach.firstName && coach.lastName 
+            ? `${coach.firstName} ${coach.lastName}`.trim()
+            : coach.name || 'Unknown Coach';
+          
           return {
             id: String(c.id),
             title: c.title,
@@ -201,11 +208,21 @@ const ParentDashboard: React.FC = () => {
             duration: c.courseDuration || `${c.duration} weeks`,
             totalSessions: c.totalSessions || 0,
             coach: {
-              id: String(c.coach.id),
-              name: c.coach.name,
-              avatar: c.coach.avatar || '', // Handle null avatars
-              rating: Number(c.coach.rating || 0),
-              totalReviews: c.coach.totalReviews || 0
+              id: String(coach.id || ''),
+              name: coachName,
+              avatar: coach.avatar || coach.profileImageUrl || '', // Handle null avatars
+              rating: Number(coach.rating || 0),
+              totalReviews: Number(coach.totalReviews || 0),
+              // Additional coach fields for the detail modal
+              firstName: coach.firstName || '',
+              lastName: coach.lastName || '',
+              email: coach.email || '',
+              phone: coach.phone || '',
+              domain: coach.domain || '',
+              experience: coach.experience || '',
+              address: coach.address || '',
+              languages: Array.isArray(coach.languages) ? coach.languages : [],
+              courses: Array.isArray(coach.courses) ? coach.courses : []
             }
           };
         });
