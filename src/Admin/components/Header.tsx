@@ -60,21 +60,7 @@ const Header: React.FC<HeaderProps> = ({
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
           </button>
 
-          {/* User Profile */}
-          <div className="flex items-center space-x-3">
-            <div className="relative group">
-              <img
-                src={avatar}
-                alt={adminName}
-                className="w-8 h-8 rounded-full object-cover ring-2 ring-gray-200 group-hover:ring-blue-300 transition-all duration-200"
-              />
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-            </div>
-            <div className="hidden md:block">
-              <p className="text-sm font-medium text-gray-800">{adminName}</p>
-              <p className="text-xs text-gray-500">Admin</p>
-            </div>
-          </div>
+          {/* User Profile handled by global header */}
         </div>
       </div>
     </header>

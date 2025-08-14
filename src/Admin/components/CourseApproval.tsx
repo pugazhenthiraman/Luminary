@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { getGradient } from '../../utils/getGradient';
-import { getCourses as getAdminCourses, approveCourse as approveAdminCourse, rejectCourse as rejectAdminCourse, getCoaches } from '../../api/admin';
+import { getCourses as getAdminCourses, approveCourse as approveAdminCourse, rejectCourse as rejectAdminCourse, getCoaches, deactivateCourse, activateCourseFromRejected, freezePendingCourse, unfreezePendingCourse, activateDeactivatedCourse } from '../../api/admin';
 import Avatar from '../../components/Avatar';
 import CourseDetailsModal from '../../components/CourseDetailsModal';
+// Reuse the CourseSubmission shape from the modal via declaration merging
+type ModalCourseSubmission = Parameters<React.ComponentProps<typeof CourseDetailsModal>['onApprove']>[0] extends number ? React.ComponentProps<typeof CourseDetailsModal>['selectedCourse'] extends infer T ? T : never : never;
 import CoachDetailsModal from '../../components/CoachDetailsModal';
 import { 
   FaEye, 
@@ -20,8 +22,16 @@ import {
   FaDownload,
   FaPlay,
   FaSpinner,
-  FaFileAlt
+  FaFileAlt,
+  FaSnowflake,
+  FaBan,
+  FaUndo,
+  FaLock,
+  FaToggleOn,
+  FaToggleOff,
+  FaUnlock
 } from 'react-icons/fa';
+import { showErrorToast, showSuccessToast } from '../../components/Toast';
 
 interface CourseSubmission {
   id: number;
@@ -32,8 +42,8 @@ interface CourseSubmission {
   courseTitle: string;
   courseDescription: string;
   category: string;
-  price: number;
-  duration: string;
+  price: string; // align with CourseDetailsModal
+  duration: number; // align with CourseDetailsModal
   lessons: number;
   thumbnail: string;
   videoUrl?: string;
@@ -48,28 +58,57 @@ interface CourseSubmission {
   submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;
+  isFrozen?: boolean;
+  isActive?: boolean;
 }
 
 const CourseApproval: React.FC = () => {
-  const [selectedCourse, setSelectedCourse] = useState<CourseSubmission | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'frozen' | 'deactivated'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'coach' | 'category'>('date');
   const [isLoading, setIsLoading] = useState(false); // loading state
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  const [approveCtrl, setApproveCtrl] = useState<AbortController | null>(null);
+  const [rejectCtrl, setRejectCtrl] = useState<AbortController | null>(null);
+  const [deactivateCtrl, setDeactivateCtrl] = useState<AbortController | null>(null);
+  const [activateCtrl, setActivateCtrl] = useState<AbortController | null>(null);
+  const [freezeCtrl, setFreezeCtrl] = useState<AbortController | null>(null);
+  const [unfreezeCtrl, setUnfreezeCtrl] = useState<AbortController | null>(null);
+  const [approveTimedOut, setApproveTimedOut] = useState(false);
+  const [rejectTimedOut, setRejectTimedOut] = useState(false);
+  const [deactivateTimedOut, setDeactivateTimedOut] = useState(false);
+  const [activateTimedOut, setActivateTimedOut] = useState(false);
+  const [freezeTimedOut, setFreezeTimedOut] = useState(false);
+  const [unfreezeTimedOut, setUnfreezeTimedOut] = useState(false);
   const [showAdvancedFilterModal, setShowAdvancedFilterModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('All Prices');
   const [selectedDay, setSelectedDay] = useState<string>('All Days');
   const [priceSort, setPriceSort] = useState<'none' | 'asc' | 'desc'>('none');
   const [adminNotes, setAdminNotes] = useState('');
+  // Deactivate/Activate confirmations
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [courseToDeactivate, setCourseToDeactivate] = useState<CourseSubmission | null>(null);
+  const [deactivateReason, setDeactivateReason] = useState('');
+  const [showActivateConfirm, setShowActivateConfirm] = useState(false);
+  const [courseToActivate, setCourseToActivate] = useState<CourseSubmission | null>(null);
+  const [activateNote, setActivateNote] = useState('');
+  const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
+  const [showUnfreezeConfirm, setShowUnfreezeConfirm] = useState(false);
+  const [courseToFreeze, setCourseToFreeze] = useState<CourseSubmission | null>(null);
+  const [courseToUnfreeze, setCourseToUnfreeze] = useState<CourseSubmission | null>(null);
+  const [isFreezing, setIsFreezing] = useState(false);
+  const [isUnfreezing, setIsUnfreezing] = useState(false);
   
   // Coach details modal states
-  const [selectedCoachForDetails, setSelectedCoachForDetails] = useState(null);
+  const [selectedCoachForDetails, setSelectedCoachForDetails] = useState<any>(null);
   const [showCoachModal, setShowCoachModal] = useState(false);
   const [coachLoading, setCoachLoading] = useState(false);
 
@@ -127,13 +166,13 @@ const CourseApproval: React.FC = () => {
         limit: 50,
         ...computeSort(),
       };
-      const res = await getAdminCourses(params);
+  const res = await getAdminCourses(params);
       
       // Debug: Log the API response to see the actual data structure
       console.log('API Response:', res.data);
       console.log('Courses data:', res.data?.data?.courses);
       
-      const list: CourseSubmission[] = (res.data?.data?.courses || []).map((c: any) => {
+  const list: any[] = (res.data?.data?.courses || []).map((c: any) => {
         // Debug: Log each course data to see the phone field
         console.log('Course data:', c);
         console.log('Coach nested object:', c.coach);
@@ -165,15 +204,28 @@ const CourseApproval: React.FC = () => {
           courseTitle: c.courseTitle || c.title,
           courseDescription: c.courseDescription || c.description,
           category: c.category,
-          price: c.price,
-          duration: String(c.duration ?? ''),
+          price: String(c.price ?? c.creditCost ?? '0'),
+          duration: Number(c.duration ?? 0),
           lessons: c.lessons || 0,
           thumbnail: c.thumbnail || c.image || c.coverImage,
           videoUrl: c.videoUrl || c.previewVideo,
-          weeklySchedule: c.weeklySchedule || [],
+          weeklySchedule: (c.weeklySchedule || []).map((d: any, idx: number) => ({
+            day: d.day,
+            isActive: d.isActive,
+            timeSlots: (d.timeSlots || []).map((ts: any, jdx: number) => ({
+              id: ts.id || `${d.day}-${ts.startTime}-${jdx}`,
+              startTime: ts.startTime,
+              endTime: ts.endTime,
+              sessions: ts.sessions ?? 0,
+              bufferTime: ts.bufferTime ?? 0,
+              sessionDuration: ts.sessionDuration ?? 60,
+            })),
+          })),
           submittedAt: c.submittedAt || c.createdAt,
-          status: c.status,
+          status: (c.status || '').toLowerCase(),
           rejectionReason: c.rejectionReason,
+          isFrozen: Boolean(c.isFrozen),
+          isActive: typeof c.isActive === 'boolean' ? c.isActive : true,
         };
       });
       
@@ -197,7 +249,15 @@ const CourseApproval: React.FC = () => {
   }, [filterStatus, searchTerm, selectedCategory, selectedPriceRange, selectedDay, priceSort, sortBy]);
 
   const filteredCourses = courses.filter(course => {
-    const matchesStatus = filterStatus === 'all' || course.status === filterStatus;
+    const statusLower = (course.status || '').toLowerCase();
+    const isFrozenCourse = statusLower === 'pending' && course.isFrozen;
+    const isDeactivatedCourse = (statusLower === 'approved' || statusLower === 'active') && course.isActive === false;
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'pending' && statusLower === 'pending' && !course.isFrozen) ||
+      (filterStatus === 'frozen' && isFrozenCourse) ||
+      (filterStatus === 'approved' && (statusLower === 'approved' || statusLower === 'active') && course.isActive !== false) ||
+      (filterStatus === 'deactivated' && isDeactivatedCourse) ||
+      (filterStatus === 'rejected' && statusLower === 'rejected');
     const matchesSearch = course.courseTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        course.coachName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        course.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -246,9 +306,9 @@ const CourseApproval: React.FC = () => {
 
   let sortedCourses = [...filteredCourses];
   if (priceSort === 'asc') {
-    sortedCourses.sort((a, b) => a.price - b.price);
+    sortedCourses.sort((a, b) => Number(a.price) - Number(b.price));
   } else if (priceSort === 'desc') {
-    sortedCourses.sort((a, b) => b.price - a.price);
+    sortedCourses.sort((a, b) => Number(b.price) - Number(a.price));
   }
 
   const confirmApprove = (courseId: number) => {
@@ -261,35 +321,174 @@ const CourseApproval: React.FC = () => {
     setShowRejectConfirm(true);
   };
 
+  const getAxiosErrorMessage = (err: any, fallback = 'Operation failed') => {
+    return err?.response?.data?.message || err?.message || fallback;
+  };
+  const isCanceledError = (error: any) => (
+    error?.code === 'ERR_CANCELED' || error?.message === 'timeout' || error?.message === 'canceled' || error?.name === 'CanceledError'
+  );
+
   const handleApprove = async (courseId: number) => {
     setIsApproving(true);
+    const ctrl = new AbortController();
+    setApproveCtrl(ctrl);
+    const timer = setTimeout(() => {
+      try { ctrl.abort('timeout'); } catch {}
+    }, 12000);
     try {
-      await approveAdminCourse(courseId, adminNotes || undefined);
+      await approveAdminCourse(courseId, adminNotes || undefined, { signal: ctrl.signal, timeout: 15000 });
       setShowModal(false);
       setShowApproveConfirm(false);
       setCourseToApprove(null);
       await loadCourses();
-    } catch (error) {
-      console.error('Error approving course:', error);
+      showSuccessToast('Course approved');
+      setApproveTimedOut(false);
+    } catch (error: any) {
+      if (isCanceledError(error)) {
+        setApproveTimedOut(true);
+        showErrorToast('Approval timed out or was canceled. Try again.');
+      } else {
+        showErrorToast(getAxiosErrorMessage(error, 'Failed to approve course'));
+      }
     } finally {
+      clearTimeout(timer);
       setIsApproving(false);
+      setApproveCtrl(null);
     }
   };
 
   const handleReject = async (courseId: number, reason: string) => {
     setIsRejecting(true);
+    const ctrl = new AbortController();
+    setRejectCtrl(ctrl);
+    const timer = setTimeout(() => { try { ctrl.abort('timeout'); } catch {} }, 12000);
     try {
-      await rejectAdminCourse(courseId, reason, adminNotes || undefined);
+      await rejectAdminCourse(courseId, reason, adminNotes || undefined, { signal: ctrl.signal, timeout: 15000 });
       setShowModal(false);
       setShowRejectModal(false);
       setShowRejectConfirm(false);
       setCourseToReject(null);
       setRejectReason('');
       await loadCourses();
-    } catch (error) {
-      console.error('Error rejecting course:', error);
+      showSuccessToast('Course rejected');
+      setRejectTimedOut(false);
+    } catch (error: any) {
+      if (isCanceledError(error)) {
+        setRejectTimedOut(true);
+        showErrorToast('Rejection timed out or was canceled. Try again.');
+      } else {
+        showErrorToast(getAxiosErrorMessage(error, 'Failed to reject course'));
+      }
     } finally {
+      clearTimeout(timer);
       setIsRejecting(false);
+      setRejectCtrl(null);
+    }
+  };
+
+  const handleDeactivate = async (courseId: number, reason?: string) => {
+    setIsDeactivating(true);
+    const ctrl = new AbortController();
+    setDeactivateCtrl(ctrl);
+    const timer = setTimeout(() => { try { ctrl.abort('timeout'); } catch {} }, 12000);
+    try {
+      await deactivateCourse(courseId, reason, { signal: ctrl.signal, timeout: 15000 });
+      showSuccessToast('Course deactivated');
+      await loadCourses();
+      setShowDeactivateConfirm(false);
+      setCourseToDeactivate(null);
+      setDeactivateReason('');
+      setDeactivateTimedOut(false);
+    } catch (error: any) {
+      if (isCanceledError(error)) {
+        setDeactivateTimedOut(true);
+        showErrorToast('Deactivation timed out or was canceled. Try again.');
+      } else {
+        showErrorToast(getAxiosErrorMessage(error, 'Failed to deactivate course'));
+      }
+    } finally {
+      clearTimeout(timer);
+      setIsDeactivating(false);
+      setDeactivateCtrl(null);
+    }
+  };
+
+  const handleActivateDeactivated = async (courseId: number, note?: string) => {
+    setIsActivating(true);
+    const ctrl = new AbortController();
+    setActivateCtrl(ctrl);
+    const timer = setTimeout(() => { try { ctrl.abort('timeout'); } catch {} }, 12000);
+    try {
+      await activateDeactivatedCourse(courseId, note, { signal: ctrl.signal, timeout: 15000 });
+      showSuccessToast('Course activated');
+      await loadCourses();
+      setShowActivateConfirm(false);
+      setCourseToActivate(null);
+      setActivateNote('');
+      setActivateTimedOut(false);
+    } catch (error: any) {
+      if (isCanceledError(error)) {
+        setActivateTimedOut(true);
+        showErrorToast('Activation timed out or was canceled. Try again.');
+      } else {
+        showErrorToast(getAxiosErrorMessage(error, 'Failed to activate course'));
+      }
+    } finally {
+      clearTimeout(timer);
+      setIsActivating(false);
+      setActivateCtrl(null);
+    }
+  };
+
+  const handleFreeze = async (courseId: number) => {
+    setIsFreezing(true);
+    const ctrl = new AbortController();
+    setFreezeCtrl(ctrl);
+    const timer = setTimeout(() => { try { ctrl.abort('timeout'); } catch {} }, 12000);
+    try {
+      await freezePendingCourse(courseId, { signal: ctrl.signal, timeout: 15000 });
+      showSuccessToast('Course frozen (pending edits disabled)');
+      await loadCourses();
+      setShowFreezeConfirm(false);
+      setCourseToFreeze(null);
+      setFreezeTimedOut(false);
+    } catch (e: any) {
+      if (isCanceledError(e)) {
+        setFreezeTimedOut(true);
+        showErrorToast('Freeze timed out. Try again.');
+      } else {
+        showErrorToast('Failed to freeze course');
+      }
+    } finally {
+      clearTimeout(timer);
+      setIsFreezing(false);
+      setFreezeCtrl(null);
+    }
+  };
+
+  const handleUnfreeze = async (courseId: number) => {
+    setIsUnfreezing(true);
+    const ctrl = new AbortController();
+    setUnfreezeCtrl(ctrl);
+    const timer = setTimeout(() => { try { ctrl.abort('timeout'); } catch {} }, 12000);
+    try {
+      await unfreezePendingCourse(courseId, { signal: ctrl.signal, timeout: 15000 });
+      showSuccessToast('Course unfrozen (edits allowed)');
+      await loadCourses();
+      setShowUnfreezeConfirm(false);
+      setCourseToUnfreeze(null);
+      setUnfreezeTimedOut(false);
+    } catch (e: any) {
+      if (isCanceledError(e)) {
+        setUnfreezeTimedOut(true);
+        showErrorToast('Unfreeze timed out. Try again.');
+      } else {
+        showErrorToast('Failed to unfreeze course');
+      }
+    } finally {
+      clearTimeout(timer);
+      setIsUnfreezing(false);
+      setUnfreezeCtrl(null);
     }
   };
 
@@ -340,7 +539,7 @@ const CourseApproval: React.FC = () => {
       console.log('API Response:', response);
       
       // Handle the actual API response structure
-      let coaches = [];
+  let coaches: any[] = [];
       
       if (response.data && response.data.data) {
         // The API returns: {success: true, message: '...', data: {coaches: [...], pagination: {...}}}
@@ -353,9 +552,7 @@ const CourseApproval: React.FC = () => {
         coaches = response.data.coaches;
       } else if (response.data && Array.isArray(response.data)) {
         coaches = response.data;
-      } else if (Array.isArray(response)) {
-        coaches = response;
-      }
+  }
       
       console.log('Coaches array:', coaches);
       
@@ -405,11 +602,24 @@ const CourseApproval: React.FC = () => {
     return hourNum === 0 ? '12:00 AM' : hourNum < 12 ? `${hourNum}:00 AM` : hourNum === 12 ? '12:00 PM' : `${hourNum - 12}:00 PM`;
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (status: string, opts?: { isFrozen?: boolean; isActive?: boolean }) => {
+    const s = (status || '').toLowerCase();
+    if ((s === 'approved' || s === 'active') && opts?.isActive === false) {
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">Deactivated</span>;
+    }
+    if (s === 'pending' && opts?.isFrozen) {
+      return (
+        <div className="flex items-center gap-1">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">Frozen</span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
+        </div>
+      );
+    }
+    switch (s) {
       case 'pending':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>;
       case 'approved':
+      case 'active':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Approved</span>;
       case 'rejected':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Rejected</span>;
@@ -447,7 +657,7 @@ const CourseApproval: React.FC = () => {
         <div className="space-y-4">
           {/* Status Filter Pills */}
           <div className="flex flex-wrap gap-2">
-            {['all', 'pending', 'approved', 'rejected'].map(status => (
+            {['all', 'pending', 'frozen', 'approved', 'deactivated', 'rejected'].map(status => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status as any)}
@@ -484,6 +694,7 @@ const CourseApproval: React.FC = () => {
                   value={selectedDay}
                   onChange={(e) => setSelectedDay(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white w-full sm:w-40"
+                  aria-label="Filter by day"
                 >
                   <option value="All Days">All Days</option>
                   <option value="Monday">Monday</option>
@@ -636,8 +847,16 @@ const CourseApproval: React.FC = () => {
                 </div>
               )}
               <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
-                {getStatusBadge(course.status)}
+                {getStatusBadge(course.status, { isFrozen: course.isFrozen, isActive: course.isActive })}
               </div>
+              {course.isFrozen && (
+                <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-sky-100 text-sky-700 border border-sky-200" title="This course is frozen; pending edits are locked">
+                    <FaLock className="text-[10px] sm:text-xs" />
+                    Frozen
+                  </span>
+                </div>
+              )}
               <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
                 <span className="bg-black/70 text-white px-2 py-1 rounded text-xs">
                   ${course.price}
@@ -778,7 +997,7 @@ const CourseApproval: React.FC = () => {
                       <FaEye className="text-sm" />
                     </button>
                     
-                    {course.status === 'pending' && (
+                    {course.status === 'pending' && !course.isFrozen && (
                       <>
                         <button
                           onClick={() => confirmApprove(course.id)}
@@ -794,6 +1013,75 @@ const CourseApproval: React.FC = () => {
                         >
                           <FaTimes className="text-sm" />
                         </button>
+                      </>
+                    )}
+                    {course.status === 'pending' && course.isFrozen && (
+                      <span className="text-sky-700 text-xs font-semibold" title="Frozen by admin. View only."><FaSnowflake className="inline mr-1" /> Frozen</span>
+                    )}
+                    {course.status === 'approved' && (
+                      <>
+            {course.isActive === false ? (
+                          <button
+              onClick={() => { setCourseToActivate(course); setShowActivateConfirm(true); }}
+              className="text-emerald-600 hover:text-emerald-800 p-1.5 sm:p-2 rounded-lg hover:bg-emerald-50 transition-colors duration-200"
+              title="Activate Deactivated Course"
+                          >
+              <FaToggleOn className="text-sm" />
+                          </button>
+                        ) : (
+                          <button
+              onClick={() => { setCourseToDeactivate(course); setShowDeactivateConfirm(true); }}
+              className="text-amber-600 hover:text-amber-800 p-1.5 sm:p-2 rounded-lg hover:bg-amber-50 transition-colors duration-200"
+              title="Deactivate Course"
+                          >
+              <FaToggleOff className="text-sm" />
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {course.status === 'rejected' && (
+                      <>
+                        <button
+                          onClick={async () => {
+                            const ctrl = new AbortController();
+                            const timer = setTimeout(() => { try { ctrl.abort('timeout'); } catch {} }, 12000);
+                            try {
+                              await activateCourseFromRejected(course.id, { signal: ctrl.signal, timeout: 15000 });
+                              showSuccessToast('Course moved to Pending');
+                              await loadCourses();
+                            } catch (e: any) {
+                              if (isCanceledError(e)) showErrorToast('Action timed out. Try again.');
+                              else showErrorToast('Failed to activate course');
+                            } finally {
+                              clearTimeout(timer);
+                            }
+                          }}
+                          className="text-yellow-600 hover:text-yellow-800 p-1.5 sm:p-2 rounded-lg hover:bg-yellow-50 transition-colors duration-200"
+                          title="Move from Rejected to Pending"
+                        >
+                          <FaUndo className="text-sm" />
+                        </button>
+                      </>
+                    )}
+          {course.status === 'pending' && (
+                      <>
+            {!course.isFrozen ? (
+                          <button
+              onClick={() => { setCourseToFreeze(course); setShowFreezeConfirm(true); }}
+              className="text-sky-600 hover:text-sky-800 p-1.5 sm:p-2 rounded-lg hover:bg-sky-50 transition-colors duration-200"
+                            title="Freeze Pending Course"
+                          >
+              <FaLock className="text-sm" />
+                          </button>
+                        ) : (
+                          <button
+              onClick={() => { setCourseToUnfreeze(course); setShowUnfreezeConfirm(true); }}
+                            className="text-indigo-600 hover:text-indigo-800 p-1.5 sm:p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-200"
+                            title="Unfreeze Pending Course"
+                          >
+              <FaUnlock className="text-sm" />
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -905,20 +1193,25 @@ const CourseApproval: React.FC = () => {
               <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Approve Course</h3>
               <p className="text-sm text-gray-600 mb-4">Are you sure you want to approve this course?</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button 
-                onClick={() => { setShowApproveConfirm(false); setCourseToApprove(null); }} 
-                className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => courseToApprove && handleApprove(courseToApprove)} 
-                disabled={isApproving} 
-                className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isApproving ? <FaSpinner className="animate-spin" /> : 'Confirm Approve'}
-              </button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <div className="text-xs text-gray-500 mb-2 sm:mb-0">
+                {approveTimedOut ? 'Request timed out. You can try again.' : 'This may take up to 10–15 seconds.'}
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => { if (approveCtrl) approveCtrl.abort('canceled'); setShowApproveConfirm(false); setCourseToApprove(null); }} 
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => courseToApprove && handleApprove(courseToApprove)} 
+                  disabled={isApproving} 
+                  className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isApproving ? <FaSpinner className="animate-spin" /> : (approveTimedOut ? 'Try again' : 'Confirm Approve')}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -952,24 +1245,201 @@ const CourseApproval: React.FC = () => {
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <div className="text-xs text-gray-500 mb-2 sm:mb-0">
+                {rejectTimedOut ? 'Request timed out. You can try again.' : 'This may take up to 10–15 seconds.'}
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => { if (rejectCtrl) rejectCtrl.abort('canceled'); setShowRejectConfirm(false); setCourseToReject(null); setRejectReason(''); }} 
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => courseToReject && handleReject(courseToReject.id, rejectReason)} 
+                  disabled={!rejectReason.trim() || isRejecting} 
+                  className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isRejecting ? <FaSpinner className="animate-spin" /> : (rejectTimedOut ? 'Try again' : 'Confirm Rejection')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deactivate Confirmation Modal */}
+      {showDeactivateConfirm && courseToDeactivate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => { setShowDeactivateConfirm(false); setCourseToDeactivate(null); setDeactivateReason(''); }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaBan className="text-red-600 text-xl sm:text-2xl" />
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Deactivate Course</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Deactivate "{courseToDeactivate.courseTitle}"? Parents will not see this course. The coach will be notified.
+              </p>
+            </div>
+
+            <div className="mb-4 sm:mb-6">
+              <label htmlFor="deactivateReason" className="block text-sm font-medium text-gray-700 mb-2">
+                Reason (shared with coach)
+              </label>
+              <textarea
+                id="deactivateReason"
+                value={deactivateReason}
+                onChange={(e) => setDeactivateReason(e.target.value)}
+                placeholder="Briefly explain why this course is deactivated..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                rows={4}
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <div className="text-xs text-gray-500 mb-2 sm:mb-0">
+                {deactivateTimedOut ? 'Request timed out. You can try again.' : 'This may take up to 10–15 seconds.'}
+              </div>
               <button 
-                onClick={() => { 
-                  setShowRejectConfirm(false); 
-                  setCourseToReject(null); 
-                  setRejectReason('');
-                }} 
-                className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm"
+                onClick={() => { if (deactivateCtrl) deactivateCtrl.abort('canceled'); setShowDeactivateConfirm(false); setCourseToDeactivate(null); setDeactivateReason(''); }} 
+                className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm order-2 sm:order-1"
               >
                 Cancel
               </button>
               <button 
-                onClick={() => courseToReject && handleReject(courseToReject.id, rejectReason)} 
-                disabled={!rejectReason.trim() || isRejecting} 
-                className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={async () => {
+                  if (!courseToDeactivate) return;
+                  await handleDeactivate(courseToDeactivate.id, deactivateReason || undefined);
+                }} 
+                disabled={isDeactivating}
+                className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
               >
-                {isRejecting ? <FaSpinner className="animate-spin" /> : 'Confirm Rejection'}
+                {isDeactivating ? <FaSpinner className="animate-spin" /> : (deactivateTimedOut ? 'Try again' : 'Confirm Deactivate')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Activate Deactivated Confirmation Modal */}
+      {showActivateConfirm && courseToActivate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => { setShowActivateConfirm(false); setCourseToActivate(null); setActivateNote(''); }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaUndo className="text-yellow-600 text-xl sm:text-2xl" />
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Activate Course</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Activate "{courseToActivate.courseTitle}"? Parents will be able to see it again.
+              </p>
+            </div>
+
+            <div className="mb-4 sm:mb-6">
+              <label htmlFor="activateNote" className="block text-sm font-medium text-gray-700 mb-2">
+                Optional note to coach
+              </label>
+              <textarea
+                id="activateNote"
+                value={activateNote}
+                onChange={(e) => setActivateNote(e.target.value)}
+                placeholder="Add a note (optional)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <div className="text-xs text-gray-500 mb-2 sm:mb-0">
+                {activateTimedOut ? 'Request timed out. You can try again.' : 'This may take up to 10–15 seconds.'}
+              </div>
+              <button 
+                onClick={() => { if (activateCtrl) activateCtrl.abort('canceled'); setShowActivateConfirm(false); setCourseToActivate(null); setActivateNote(''); }} 
+                className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm order-2 sm:order-1"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={async () => {
+                  if (!courseToActivate) return;
+                  await handleActivateDeactivated(courseToActivate.id, activateNote || undefined);
+                }} 
+                disabled={isActivating}
+                className="w-full sm:w-auto px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
+              >
+                {isActivating ? <FaSpinner className="animate-spin" /> : (activateTimedOut ? 'Try again' : 'Confirm Activate')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Freeze Pending Confirmation Modal */}
+      {showFreezeConfirm && courseToFreeze && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => { setShowFreezeConfirm(false); setCourseToFreeze(null); }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaLock className="text-blue-600 text-xl sm:text-2xl" />
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Freeze Pending Course</h3>
+              <p className="text-sm text-gray-600 mb-4">Freeze "{courseToFreeze.courseTitle}"? Coach can’t edit while frozen.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <div className="text-xs text-gray-500 mb-2 sm:mb-0">
+                {freezeTimedOut ? 'Request timed out. You can try again.' : 'This may take up to 10–15 seconds.'}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { if (freezeCtrl) freezeCtrl.abort('canceled'); setShowFreezeConfirm(false); setCourseToFreeze(null); }}
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleFreeze(courseToFreeze.id)}
+                  disabled={isFreezing}
+                  className="w-full sm:w-auto px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isFreezing ? <FaSpinner className="animate-spin" /> : (freezeTimedOut ? 'Try again' : 'Confirm Freeze')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unfreeze Pending Confirmation Modal */}
+      {showUnfreezeConfirm && courseToUnfreeze && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => { setShowUnfreezeConfirm(false); setCourseToUnfreeze(null); }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaUnlock className="text-indigo-600 text-xl sm:text-2xl" />
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Unfreeze Course</h3>
+              <p className="text-sm text-gray-600 mb-4">Unfreeze "{courseToUnfreeze.courseTitle}"? Coach can edit again.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <div className="text-xs text-gray-500 mb-2 sm:mb-0">
+                {unfreezeTimedOut ? 'Request timed out. You can try again.' : 'This may take up to 10–15 seconds.'}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { if (unfreezeCtrl) unfreezeCtrl.abort('canceled'); setShowUnfreezeConfirm(false); setCourseToUnfreeze(null); }}
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleUnfreeze(courseToUnfreeze.id)}
+                  disabled={isUnfreezing}
+                  className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUnfreezing ? <FaSpinner className="animate-spin" /> : (unfreezeTimedOut ? 'Try again' : 'Confirm Unfreeze')}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -979,4 +1449,4 @@ const CourseApproval: React.FC = () => {
   );
 };
 
-export default CourseApproval; 
+export default CourseApproval;

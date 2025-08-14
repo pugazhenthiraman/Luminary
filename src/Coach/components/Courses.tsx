@@ -6,9 +6,9 @@ import {
   FaEye, 
   FaEdit, 
   FaVideo, 
-  FaTrash, 
   FaStar,
-  FaTimes
+  FaTimes,
+  FaTrash
 } from 'react-icons/fa';
 import CreateCourseForm from './CreateCourseForm';
 import axiosInstance from '../../api/axiosInstance';
@@ -41,6 +41,8 @@ interface Course {
   price: string | number;  // API returns as string
   creditCost?: number;
   status: string;
+  isActive?: boolean;
+  isFrozen?: boolean;
   category: string;
   program?: string;
   duration: string | number;
@@ -108,11 +110,16 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       // Status filter
       if (selectedStatus !== 'All') {
         const normalizedStatus = course.status?.toLowerCase();
-        if (
-          (selectedStatus === 'Approved' && normalizedStatus !== 'active' && normalizedStatus !== 'approved') ||
-          (selectedStatus === 'Pending' && normalizedStatus !== 'pending') ||
-          (selectedStatus === 'Rejected' && normalizedStatus !== 'rejected')
-        ) {
+        const isFrozen = !!course.isFrozen;
+        const isDeactivated = (normalizedStatus === 'approved' || normalizedStatus === 'active') && course.isActive === false;
+        const matches = (
+          (selectedStatus === 'Approved' && (normalizedStatus === 'active' || normalizedStatus === 'approved') && course.isActive !== false) ||
+          (selectedStatus === 'Pending' && normalizedStatus === 'pending' && !isFrozen) ||
+          (selectedStatus === 'Rejected' && normalizedStatus === 'rejected') ||
+          (selectedStatus === 'Frozen' && normalizedStatus === 'pending' && isFrozen) ||
+          (selectedStatus === 'Deactivated' && isDeactivated)
+        );
+        if (!matches) {
           return false;
         }
       }
@@ -179,9 +186,9 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     const gradient = gradients[gradientIndex];
     
     // Function to wrap text into multiple lines
-    const wrapText = (text: string, maxCharsPerLine: number = 20) => {
-      const words = text.split(' ');
-      const lines = [];
+  const wrapText = (text: string, maxCharsPerLine: number = 20): string[] => {
+      const words: string[] = text.split(' ');
+      const lines: string[] = [];
       let currentLine = '';
       
       for (const word of words) {
@@ -211,7 +218,8 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       
       // Limit to maximum 3 lines
       if (lines.length > 3) {
-        lines[2] = lines[2].substring(0, 17) + '...';
+        const third: string = String(lines[2] || '');
+        lines[2] = third.substring(0, 17) + '...';
         return lines.slice(0, 3);
       }
       
@@ -224,8 +232,7 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                    textLines.length === 2 ? 125 : 115;
     
     // Adjust font size based on text length
-    const fontSize = textLines.length > 2 ? 24 : 
-                     textLines.some(line => line.length > 15) ? 26 : 32;
+  const fontSize = textLines.length > 2 ? 24 : textLines.some((line: string) => line.length > 15) ? 26 : 32;
     
     // Create SVG with modern design and proper text wrapping
     const svg = `
@@ -726,6 +733,8 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
               <button
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Clear search"
+                aria-label="Clear search"
               >
                 <FaTimes className="text-sm" />
               </button>
@@ -742,8 +751,10 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
             <div className="flex flex-wrap gap-2">
               {[
                 { key: 'All', label: 'All', count: localCourses.length },
-                { key: 'Approved', label: 'Approved', count: localCourses.filter(c => c.status === 'active' || c.status === 'approved').length },
-                { key: 'Pending', label: 'Pending', count: localCourses.filter(c => c.status === 'pending').length },
+                { key: 'Approved', label: 'Approved', count: localCourses.filter(c => (c.status === 'active' || c.status === 'approved') && c.isActive !== false).length },
+                { key: 'Pending', label: 'Pending', count: localCourses.filter(c => c.status === 'pending' && !c.isFrozen).length },
+                { key: 'Frozen', label: 'Frozen', count: localCourses.filter(c => c.status === 'pending' && c.isFrozen).length },
+                { key: 'Deactivated', label: 'Deactivated', count: localCourses.filter(c => (c.status === 'approved' || c.status === 'active') && c.isActive === false).length },
                 { key: 'Rejected', label: 'Rejected', count: localCourses.filter(c => c.status === 'rejected').length }
               ].map((status) => (
                 <button
@@ -754,6 +765,8 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                       ? status.key === 'All' ? 'bg-indigo-500 text-white shadow-sm' :
                         status.key === 'Approved' ? 'bg-green-500 text-white shadow-sm' :
                         status.key === 'Pending' ? 'bg-orange-500 text-white shadow-sm' :
+                        status.key === 'Frozen' ? 'bg-sky-600 text-white shadow-sm' :
+                        status.key === 'Deactivated' ? 'bg-gray-600 text-white shadow-sm' :
                         'bg-red-500 text-white shadow-sm'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
                   }`}
@@ -777,6 +790,7 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                 value={selectedDay}
                 onChange={(e) => setSelectedDay(e.target.value)}
                 className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2.5 pr-10 text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-colors"
+                aria-label="Filter by schedule day"
               >
                 <option value="All Days">
                   All Days ({localCourses.filter(c => c.weeklySchedule?.some(d => d.isActive && d.timeSlots.length > 0)).length})
@@ -867,15 +881,22 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
               />
               
               {/* Status Badge */}
-              <div className="absolute top-2 right-2">
+              <div className="absolute top-2 right-2 flex items-center gap-2">
+                {course.status?.toLowerCase() === 'pending' && course.isFrozen && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-sky-600 text-white">Frozen</span>
+                )}
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
-                  course.status === 'active' || course.status === 'approved' ? 'bg-green-500 text-white' :
+                  (course.status === 'active' || course.status === 'approved') && course.isActive !== false ? 'bg-green-500 text-white' :
                   course.status === 'pending' ? 'bg-orange-500 text-white' :
                   course.status === 'rejected' ? 'bg-red-500 text-white' : 
                   'bg-gray-500 text-white'
                 }`}>
-                  {course.status === 'active' ? 'Approved' : 
-                   course.status.charAt(0).toUpperCase() + course.status.slice(1)}
+                  {(() => {
+                    const s = (course.status || '').toLowerCase();
+                    if ((s === 'approved' || s === 'active') && course.isActive === false) return 'Deactivated';
+                    if (s === 'active') return 'Approved';
+                    return s.charAt(0).toUpperCase() + s.slice(1);
+                  })()}
                 </span>
               </div>
               
@@ -969,11 +990,20 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
+                      const canEdit = course.status?.toLowerCase() === 'pending' && !course.isFrozen;
+                      if (!canEdit) {
+                        showErrorToast(course.status?.toLowerCase() !== 'pending' ? 'Only pending courses can be edited' : 'Course is frozen by admin');
+                        return;
+                      }
                       handleEditCourse(course);
                     }}
-                    disabled={isLoadingEditData}
-                    className="w-9 h-9 bg-gray-100 hover:bg-indigo-100 text-gray-600 hover:text-indigo-600 rounded-lg transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Edit course"
+                    disabled={isLoadingEditData || course.status?.toLowerCase() !== 'pending' || !!course.isFrozen}
+                    className={`w-9 h-9 rounded-lg transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
+                      course.status?.toLowerCase() === 'pending' && !course.isFrozen
+                        ? 'bg-gray-100 hover:bg-indigo-100 text-gray-600 hover:text-indigo-600'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
+                    title={course.status?.toLowerCase() !== 'pending' ? 'Only pending courses can be edited' : (course.isFrozen ? 'Course is frozen by admin' : 'Edit course')}
                   >
                     {isLoadingEditData ? (
                       <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600"></div>
@@ -998,10 +1028,17 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
+                      const s = (course.status || '').toLowerCase();
+                      const isDeactivated = (s === 'approved' || s === 'active') && course.isActive === false;
+                      if (isDeactivated) {
+                        showErrorToast('Deactivated courses cannot be deleted.');
+                        return;
+                      }
                       handleDeleteCourse(course);
                     }}
-                    className="w-9 h-9 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 rounded-lg transition-all duration-200 flex items-center justify-center"
-                    title="Delete course"
+                    disabled={(course.status === 'approved' || course.status === 'active') && course.isActive === false}
+                    className={`w-9 h-9 rounded-lg transition-all duration-200 flex items-center justify-center ${((course.status === 'approved' || course.status === 'active') && course.isActive === false) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600'}`}
+                    title={((course.status === 'approved' || course.status === 'active') && course.isActive === false) ? 'Deactivated courses cannot be deleted' : 'Delete course'}
                   >
                     <FaTrash className="text-xs" />
                   </button>
@@ -1082,7 +1119,7 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
             timezone: editingCourse.timezone || '',
             duration: editingCourse.courseDuration || editingCourse.duration || ''
           })}
-          <CreateCourseForm
+      <CreateCourseForm
             onClose={() => {
               setShowEditForm(false);
               setEditingCourse(null);
@@ -1093,10 +1130,11 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
               description: editingCourse.description || '',
               benefits: editingCourse.benefits || '',
               category: editingCourse.category || '',
-              program: editingCourse.program || 'morning' as const,
+              program: (['morning','afternoon','evening'].includes(String(editingCourse.program)) ? (editingCourse.program as 'morning'|'afternoon'|'evening') : 'morning'),
               credits: Number(editingCourse.price) || 0,  // API returns price as string
               timezone: editingCourse.timezone || '',
-              duration: editingCourse.courseDuration || editingCourse.duration || '',
+        courseDuration: String(editingCourse.courseDuration || editingCourse.duration || ''),
+        courseDurationNumber: typeof editingCourse.duration === 'number' ? editingCourse.duration : undefined,
               weeklySchedule: editingCourse.weeklySchedule || [
                 { day: 'SUNDAYS', isActive: false, timeSlots: [] },
                 { day: 'MONDAYS', isActive: false, timeSlots: [] },

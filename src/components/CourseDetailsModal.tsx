@@ -47,6 +47,8 @@ interface CourseSubmission {
   submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;
+  isFrozen?: boolean;
+  isActive?: boolean;
 }
 
 interface CourseDetailsModalProps {
@@ -57,7 +59,7 @@ interface CourseDetailsModalProps {
   onReject: () => void;
   isLoading: boolean;
   formatTimeDisplay: (time: string) => string;
-  getStatusBadge: (status: string) => JSX.Element;
+  getStatusBadge: (status: string, opts?: { isFrozen?: boolean; isActive?: boolean }) => React.ReactNode;
   onViewCoachDetails?: (coachEmail: string) => void;
 }
 
@@ -88,7 +90,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
         console.log('Coaches API Response:', response);
         
         // Handle the API response structure
-        let coaches = [];
+  let coaches: any[] = [];
         if (response.data && response.data.data && response.data.data.coaches) {
           coaches = response.data.data.coaches;
         }
@@ -201,7 +203,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
                   </p>
                 </div>
               </div>
-              {getStatusBadge(selectedCourse.status)}
+              {getStatusBadge(selectedCourse.status, { isFrozen: selectedCourse.isFrozen, isActive: selectedCourse.isActive })}
             </div>
           </div>
 
@@ -227,9 +229,9 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
                       </div>
                     </div>
                   )}
-                  {selectedCourse.videoUrl && (
+          {selectedCourse.videoUrl && (
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                      <button className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg">
+            <button className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg" aria-label="Play preview video" title="Play preview video">
                         <FaPlay className="text-gray-800 text-xl sm:text-2xl ml-1" />
                       </button>
                     </div>
@@ -369,7 +371,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
                   </div>
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <span className="text-gray-600 font-medium">Current Status:</span>
-                    <div>{getStatusBadge(selectedCourse.status)}</div>
+                    <div>{getStatusBadge(selectedCourse.status, { isFrozen: selectedCourse.isFrozen, isActive: selectedCourse.isActive })}</div>
                   </div>
                 </div>
               </div>

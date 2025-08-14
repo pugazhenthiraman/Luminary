@@ -13,6 +13,7 @@ import RegisterParent from "./Login/RegisterParent";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EmailVerifyLink from "./components/EmailVerifyLink";
 import ResetPassword from "./components/ResetPassword";
+import ProfileOverview from "./components/ProfileOverview";
 
 function App() {
   const location = useLocation();
@@ -35,6 +36,7 @@ function App() {
         />
         <Route path="/verify-email/:token" element={<EmailVerifyLink />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/profile" element={<ProfileOverview />} />
         <Route
           path="/admin/dashboard"
           element={

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import Header from './components/Header';
@@ -38,6 +38,10 @@ const ParentDashboard: React.FC = () => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
+  // Guards to avoid duplicate fetches in React StrictMode and to lazy-load
+  const didInitRef = useRef(false);
+  const didLoadParentDataRef = useRef(false);
+  const didLoadCoursesRef = useRef(false);
   
   // Parent-specific data states
   const [children, setChildren] = useState<any[]>([]);
@@ -53,20 +57,22 @@ const ParentDashboard: React.FC = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Check if user is authenticated and has PARENT role
-      if (!isAuthenticated || !user || user.role !== 'PARENT') {
-        console.log('ParentDashboard: Authentication check failed');
-        console.log('isAuthenticated:', isAuthenticated);
-        console.log('user:', user);
+      // Avoid duplicate run in StrictMode; wait until auth is ready
+      if (didInitRef.current) return;
+      if (!isAuthenticated || !user) return; // wait for auth hydration
+
+      if (user.role !== 'PARENT') {
         navigate('/loginParent');
         return;
       }
+
+      didInitRef.current = true;
 
       try {
         // Get children data from API
         const childrenResponse = await getChildren();
         const childrenData = childrenResponse.data?.data || [];
-        
+
         // Set parent data from authenticated user
         setParentData({
           id: user.id,
@@ -76,7 +82,7 @@ const ParentDashboard: React.FC = () => {
           role: user.role,
           children: childrenData
         });
-        
+
         setChildren(childrenData);
       } catch (error) {
         console.error('Error loading children data:', error);
@@ -90,9 +96,9 @@ const ParentDashboard: React.FC = () => {
           children: []
         });
         setChildren([]);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     };
 
     checkAuth();
@@ -100,13 +106,12 @@ const ParentDashboard: React.FC = () => {
 
   // Load parent-specific data (enrollments, sessions, schedule)
   useEffect(() => {
-    if (!isAuthenticated || !user || user.role !== 'PARENT') {
-      return;
-    }
+    if (!isAuthenticated || !user || user.role !== 'PARENT') return;
+    if (didLoadParentDataRef.current) return; // avoid duplicate in StrictMode
 
     const loadParentData = async () => {
       setParentDataLoading(true);
-      
+
       try {
         // Load all parent data in parallel
         const [enrollmentsRes, sessionsRes, scheduleRes] = await Promise.allSettled([
@@ -152,6 +157,7 @@ const ParentDashboard: React.FC = () => {
         setSchedule([]);
       } finally {
         setParentDataLoading(false);
+        didLoadParentDataRef.current = true;
       }
     };
 
@@ -176,22 +182,22 @@ const ParentDashboard: React.FC = () => {
     localStorage.setItem('parentActiveTab', activeTab);
   }, [activeTab]);
 
-  // Load approved public courses from backend
+  // Lazy-load approved public courses only when the Courses tab is opened
   useEffect(() => {
+    if (activeTab !== 'courses') return;
+    if (didLoadCoursesRef.current) return;
+
     (async () => {
       try {
         setCoursesLoading(true);
         const res = await getPublicCourses({ page: 1, limit: 50, sortBy: 'createdAt', sortOrder: 'desc' });
         const apiCourses = (res.data?.data?.courses || []).map((c: any) => {
-          console.log(`[Parent] Course ${c.title} thumbnail:`, c.thumbnail);
-          console.log(`[Parent] Course ${c.title} coach data:`, c.coach);
-          
           // Extract coach information from the nested coach object
           const coach = c.coach || {};
-          const coachName = coach.firstName && coach.lastName 
+          const coachName = coach.firstName && coach.lastName
             ? `${coach.firstName} ${coach.lastName}`.trim()
             : coach.name || 'Unknown Coach';
-          
+
           return {
             id: String(c.id),
             title: c.title,
@@ -199,10 +205,10 @@ const ParentDashboard: React.FC = () => {
             benefits: c.benefits || '',
             category: c.category,
             program: c.program || 'morning',
-            credits: Number(c.price || 0), // Use price instead of creditCost
+            credits: Number(c.price || 0),
             timezone: c.timezone || 'UTC',
             weeklySchedule: Array.isArray(c.weeklySchedule) ? c.weeklySchedule : [],
-            thumbnail: c.thumbnail || '', // Handle null thumbnails
+            thumbnail: c.thumbnail || '',
             introVideo: c.videoUrl || '',
             level: c.level || 'BEGINNER',
             duration: c.courseDuration || `${c.duration} weeks`,
@@ -210,10 +216,9 @@ const ParentDashboard: React.FC = () => {
             coach: {
               id: String(coach.id || ''),
               name: coachName,
-              avatar: coach.avatar || coach.profileImageUrl || '', // Handle null avatars
+              avatar: coach.avatar || coach.profileImageUrl || '',
               rating: Number(coach.rating || 0),
               totalReviews: Number(coach.totalReviews || 0),
-              // Additional coach fields for the detail modal
               firstName: coach.firstName || '',
               lastName: coach.lastName || '',
               email: coach.email || '',
@@ -227,21 +232,21 @@ const ParentDashboard: React.FC = () => {
           };
         });
         setAvailableCourses(apiCourses);
-        
+
         // Test all thumbnails
         setTimeout(() => {
           testAllThumbnails(apiCourses);
         }, 1000);
-        
+
         setCoursesLoading(false);
+        didLoadCoursesRef.current = true;
       } catch (e) {
         console.error('[Parent] Failed to load courses from API:', e);
-        // Set empty array instead of mock data
         setAvailableCourses([]);
         setCoursesLoading(false);
       }
     })();
-  }, []);
+  }, [activeTab]);
 
   // Show loading while checking authentication or loading parent data
   if (isLoading || parentDataLoading) {

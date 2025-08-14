@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useAuth } from '../hooks/useAuth';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { FaUserCircle, FaUser, FaSignOutAlt, FaExchangeAlt, FaHome, FaBars, FaTimes } from 'react-icons/fa';
+import UserProfileMenu from './UserProfileMenu';
 
 const isLoggedIn = () => {
   return !!localStorage.getItem('user');
@@ -232,54 +233,15 @@ const Header = () => {
               </NavLink>
             </>
           ) : (
-            <div className="relative" ref={profileRef}>
-              <button 
-                className="p-2 md:p-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105 relative group shadow-sm hover:shadow-lg border border-transparent hover:border-gray-200" 
-                onClick={handleProfileToggle} 
-                title="Profile Menu" 
-                aria-label="Profile Menu"
-              >
-                <FaUserCircle className="text-2xl md:text-3xl transition-transform duration-300 group-hover:scale-105" />
-              </button>
-              {showProfileDropdown && (
-                <div 
-                  className="absolute top-full right-0 bg-white rounded-xl shadow-2xl p-2 min-w-48 z-50 mt-2 border-2 border-gray-200 animate-in slide-in-from-top-2 duration-200"
-                  onMouseDown={e => e.stopPropagation()}
-                >
-                  <button 
-                    className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
-                    onClick={handleProfileClick}
-                  >
-                    <FaUser className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
-                    Profile
-                  </button>
-                  {roles.length > 1 && (
-                    <button 
-                      className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-gray-700 cursor-pointer transition-all duration-200 text-left hover:bg-gray-100 rounded-lg hover:scale-105 group" 
-                      onClick={handleSwitchRole}
-                    >
-                      <FaExchangeAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
-                      Switch Role
-                    </button>
-                  )}
-                  <button 
-                    className="flex items-center gap-3 w-full bg-transparent border-none p-3 text-sm font-medium text-red-600 cursor-pointer transition-all duration-200 text-left hover:bg-red-50 rounded-lg hover:scale-105 group" 
-                    onClick={handleLogout}
-                  >
-                    <FaSignOutAlt className="text-base opacity-70 transition-transform duration-200 group-hover:scale-110" />
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
+            <UserProfileMenu triggerVariant="icon" />
           )}
         </nav>
 
         {/* Mobile Menu Button */}
         <div className="md:hidden flex items-center space-x-2">
           {loggedIn && (
-            <div className="relative" ref={profileRef}>
-              {/* ...existing code for mobile profile icon, dropdown, and logout... */}
+            <div className="relative">
+              <UserProfileMenu triggerVariant="icon" />
             </div>
           )}
           <button

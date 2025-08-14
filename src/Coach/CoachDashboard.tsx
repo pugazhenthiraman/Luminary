@@ -126,21 +126,28 @@ const CoachDashboard: React.FC = () => {
                 ? root
                 : [];
         // Normalize to the shape expected by Courses component
-        const normalized = (Array.isArray(list) ? list : []).map((c: any) => ({
+        const normalized = (Array.isArray(list) ? list : []).map((c: any) => {
+          const rawStatus = (typeof c.status === 'string') ? c.status.toLowerCase() : undefined;
+          const isActive = Boolean(c.isActive);
+          const status = rawStatus ?? (isActive ? 'approved' : 'pending');
+          return {
           id: c.id || c._id,
           title: c.title || c.name || 'Untitled',
           thumbnail: c.thumbnail || c.imageUrl || '',
           students: c.studentsCount || c.enrolledCount || 0,
           rating: c.rating || 0,
           price: Number(c.creditCost ?? c.price ?? 0),
-            status: c.status || (c.isActive ? 'approved' : 'pending'), // Show actual status if available
+          status,
+          isActive,
+          isFrozen: Boolean((c as any).isFrozen),
           category: c.category || 'Uncategorized',
           duration: c.courseDuration || c.duration || '—',
           lessons: c.lessonsCount || c.lessons || 0,
           weeklySchedule: c.weeklySchedule || [],
           videoThumbnail: c.videoThumbnail || '',
           hasVideo: Boolean(c.videoUrl)
-        }));
+          };
+        });
         setApiCourses(normalized);
       } catch (e) {
         console.error('Failed to load courses for coach:', e);
@@ -197,7 +204,13 @@ const CoachDashboard: React.FC = () => {
     switch (activeTab) {
       case 'overview':
         return <Overview 
-          coachData={coachData} 
+          coachData={{
+            name: `${coachData.firstName} ${coachData.lastName}`,
+            totalStudents: 0,
+            totalCourses: apiCourses.length,
+            totalEarnings: 0,
+            rating: 0,
+          }} 
           recentActivity={[]} 
           upcomingSessions={[]}
           onTabChange={handleTabChange}
@@ -211,10 +224,26 @@ const CoachDashboard: React.FC = () => {
       case 'analytics':
         return <Analytics />;
       case 'profile':
-        return <Profile coachData={coachData} />;
+        return <Profile coachData={{
+          name: `${coachData.firstName} ${coachData.lastName}`,
+          email: coachData.email,
+          avatar: '',
+          rating: 0,
+          totalStudents: 0,
+          totalCourses: apiCourses.length,
+          totalEarnings: 0,
+          experience: '',
+          specialization: '',
+        }} />;
       default:
         return <Overview 
-          coachData={coachData} 
+          coachData={{
+            name: `${coachData.firstName} ${coachData.lastName}`,
+            totalStudents: 0,
+            totalCourses: apiCourses.length,
+            totalEarnings: 0,
+            rating: 0,
+          }} 
           recentActivity={[]} 
           upcomingSessions={[]}
           onTabChange={handleTabChange}

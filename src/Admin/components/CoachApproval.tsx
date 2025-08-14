@@ -4,7 +4,7 @@ import CoachDetailsModal from '../../components/CoachDetailsModal';
 import { FaCheck, FaTimes, FaEye, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaClock, FaSpinner, FaGlobe } from 'react-icons/fa';
 import Avatar from '../../components/Avatar';
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
-import { getCoaches, approveCoach, rejectCoach } from '../../api/admin';
+import { getCoaches, approveCoach, rejectCoach, deactivateApprovedCoach, activateRejectedCoach } from '../../api/admin';
 
 export interface CoachData {
   id: string;
@@ -325,6 +325,32 @@ const CoachApproval: React.FC = () => {
                           <>
                             <button onClick={() => confirmApprove(coach.id)} disabled={isApproving || isRejecting} className="text-green-600 hover:text-green-900 p-1 disabled:opacity-50" title="Approve">{isApproving ? <FaSpinner className="animate-spin" /> : <FaCheck />}</button>
                             <button onClick={() => confirmReject(coach.id)} disabled={isApproving || isRejecting} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" title="Reject">{isRejecting ? <FaSpinner className="animate-spin" /> : <FaTimes />}</button>
+                          </>
+                        )}
+                        {coach.status === 'approved' && (
+                          <>
+                            <button onClick={async () => {
+                              try {
+                                await deactivateApprovedCoach(coach.id);
+                                showSuccessToast('Coach moved to Rejected');
+                                loadCoaches();
+                              } catch (e) {
+                                showErrorToast('Failed to deactivate coach');
+                              }
+                            }} className="text-red-600 hover:text-red-900 p-1" title="Deactivate (move to Rejected)"><FaTimes /></button>
+                          </>
+                        )}
+                        {coach.status === 'rejected' && (
+                          <>
+                            <button onClick={async () => {
+                              try {
+                                await activateRejectedCoach(coach.id);
+                                showSuccessToast('Coach set to Pending');
+                                loadCoaches();
+                              } catch (e) {
+                                showErrorToast('Failed to activate coach');
+                              }
+                            }} className="text-yellow-600 hover:text-yellow-900 p-1" title="Activate (move to Pending)"><FaCheck /></button>
                           </>
                         )}
                       </div>

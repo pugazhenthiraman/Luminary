@@ -52,10 +52,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onToggleSidebar }) => {
             </div>
           </div>
 
-          {/* Right side - Empty for now */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Future: Add notifications or other header actions here if needed */}
-          </div>
+          {/* Right side (profile handled by global header) */}
+          <div className="flex items-center space-x-2 sm:space-x-4"></div>
         </div>
       </div>
     </header>
