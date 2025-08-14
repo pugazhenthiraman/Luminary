@@ -12,7 +12,9 @@ import {
   FaFileAlt,
   FaEnvelope,
   FaPhone,
-  FaLanguage
+  FaLanguage,
+  FaPauseCircle,
+  FaSnowflake
 } from 'react-icons/fa';
 import Avatar from './Avatar';
 import { getGradient } from '../utils/getGradient';
@@ -61,6 +63,14 @@ interface CourseDetailsModalProps {
   formatTimeDisplay: (time: string) => string;
   getStatusBadge: (status: string, opts?: { isFrozen?: boolean; isActive?: boolean }) => React.ReactNode;
   onViewCoachDetails?: (coachEmail: string) => void;
+  onFreezePending?: (courseId: number) => void;
+  onUnfreezePending?: (courseId: number) => void;
+  onDeactivateApproved?: (courseId: number) => void;
+  onActivateDeactivated?: (courseId: number) => void;
+  isFreezing?: boolean;
+  isUnfreezing?: boolean;
+  isDeactivating?: boolean;
+  isActivating?: boolean;
 }
 
 const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
@@ -72,12 +82,28 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
   isLoading,
   formatTimeDisplay,
   getStatusBadge,
-  onViewCoachDetails
+  onViewCoachDetails,
+  onFreezePending,
+  onUnfreezePending,
+  onDeactivateApproved,
+  onActivateDeactivated,
+  isFreezing,
+  isUnfreezing,
+  isDeactivating,
+  isActivating
 }) => {
   const [coachPhone, setCoachPhone] = React.useState<string | null>(null);
   const [coachPhoneLoading, setCoachPhoneLoading] = React.useState(false);
 
   if (!showModal || !selectedCourse) return null;
+
+  // Compute display status for the banner/title based on extra flags
+  const displayStatus = (() => {
+    const s = (selectedCourse.status || '').toLowerCase();
+    if ((s === 'approved' || s === 'active') && selectedCourse.isActive === false) return 'deactivated';
+    if (s === 'pending' && selectedCourse.isFrozen) return 'frozen';
+    return s;
+  })();
 
   // Fetch coach phone number from coaches API
   React.useEffect(() => {
@@ -177,25 +203,31 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-32">
           
-          {/* Status Banner */}
-          <div className={`p-4 rounded-xl border-l-4 bg-white shadow-sm mb-6 ${
-            selectedCourse.status === 'pending' ? 'border-yellow-400' :
-            selectedCourse.status === 'approved' ? 'border-green-400' :
-            'border-red-400'
+      {/* Status Banner */}
+      <div className={`p-4 rounded-xl border-l-4 bg-white shadow-sm mb-6 ${
+        displayStatus === 'pending' ? 'border-yellow-400' :
+        displayStatus === 'approved' ? 'border-green-400' :
+        displayStatus === 'deactivated' ? 'border-gray-400' :
+        displayStatus === 'frozen' ? 'border-sky-400' :
+        'border-red-400'
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  selectedCourse.status === 'pending' ? 'bg-yellow-100' :
-                  selectedCourse.status === 'approved' ? 'bg-green-100' :
-                  'bg-red-100'
+          displayStatus === 'pending' ? 'bg-yellow-100' :
+          displayStatus === 'approved' ? 'bg-green-100' :
+          displayStatus === 'deactivated' ? 'bg-gray-100' :
+          displayStatus === 'frozen' ? 'bg-sky-100' :
+          'bg-red-100'
                 }`}>
-                  {selectedCourse.status === 'pending' && <FaClock className="text-yellow-600" />}
-                  {selectedCourse.status === 'approved' && <FaCheck className="text-green-600" />}
-                  {selectedCourse.status === 'rejected' && <FaTimes className="text-red-600" />}
+          {displayStatus === 'pending' && <FaClock className="text-yellow-600" />}
+          {displayStatus === 'approved' && <FaCheck className="text-green-600" />}
+          {displayStatus === 'rejected' && <FaTimes className="text-red-600" />}
+                  {displayStatus === 'deactivated' && <FaPauseCircle className="text-gray-600" />}
+                  {displayStatus === 'frozen' && <FaSnowflake className="text-sky-600" />}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 capitalize">{selectedCourse.status} Course</h3>
+          <h3 className="font-semibold text-gray-900 capitalize">{displayStatus} Course</h3>
                   <p className="text-sm text-gray-600">
                     Submitted on {new Date(selectedCourse.submittedAt).toLocaleDateString('en-US', {
                       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -520,46 +552,71 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
       </div>
 
       {/* Fixed Action Buttons at Bottom */}
-      {selectedCourse.status === 'pending' && (
-        <div className="bg-white border-t border-gray-200 p-4 sm:p-6 flex-shrink-0 shadow-lg">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 max-w-2xl mx-auto">
+      <div className="bg-white border-t border-gray-200 p-4 sm:p-6 flex-shrink-0 shadow-lg">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-wrap items-stretch sm:justify-center">
+            {selectedCourse.status === 'pending' && !selectedCourse.isFrozen && (
+              <>
+                <button
+                  onClick={() => onApprove(selectedCourse.id)}
+                  disabled={isLoading}
+                  className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 sm:py-3 px-6 sm:px-6 rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 font-semibold text-sm shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-3"
+                >
+                  {isLoading ? <FaSpinner className="animate-spin" /> : (<><FaCheck /> <span>Approve</span></>)}
+                </button>
+                <button
+                  onClick={onReject}
+                  disabled={isLoading}
+                  className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-rose-500 to-rose-600 text-white py-3 sm:py-3 px-6 sm:px-6 rounded-xl hover:from-rose-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 font-semibold text-sm shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-3"
+                >
+                  {isLoading ? <FaSpinner className="animate-spin" /> : (<><FaTimes /> <span>Reject</span></>)}
+                </button>
+                <button
+                  onClick={() => onFreezePending && onFreezePending(selectedCourse.id)}
+                  disabled={!!isFreezing}
+                  className="flex-1 sm:flex-none min-w-[180px] bg-sky-100 text-sky-800 border border-sky-200 py-3 px-6 rounded-xl disabled:opacity-50"
+                  title="Freeze pending course"
+                >
+                  {isFreezing ? 'Freezing…' : 'Freeze'}
+                </button>
+              </>
+            )}
+
+            {selectedCourse.status === 'pending' && selectedCourse.isFrozen && (
               <button
-                onClick={() => onApprove(selectedCourse.id)}
-                disabled={isLoading}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 sm:py-4 px-6 sm:px-8 rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 font-bold text-base sm:text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-3 sm:gap-4"
+                onClick={() => onUnfreezePending && onUnfreezePending(selectedCourse.id)}
+                disabled={!!isUnfreezing}
+                className="flex-1 sm:flex-none min-w-[180px] bg-amber-100 text-amber-800 border border-amber-200 py-3 px-6 rounded-xl disabled:opacity-50"
+                title="Unfreeze pending course"
               >
-                {isLoading ? (
-                  <FaSpinner className="animate-spin text-xl sm:text-2xl" />
-                ) : (
-                  <>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center">
-                      <FaCheck className="text-sm sm:text-lg" />
-                    </div>
-                    <span>Approve Course</span>
-                  </>
-                )}
+                {isUnfreezing ? 'Unfreezing…' : 'Unfreeze'}
               </button>
+            )}
+
+            {selectedCourse.status === 'approved' && (selectedCourse.isActive !== false) && (
               <button
-                onClick={onReject}
-                disabled={isLoading}
-                className="flex-1 bg-gradient-to-r from-rose-500 to-rose-600 text-white py-3 sm:py-4 px-6 sm:px-8 rounded-xl hover:from-rose-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 font-bold text-base sm:text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-3 sm:gap-4"
+                onClick={() => onDeactivateApproved && onDeactivateApproved(selectedCourse.id)}
+                disabled={!!isDeactivating}
+                className="flex-1 sm:flex-none min-w-[180px] bg-amber-600 text-white py-3 px-6 rounded-xl disabled:opacity-50"
+                title="Deactivate course"
               >
-                {isLoading ? (
-                  <FaSpinner className="animate-spin text-xl sm:text-2xl" />
-                ) : (
-                  <>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center">
-                      <FaTimes className="text-sm sm:text-lg" />
-                    </div>
-                    <span>Reject Course</span>
-                  </>
-                )}
+                {isDeactivating ? 'Deactivating…' : 'Deactivate'}
               </button>
-            </div>
+            )}
+
+            {selectedCourse.status === 'approved' && (selectedCourse.isActive === false) && (
+              <button
+                onClick={() => onActivateDeactivated && onActivateDeactivated(selectedCourse.id)}
+                disabled={!!isActivating}
+                className="flex-1 sm:flex-none min-w-[180px] bg-emerald-600 text-white py-3 px-6 rounded-xl disabled:opacity-50"
+                title="Activate course"
+              >
+                {isActivating ? 'Activating…' : 'Activate'}
+              </button>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

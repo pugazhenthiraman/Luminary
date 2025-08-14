@@ -392,6 +392,8 @@ const CourseApproval: React.FC = () => {
     try {
       await deactivateCourse(courseId, reason, { signal: ctrl.signal, timeout: 15000 });
       showSuccessToast('Course deactivated');
+  // Reflect in open modal immediately
+  setSelectedCourse((prev: any) => (prev && prev.id === courseId) ? { ...prev, isActive: false } : prev);
       await loadCourses();
       setShowDeactivateConfirm(false);
       setCourseToDeactivate(null);
@@ -419,6 +421,8 @@ const CourseApproval: React.FC = () => {
     try {
       await activateDeactivatedCourse(courseId, note, { signal: ctrl.signal, timeout: 15000 });
       showSuccessToast('Course activated');
+  // Reflect in open modal immediately
+  setSelectedCourse((prev: any) => (prev && prev.id === courseId) ? { ...prev, isActive: true } : prev);
       await loadCourses();
       setShowActivateConfirm(false);
       setCourseToActivate(null);
@@ -446,6 +450,8 @@ const CourseApproval: React.FC = () => {
     try {
       await freezePendingCourse(courseId, { signal: ctrl.signal, timeout: 15000 });
       showSuccessToast('Course frozen (pending edits disabled)');
+  // Reflect in open modal immediately
+  setSelectedCourse((prev: any) => (prev && prev.id === courseId) ? { ...prev, isFrozen: true } : prev);
       await loadCourses();
       setShowFreezeConfirm(false);
       setCourseToFreeze(null);
@@ -472,6 +478,8 @@ const CourseApproval: React.FC = () => {
     try {
       await unfreezePendingCourse(courseId, { signal: ctrl.signal, timeout: 15000 });
       showSuccessToast('Course unfrozen (edits allowed)');
+  // Reflect in open modal immediately
+  setSelectedCourse((prev: any) => (prev && prev.id === courseId) ? { ...prev, isFrozen: false } : prev);
       await loadCourses();
       setShowUnfreezeConfirm(false);
       setCourseToUnfreeze(null);
@@ -1113,6 +1121,14 @@ const CourseApproval: React.FC = () => {
           formatTimeDisplay={formatTimeDisplay}
           getStatusBadge={getStatusBadge}
           onViewCoachDetails={(coachEmail) => handleViewCoachDetails(coachEmail)}
+          onFreezePending={(id) => { setCourseToFreeze(selectedCourse); setShowFreezeConfirm(true); }}
+          onUnfreezePending={(id) => { setCourseToUnfreeze(selectedCourse); setShowUnfreezeConfirm(true); }}
+          onDeactivateApproved={(id) => { setCourseToDeactivate(selectedCourse); setShowDeactivateConfirm(true); }}
+          onActivateDeactivated={(id) => { setCourseToActivate(selectedCourse); setShowActivateConfirm(true); }}
+          isFreezing={isFreezing}
+          isUnfreezing={isUnfreezing}
+          isDeactivating={isDeactivating}
+          isActivating={isActivating}
         />
       ) : null}
       {/* Reject Reason Modal */}

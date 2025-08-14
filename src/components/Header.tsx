@@ -40,6 +40,7 @@ const Header = () => {
   const { isAuthenticated } = useAuthStore();
   const loggedIn = isAuthenticated;
   const roles = getAvailableRoles();
+  const currentRole = localStorage.getItem('activeRole') || (roles.length > 0 ? roles[0] : '');
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -244,25 +245,28 @@ const Header = () => {
               <UserProfileMenu triggerVariant="icon" />
             </div>
           )}
-          <button
-            ref={hamburgerRef}
-            onClick={handleMobileMenuToggle}
-            className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105"
-            aria-label={showMobileMenu ? "Close mobile menu" : "Open mobile menu"}
-            aria-expanded={showMobileMenu}
-            aria-controls="mobile-menu"
-          >
-            {showMobileMenu ? (
-              <FaTimes className="text-xl" />
-            ) : (
-              <FaBars className="text-xl" />
-            )}
-          </button>
+          {/* Hide hamburger for Parent role (logged in) as it's not needed */}
+          {(!loggedIn || currentRole !== 'PARENT') && (
+            <button
+              ref={hamburgerRef}
+              onClick={handleMobileMenuToggle}
+              className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all duration-300 hover:scale-105"
+              aria-label={showMobileMenu ? "Close mobile menu" : "Open mobile menu"}
+              aria-expanded={showMobileMenu}
+              aria-controls="mobile-menu"
+            >
+              {showMobileMenu ? (
+                <FaTimes className="text-xl" />
+              ) : (
+                <FaBars className="text-xl" />
+              )}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Mobile Navigation Menu */}
-      {showMobileMenu && (
+  {showMobileMenu && (!loggedIn || currentRole !== 'PARENT') && (
         <div 
           ref={mobileMenuRef}
           id="mobile-menu"
@@ -300,13 +304,15 @@ const Header = () => {
               </>
             ) : (
               <div className="space-y-2">
-                <button 
-                  className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-300 text-left" 
-                  onClick={handleProfileClick}
-                >
-                  <FaUser className="text-lg" />
-                  Profile
-                </button>
+                {currentRole !== 'PARENT' && (
+                  <button 
+                    className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-300 text-left" 
+                    onClick={handleProfileClick}
+                  >
+                    <FaUser className="text-lg" />
+                    Profile
+                  </button>
+                )}
                 {roles.length > 1 && (
                   <button 
                     className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-300 text-left" 
@@ -316,13 +322,15 @@ const Header = () => {
                     Switch Role
                   </button>
                 )}
-                <button 
-                  className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-300 text-left" 
-                  onClick={handleLogout}
-                >
-                  <FaSignOutAlt className="text-lg" />
-                  Logout
-                </button>
+                {currentRole !== 'PARENT' && (
+                  <button 
+                    className="flex items-center gap-3 w-full px-4 py-3 text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-300 text-left" 
+                    onClick={handleLogout}
+                  >
+                    <FaSignOutAlt className="text-lg" />
+                    Logout
+                  </button>
+                )}
               </div>
             )}
           </nav>

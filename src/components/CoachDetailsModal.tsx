@@ -1,6 +1,15 @@
 import React from 'react';
 import { FaUser, FaTimes, FaGraduationCap, FaClock, FaGlobe, FaFileAlt, FaPlay, FaCheck, FaEnvelope, FaPhone } from 'react-icons/fa';
-import { CoachData } from '../Admin/components/CoachApproval';
+import { CoachData as BaseCoachData } from '../Admin/components/CoachApproval';
+
+// Extend the base CoachData with optional fields used in this modal UI
+type CoachData = BaseCoachData & {
+  specializations?: string[];
+  bio?: string;
+  rating?: number;
+  totalReviews?: number;
+  isFrozen?: boolean;
+};
 
 interface CoachDetailsModalProps {
   coach: CoachData;
@@ -11,6 +20,13 @@ interface CoachDetailsModalProps {
   isLoading?: boolean;
   showActions?: boolean;
   confirmReject?: (coachId: string) => void;
+  // Freeze is not used in coach approval UI anymore
+  onSuspendApproved?: (coachId: string) => void;
+  onReactivateSuspended?: (coachId: string) => void;
+  onActivateRejected?: (coachId: string) => void;
+  // Removed freezing flags
+  isSuspending?: boolean;
+  isReactivating?: boolean;
 }
 
 const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
@@ -22,6 +38,11 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
   isLoading = false,
   showActions = false,
   confirmReject,
+  onSuspendApproved,
+  onReactivateSuspended,
+  onActivateRejected,
+  isSuspending,
+  isReactivating,
 }) => {
   console.log("CoachDetailsModal render:", { show, coach: coach?.firstName, coachId: coach?.id });
   
@@ -29,6 +50,26 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
     console.log("CoachDetailsModal not showing:", { show, hasCoach: !!coach });
     return null;
   }
+
+  // Prevent background scroll while modal is open
+  React.useEffect(() => {
+    if (!show) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow || '';
+    };
+  }, [show]);
+
+  // Close on Escape
+  React.useEffect(() => {
+    if (!show) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [show, onClose]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -39,12 +80,12 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-2 sm:p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[98vh] overflow-hidden touch-pan-y">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[98vh] overflow-hidden touch-pan-y flex flex-col">
         {/* Mobile drag indicator */}
         <div className="sm:hidden w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-2"></div>
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 sm:p-6 rounded-t-xl">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 sm:p-6 rounded-t-xl flex-shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
               <div className="w-8 h-8 sm:w-16 sm:h-16 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
@@ -71,8 +112,8 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
           </div>
         </div>
 
-        {/* Coach Information Card - Perfect Mobile, Fixed Desktop */}
-        <div className="p-3 sm:p-6">
+  {/* Coach Information Card - Perfect Mobile, Fixed Desktop */}
+  <div className="p-3 sm:p-6 flex-shrink-0">
           <div className="bg-blue-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
             {/* Mobile: Stack vertically, Desktop: Side by side */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
@@ -113,8 +154,8 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
           </div>
         </div>
 
-        {/* Content - Mobile optimized scrolling */}
-        <div className="overflow-y-auto max-h-[calc(98vh-200px)] sm:max-h-[calc(98vh-220px)]">
+  {/* Content - Mobile optimized scrolling */}
+  <div className="overflow-y-auto flex-1 min-h-0">
           <div className="p-3 sm:p-6 space-y-3 sm:space-y-6 pb-6">
             
             {/* Quick Stats - Updated for real API data */}
@@ -242,26 +283,68 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({
             </div>
 
             {/* Actions */}
-            {showActions && coach.status === 'pending' && (
+            {showActions && (
               <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-200">
                 <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <FaCheck className="text-green-600 mr-2" />Review Decision
+                  <FaCheck className="text-green-600 mr-2" />Available Actions
                 </h4>
-                <div className="flex flex-col sm:flex-row gap-4 sm:gap-10 justify-center">
-                  <button 
-                    onClick={() => onApprove && onApprove(coach.id)} 
-                    disabled={isLoading} 
-                    className="w-full sm:w-40 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 px-5 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 font-medium text-sm shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? <span>Loading...</span> : <span>Approve</span>}
-                  </button>
-                  <button 
-                    onClick={() => confirmReject && confirmReject(coach.id)} 
-                    disabled={isLoading} 
-                    className="w-full sm:w-40 bg-gradient-to-r from-rose-500 to-rose-600 text-white py-3 px-5 rounded-lg hover:from-rose-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 font-medium text-sm shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? <span>Loading...</span> : <span>Reject</span>}
-                  </button>
+                <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
+                  {/* Pending actions */}
+                  {coach.status === 'pending' && (
+                    <>
+                      <button 
+                        onClick={() => onApprove && onApprove(coach.id)} 
+                        disabled={isLoading} 
+                        className="px-4 py-2 rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+                        title="Approve"
+                      >
+                        {isLoading ? 'Loading…' : 'Approve'}
+                      </button>
+                      <button 
+                        onClick={() => confirmReject && confirmReject(coach.id)} 
+                        disabled={isLoading} 
+                        className="px-4 py-2 rounded-lg text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50"
+                        title="Reject"
+                      >
+                        {isLoading ? 'Loading…' : 'Reject'}
+                      </button>
+                    </>
+                  )}
+
+                  {/* Approved -> Suspend */}
+                  {coach.status === 'approved' && (
+                    <button
+                      onClick={() => onSuspendApproved && onSuspendApproved(coach.id)}
+                      disabled={!!isSuspending}
+                      className="px-4 py-2 rounded-lg bg-red-100 text-red-800 border border-red-200 disabled:opacity-50"
+                      title="Suspend (disable login)"
+                    >
+                      {isSuspending ? 'Suspending…' : 'Suspend'}
+                    </button>
+                  )}
+
+                  {/* Suspended -> Reactivate */}
+                  {coach.status === 'suspended' && (
+                    <button
+                      onClick={() => onReactivateSuspended && onReactivateSuspended(coach.id)}
+                      disabled={!!isReactivating}
+                      className="px-4 py-2 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 disabled:opacity-50"
+                      title="Reactivate (to Approved)"
+                    >
+                      {isReactivating ? 'Reactivating…' : 'Reactivate'}
+                    </button>
+                  )}
+
+                  {/* Rejected -> Activate to Pending */}
+                  {coach.status === 'rejected' && (
+                    <button
+                      onClick={() => onActivateRejected && onActivateRejected(coach.id)}
+                      className="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800 border border-yellow-200"
+                      title="Move from Rejected to Pending"
+                    >
+                      Activate (Pending)
+                    </button>
+                  )}
                 </div>
               </div>
             )}

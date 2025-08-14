@@ -31,8 +31,6 @@ const CoachDashboard: React.FC = () => {
   const [apiCourses, setApiCourses] = useState<any[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const navigate = useNavigate();
-  // Countdown for auto-logout when suspended mid-session
-  const [countdown, setCountdown] = useState<number | null>(null);
   
   // Use Zustand auth store
   const { user, accessToken, isAuthenticated, logout: logoutFromStore, sessionBlock, clearSessionBlock, blockSession } = useAuthStore();
@@ -194,27 +192,6 @@ const CoachDashboard: React.FC = () => {
     navigate('/loginCoach');
   };
 
-  // Start 10s countdown when session gets blocked, then auto-logout
-  useEffect(() => {
-    if (sessionBlock?.active) {
-      setCountdown(10);
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev === null) return prev;
-          if (prev <= 1) {
-            clearInterval(timer);
-            handleLogout();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    } else {
-      setCountdown(null);
-    }
-  }, [sessionBlock?.active]);
-
   const handleToggleSidebar = () => {
     setShowSidebar(!showSidebar);
   };
@@ -326,21 +303,7 @@ const CoachDashboard: React.FC = () => {
         </main>
       </div>
 
-      {sessionBlock?.active && (
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-11/12 text-center">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Account Access Restricted</h3>
-            <p className="text-sm text-gray-600 mb-2">{sessionBlock.message || 'Your account has been suspended by Admin.'}</p>
-            <p className="text-xs text-gray-500 mb-4">You will be signed out in {countdown ?? 10}s</p>
-            <button
-              className="w-full bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-900"
-              onClick={handleLogout}
-            >
-              Sign out now
-            </button>
-          </div>
-        </div>
-      )}
+  {/* Session block UI is handled globally by SessionBlockOverlay mounted in App.jsx */}
     </div>
   );
 };

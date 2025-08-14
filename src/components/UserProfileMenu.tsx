@@ -47,6 +47,14 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
     return () => document.removeEventListener('click', onDocClick);
   }, [open]);
 
+  // Prevent background scroll when the menu is open (helps on mobile sheet)
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
   const fetchProfile = async () => {
     if (loadedOnceRef.current) return;
     setLoading(true);
@@ -117,7 +125,10 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
       )}
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[85vw] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50">
+        <>
+        {/* Mobile overlay */}
+        <div className="fixed inset-0 bg-black/20 sm:hidden z-40" onClick={() => setOpen(false)} />
+        <div className="sm:absolute sm:right-0 sm:mt-2 sm:w-80 sm:max-w-[85vw] fixed top-16 left-1/2 -translate-x-1/2 w-[92vw] max-w-[92vw] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50 transition-all">
           {/* Accent header (non-blue) */}
           <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 text-white p-4">
             <div className="flex items-center gap-3">
@@ -135,7 +146,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
           </div>
 
           {/* Scrollable content area with sticky footer for logout */}
-          <div className="max-h-[70vh] overflow-y-auto">
+          <div className="max-h-[65vh] sm:max-h-[70vh] overflow-y-auto">
             <div className="p-4 space-y-3">
               {loading ? (
                 <div className="text-sm text-slate-500">Loading profile…</div>
@@ -214,7 +225,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
           </div>
 
           {/* Sticky footer */}
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-3">
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <button
               onClick={doLogout}
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 shadow-lg shadow-rose-500/20"
@@ -223,6 +234,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
             </button>
           </div>
         </div>
+        </>
       )}
     </div>
   );
