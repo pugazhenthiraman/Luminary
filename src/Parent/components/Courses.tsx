@@ -451,8 +451,14 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
         ? prev.selectedChildren.filter(id => id !== childId)
         : [...prev.selectedChildren, childId];
       
-      // For now, we'll use a fixed price since it's not in the course data
-      const totalPrice = newSelectedChildren.length * 299; // Default price
+      // Compute total based on course credits (or price if provided)
+      const unit = (() => {
+        const p = (enrollCourse as any)?.price;
+        if (typeof p === 'number' && isFinite(p)) return p;
+        const c = enrollCourse?.credits;
+        return typeof c === 'number' && isFinite(c) ? c : 0;
+      })();
+      const totalPrice = newSelectedChildren.length * unit;
       
       return {
         ...prev,
@@ -583,16 +589,17 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   };
 
   const handleNextStep = () => {
-    // Only children step active; nothing further for now
-    if (enrollmentData.selectedChildren.length === 0) {
+  if (enrollmentData.selectedChildren.length === 0) {
       showErrorToast('Please select at least one child to enroll');
       return;
     }
-  // Future: open checkout/payment when enabled
+  // Move to payment step
+  setCurrentStep('payment');
   };
 
   const handlePreviousStep = () => {
-    // Single step for now; nothing to do
+  // Go back to children selection
+  setCurrentStep('children');
   };
 
   const handlePaymentMethodChange = (field: string, value: string) => {

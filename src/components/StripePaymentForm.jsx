@@ -6,7 +6,7 @@ import {
   CardExpiryElement,
   CardCvcElement,
 } from "@stripe/react-stripe-js";
-import { FaCreditCard, FaLock, FaSpinner } from "react-icons/fa";
+import { FaCreditCard, FaLock, FaSpinner, FaUser, FaCalendarAlt, FaKey } from "react-icons/fa";
 
 const CARD_ELEMENT_OPTIONS = {
   style: {
@@ -51,7 +51,7 @@ const StripePaymentForm = ({
     setIsProcessing(true);
     setErrors({});
 
-    const cardNumberElement = elements.getElement(CardNumberElement);
+  const cardNumberElement = elements.getElement(CardNumberElement);
 
     if (!cardholderName.trim()) {
       setErrors({ cardholderName: "Cardholder name is required" });
@@ -80,6 +80,10 @@ const StripePaymentForm = ({
       await onSuccess({
         paymentMethodId: paymentMethod.id,
         cardholderName: cardholderName.trim(),
+        card: {
+          brand: paymentMethod?.card?.brand || null,
+          last4: paymentMethod?.card?.last4 || null,
+        },
         amount,
         currency,
         courseId,
@@ -106,6 +110,22 @@ const StripePaymentForm = ({
       setErrors({ card: event.error.message });
     } else {
       setErrors({ ...errors, card: null });
+    }
+  };
+
+  const handleExpiryChange = (event) => {
+    if (event.error) {
+      setErrors((prev) => ({ ...prev, expiry: event.error.message }));
+    } else {
+      setErrors((prev) => ({ ...prev, expiry: null }));
+    }
+  };
+
+  const handleCvcChange = (event) => {
+    if (event.error) {
+      setErrors((prev) => ({ ...prev, cvc: event.error.message }));
+    } else {
+      setErrors((prev) => ({ ...prev, cvc: null }));
     }
   };
 
@@ -146,17 +166,23 @@ const StripePaymentForm = ({
         >
           Cardholder Name
         </label>
-        <input
-          id="cardholderName"
-          type="text"
-          value={cardholderName}
-          onChange={(e) => setCardholderName(e.target.value)}
-          placeholder="Enter cardholder name"
-          disabled={isFormDisabled}
-          className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-            errors.cardholderName ? "border-red-500" : "border-gray-300"
-          } ${isFormDisabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
-        />
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <FaUser />
+          </div>
+          <input
+            id="cardholderName"
+            type="text"
+            autoComplete="cc-name"
+            value={cardholderName}
+            onChange={(e) => setCardholderName(e.target.value)}
+            placeholder="Enter cardholder name"
+            disabled={isFormDisabled}
+            className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+              errors.cardholderName ? "border-red-500" : "border-gray-300"
+            } ${isFormDisabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
+          />
+        </div>
         {errors.cardholderName && (
           <p className="text-red-500 text-sm mt-1">{errors.cardholderName}</p>
         )}
@@ -168,15 +194,20 @@ const StripePaymentForm = ({
           Card Number
         </label>
         <div
-          className={`w-full px-3 py-3 border rounded-lg transition-colors ${
+          className={`relative w-full border rounded-lg transition-colors ${
             errors.card ? "border-red-500" : "border-gray-300"
           } ${isFormDisabled ? "bg-gray-100" : "bg-white"}`}
         >
-          <CardNumberElement
-            options={CARD_ELEMENT_OPTIONS}
-            onChange={handleCardChange}
-            disabled={isFormDisabled}
-          />
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+            <FaCreditCard />
+          </div>
+          <div className="pl-10 pr-3 py-3">
+            <CardNumberElement
+              options={{ ...CARD_ELEMENT_OPTIONS, disableLink: true }}
+              onChange={handleCardChange}
+              disabled={isFormDisabled}
+            />
+          </div>
         </div>
         {errors.card && (
           <p className="text-red-500 text-sm mt-1">{errors.card}</p>
@@ -190,30 +221,48 @@ const StripePaymentForm = ({
             Expiry Date
           </label>
           <div
-            className={`w-full px-3 py-3 border rounded-lg transition-colors ${
-              errors.card ? "border-red-500" : "border-gray-300"
+            className={`relative w-full border rounded-lg transition-colors ${
+              errors.expiry ? "border-red-500" : "border-gray-300"
             } ${isFormDisabled ? "bg-gray-100" : "bg-white"}`}
           >
-            <CardExpiryElement
-              options={CARD_ELEMENT_OPTIONS}
-              disabled={isFormDisabled}
-            />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+              <FaCalendarAlt />
+            </div>
+            <div className="pl-10 pr-3 py-3">
+              <CardExpiryElement
+                options={CARD_ELEMENT_OPTIONS}
+                onChange={handleExpiryChange}
+                disabled={isFormDisabled}
+              />
+            </div>
           </div>
+          {errors.expiry && (
+            <p className="text-red-500 text-sm mt-1">{errors.expiry}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             CVC
           </label>
           <div
-            className={`w-full px-3 py-3 border rounded-lg transition-colors ${
-              errors.card ? "border-red-500" : "border-gray-300"
+            className={`relative w-full border rounded-lg transition-colors ${
+              errors.cvc ? "border-red-500" : "border-gray-300"
             } ${isFormDisabled ? "bg-gray-100" : "bg-white"}`}
           >
-            <CardCvcElement
-              options={CARD_ELEMENT_OPTIONS}
-              disabled={isFormDisabled}
-            />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+              <FaKey />
+            </div>
+            <div className="pl-10 pr-3 py-3">
+              <CardCvcElement
+                options={CARD_ELEMENT_OPTIONS}
+                onChange={handleCvcChange}
+                disabled={isFormDisabled}
+              />
+            </div>
           </div>
+          {errors.cvc && (
+            <p className="text-red-500 text-sm mt-1">{errors.cvc}</p>
+          )}
         </div>
       </div>
 
