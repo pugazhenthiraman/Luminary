@@ -1,7 +1,7 @@
 import { getGradient } from "../utils/getGradient";
 import { validateThumbnailUrl } from "../utils/thumbnailUtils";
 import React, { useState, useEffect } from "react";
-import { FaEye, FaGraduationCap, FaCalendarAlt } from "react-icons/fa";
+import { FaEye, FaGraduationCap, FaCalendarAlt, FaCreditCard } from "react-icons/fa";
 import Avatar from "./Avatar";
 
 interface Coach {
@@ -30,6 +30,7 @@ interface Course {
   credits: number;
   weeklySchedule: WeeklyDay[];
   thumbnail?: string;
+  price?: number; // Optional USD price if available
 }
 
 interface CourseCardProps {
@@ -79,14 +80,15 @@ const CourseCard: React.FC<CourseCardProps> = ({
       <div className="relative h-40 sm:h-48 rounded-xl overflow-hidden mb-4">
         {course.thumbnail && !thumbnailError ? (
           <>
-            <img
-              src={course.thumbnail}
-              alt={course.title}
-              className="w-full h-full object-cover"
-              onLoad={handleThumbnailLoad}
-              onError={handleThumbnailError}
-              style={{ display: thumbnailLoading ? 'none' : 'block' }}
-            />
+            {!thumbnailLoading && (
+              <img
+                src={course.thumbnail}
+                alt={course.title}
+                className="w-full h-full object-cover"
+                onLoad={handleThumbnailLoad}
+                onError={handleThumbnailError}
+              />
+            )}
             {thumbnailLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -94,17 +96,25 @@ const CourseCard: React.FC<CourseCardProps> = ({
             )}
           </>
         ) : null}
-        <div
-          className={`absolute inset-0 w-full h-full flex items-center justify-center text-white text-lg sm:text-xl font-bold select-none ${getGradient(course.title)}`}
-          style={{ 
-            display: (!course.thumbnail || thumbnailError || thumbnailLoading) ? 'flex' : 'none' 
-          }}
-        >
-          <div className="text-center px-4">
-            <div className="mb-2">{course.title}</div>
-            {thumbnailError && course.thumbnail && (
-              <div className="text-xs opacity-75">Image failed to load</div>
-            )}
+        {(!course.thumbnail || thumbnailError || thumbnailLoading) && (
+          <div
+            className={`absolute inset-0 w-full h-full flex items-center justify-center text-white text-lg sm:text-xl font-bold select-none ${getGradient(course.title)}`}
+          >
+            <div className="text-center px-4">
+              <div className="mb-2">{course.title}</div>
+              {thumbnailError && course.thumbnail && (
+                <div className="text-xs opacity-75">Image failed to load</div>
+              )}
+            </div>
+          </div>
+        )}
+        {/* Credits/Price badge */}
+        <div className="absolute top-2 right-2">
+          <div className="backdrop-blur-sm bg-white/90 text-gray-900 rounded-full px-2.5 py-1 shadow-sm border border-white/70 flex items-center gap-1">
+            <FaCreditCard className="text-blue-600 text-xs" />
+            <span className="text-[11px] font-semibold">
+              {typeof course.price === 'number' ? `$${course.price}` : `${course.credits} Credits`}
+            </span>
           </div>
         </div>
       </div>
@@ -136,7 +146,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
       </p>
 
       {/* Key Info Row */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2 sm:space-x-3">
           <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
             {course.category}
@@ -144,14 +154,30 @@ const CourseCard: React.FC<CourseCardProps> = ({
           <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
             {formatProgram(course.program)}
           </span>
-          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
-            {course.credits} Credits
-          </span>
+        </div>
+      </div>
+
+      {/* Prominent price row */}
+      <div className="mb-3">
+        <div className="flex items-baseline justify-between">
+          <div className="text-gray-900 font-extrabold text-lg sm:text-xl">
+            {typeof course.price === 'number' ? (
+              <span>USD ${course.price}</span>
+            ) : (
+              <span>{course.credits} Credits</span>
+            )}
+          </div>
+          <div className="hidden sm:flex items-center text-xs text-gray-500">
+            <FaCalendarAlt className="text-indigo-600 mr-1" />
+            <span>
+              {course.weeklySchedule.filter(d=>d.isActive).length} days/week
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Schedule Preview */}
-      <div className="mb-4">
+  <div className="mb-4">
         <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
           <FaCalendarAlt className="text-indigo-600 text-xs sm:text-sm" />
           <span className="truncate">

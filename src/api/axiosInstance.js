@@ -34,12 +34,28 @@ axiosInstance.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+    // Prefer a config flag that doesn't go over the wire (no CORS issues).
+    const noLogoutFlag =
+      originalRequest?._noLogoutOn401 === true ||
+      originalRequest?.noLogoutOn401 === true;
+    // Back-compat: also allow an opt-in header if already used elsewhere
+    const noLogoutHeader =
+      originalRequest?.headers?.["X-No-Logout-On-401"] ||
+      originalRequest?.headers?.["x-no-logout-on-401"];
+    const NO_LOGOUT_ON_401 =
+      noLogoutFlag || noLogoutHeader === true || noLogoutHeader === "true";
 
     if (error.response?.status === 403) {
-      const raw = error.response?.data?.message || "";
-      const message = raw || "Your account has been suspended or deactivated.";
-      const { blockSession } = useAuthStore.getState();
-      blockSession(message);
+      const SKIP_BLOCK =
+        originalRequest?._noBlockOn403 === true ||
+        originalRequest?.noBlockOn403 === true;
+      if (!SKIP_BLOCK) {
+        const raw = error.response?.data?.message || "";
+        const message =
+          raw || "Your account has been suspended or deactivated.";
+        const { blockSession } = useAuthStore.getState();
+        blockSession(message);
+      }
       return Promise.reject(error);
     }
 
@@ -66,14 +82,18 @@ axiosInstance.interceptors.response.use(
             return axiosInstance(originalRequest);
           }
         }
-        // If no refreshToken or refresh fails, logout
-        logout();
+        // If no refreshToken or refresh fails
+        if (!NO_LOGOUT_ON_401) {
+          logout();
+        }
         // Don't redirect here - let the component handle it based on context
         return Promise.reject(error);
       } catch (refreshError) {
-        // If refresh fails, logout
+        // If refresh fails, optionally skip logout for non-critical calls
         const { logout } = useAuthStore.getState();
-        logout();
+        if (!NO_LOGOUT_ON_401) {
+          logout();
+        }
         // Don't redirect here - let the component handle it based on context
         return Promise.reject(refreshError);
       }
@@ -81,9 +101,11 @@ axiosInstance.interceptors.response.use(
 
     // If not handled above, reject
     if (error.response?.status === 401) {
-      // If already retried or no refresh, force logout
+      // If already retried or no refresh
       const { logout } = useAuthStore.getState();
-      logout();
+      if (!NO_LOGOUT_ON_401) {
+        logout();
+      }
       // Don't redirect here - let the component handle it based on context
     }
     return Promise.reject(error);

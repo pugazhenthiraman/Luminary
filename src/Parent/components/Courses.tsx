@@ -30,10 +30,13 @@ import {
   import CourseCard from "../../components/CourseCard";
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
 import { getCoachDetails, getCoachDetailsByCourse } from '../../api/coach';
-import CheckoutModal from '../../components/CheckoutModal';
 import childrenApi from '../../api/children';
 import ChildDetailsModal from '../../components/ChildDetailsModal';
 import creditsApi from '../../api/credits';
+import EnrollmentFlow from '../enrollment/EnrollmentFlow';
+import EnrollmentIntroModal from '../enrollment/EnrollmentIntroModal';
+import { getCourseById } from '../../api/courses';
+import { useAuthStore } from '../../stores/useAuthStore';
 
 // Course interface
 export interface Course {
@@ -68,6 +71,7 @@ export interface Course {
     lastName?: string;
     email?: string;
     phone?: string;
+  status?: string;
     domain?: string;
     experience?: string;
     address?: string;
@@ -159,12 +163,15 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  // Course chosen for enrollment (separate from detail view)
+  const [enrollCourse, setEnrollCourse] = useState<Course | null>(null);
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
+  const [showIntroModal, setShowIntroModal] = useState(false);
+  const [parentCredits, setParentCredits] = useState<number | undefined>(undefined);
   const [showCoachModal, setShowCoachModal] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<CoachData | null>(null);
   const [currentStep, setCurrentStep] = useState<'children' | 'payment' | 'confirmation'>('children');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   // Restored state for enrollment flow and coach modal
   const [availableChildren, setAvailableChildren] = useState<ChildItem[]>([]);
   const [childrenLoading, setChildrenLoading] = useState<boolean>(false);
@@ -172,7 +179,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   const [detailsChild, setDetailsChild] = useState<ChildItem | null>(null);
   const [showChildModal, setShowChildModal] = useState<boolean>(false);
   const [isCoachLoading, setIsCoachLoading] = useState<boolean>(false);
-  const [creditBalance, setCreditBalance] = useState<number>(0);
+  const [isLoadingIntroData, setIsLoadingIntroData] = useState<boolean>(false);
   const [enrollmentData, setEnrollmentData] = useState<EnrollmentData>({
     courseId: '',
     selectedChildren: [],
@@ -180,21 +187,12 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   });
   
   // Payment steps configuration
+  // For now, only enable children selection; payment & confirmation kept for later
   const paymentSteps: PaymentStep[] = [
     {
       step: 'children',
       title: 'Select Children',
       description: 'Choose which children to enroll in this course'
-    },
-    {
-      step: 'payment',
-      title: 'Payment Information',
-      description: 'Enter your payment details securely'
-    },
-    {
-      step: 'confirmation',
-      title: 'Confirmation',
-      description: 'Review and confirm your enrollment'
     }
   ];
 
@@ -430,12 +428,19 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   }, [showEnrollmentModal]);
 
   const handleEnroll = (course: Course) => {
-    setSelectedCourse(course);
+    // First show the new image/preview intro modal
+    setEnrollCourse(course);
     setEnrollmentData({
       courseId: course.id,
       selectedChildren: [],
       totalPrice: 0
     });
+    setShowIntroModal(true);
+  };
+
+  const proceedFromIntro = () => {
+    // Close intro and open the children selection modal
+    setShowIntroModal(false);
     setShowEnrollmentModal(true);
   };
 
@@ -578,45 +583,16 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   };
 
   const handleNextStep = () => {
-    if (currentStep === 'children') {
-      if (enrollmentData.selectedChildren.length === 0) {
-        showErrorToast('Please select at least one child to enroll');
-        return;
-      }
-      // Open the redesigned checkout (credits-first) instead of old payment form
-      (async () => {
-        try {
-          const uid = String(parentData?.id || parentData?.userId || '');
-          if (uid) {
-            const data = await creditsApi.getBalance(uid);
-            const balance = Number(data?.balance ?? data?.creditBalance?.balance ?? 0);
-            setCreditBalance(balance);
-          }
-        } catch (e) {
-          console.warn('Failed to load credit balance', e);
-        }
-        setShowPaymentModal(true);
-      })();
+    // Only children step active; nothing further for now
+    if (enrollmentData.selectedChildren.length === 0) {
+      showErrorToast('Please select at least one child to enroll');
       return;
-    } else if (currentStep === 'payment') {
-      // Validate payment information
-      if (!enrollmentData.paymentMethod?.cardNumber || 
-          !enrollmentData.paymentMethod?.expiryDate || 
-          !enrollmentData.paymentMethod?.cvv || 
-          !enrollmentData.paymentMethod?.cardholderName) {
-        showErrorToast('Please fill in all payment information');
-        return;
-      }
-      setCurrentStep('confirmation');
     }
+  // Future: open checkout/payment when enabled
   };
 
   const handlePreviousStep = () => {
-    if (currentStep === 'payment') {
-      setCurrentStep('children');
-    } else if (currentStep === 'confirmation') {
-      setCurrentStep('payment');
-    }
+    // Single step for now; nothing to do
   };
 
   const handlePaymentMethodChange = (field: string, value: string) => {
@@ -662,60 +638,16 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   };
 
   const processPayment = async () => {
-    setIsProcessingPayment(true);
-    
-    try {
-  // Open redesigned checkout modal (credit-first UX)
-  setShowPaymentModal(true);
-  setIsProcessingPayment(false);
-  return;
-
-
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // In a real implementation, you would:
-      // 1. Create a payment intent with Stripe
-      // 2. Process the payment
-      // 3. Handle success/failure
-      
-      showSuccessToast('Payment processed successfully! Enrollment confirmed.');
-      setShowEnrollmentModal(false);
-      setCurrentStep('children');
-      setSelectedCourse(null);
-      setEnrollmentData({
-        courseId: '',
-        selectedChildren: [],
-        totalPrice: 0
-      });
-    } catch (error) {
-      showErrorToast('Payment failed. Please try again.');
-    } finally {
-      setIsProcessingPayment(false);
-    }
+    // Payment disabled for now; kept for future enablement
   };
- const handlePaymentSuccess = (paymentData) => {
-    showSuccessToast(`Payment successful! Enrolled ${enrollmentData.selectedChildren.length} child(ren) in ${selectedCourse?.title}`);
-    setShowPaymentModal(false);
-    setShowEnrollmentModal(false);
-    setCurrentStep('children');
-    setSelectedCourse(null);
-    setEnrollmentData({
-      courseId: '',
-      selectedChildren: [],
-      totalPrice: 0
-    });
-  };
-
-
-  const handlePaymentError = (error) => {
-    showErrorToast('Payment failed. Please try again.');
-    console.error('Payment error:', error);
-  };  const resetEnrollmentFlow = () => {
+  const resetEnrollmentFlow = () => {
 
 
     setShowEnrollmentModal(false);
+  setShowIntroModal(false);
+  setEnrollCourse(null);
     setCurrentStep('children');
-    setSelectedCourse(null);
+  // Do not touch selectedCourse here; it's for the detail modal
     setEnrollmentData({
       courseId: '',
       selectedChildren: [],
@@ -725,32 +657,12 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
 
   // Checkout actions are triggered from the Next button after children selection
 
-  const buyWithCredits = async () => {
-    if (!selectedCourse) return;
-    try {
-      const uid = String(parentData?.id || parentData?.userId || '');
-      const childrenIds = enrollmentData.selectedChildren;
-      if (!uid || childrenIds.length === 0) {
-        showErrorToast('Please select at least one child');
-        return;
-      }
-      const requiredCredits = selectedCourse.credits * childrenIds.length;
-      if (creditBalance < requiredCredits) {
-        showErrorToast(`Not enough credits. Required ${requiredCredits}, you have ${creditBalance}.`);
-        return;
-      }
-      const res = await creditsApi.enrollWithCredits(uid, { courseId: selectedCourse.id, childrenIds });
-      if (res?.success) {
-        showSuccessToast('Enrollment completed using credits');
-        setShowPaymentModal(false);
-        resetEnrollmentFlow();
-      } else {
-        throw new Error(res?.message || 'Enrollment failed');
-      }
-    } catch (e:any) {
-      showErrorToast(e.message || 'Unable to enroll with credits');
-    }
-  };
+  // Backup (disabled): credit-based checkout and modal rendering kept for later
+  /*
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [creditBalance, setCreditBalance] = useState<number>(0);
+  const buyWithCredits = async () => { ... };
+  */
 
   // Utility: pick a gradient based on course title for variety
   function getGradient(title: string) {
@@ -770,6 +682,58 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
     const idx = Math.abs(hash) % gradients.length;
     return gradients[idx];
   }
+
+  // Load live credits balance for parent (if available) on mount
+  useEffect(() => {
+    const loadCredits = async () => {
+      try {
+        const { user } = useAuthStore.getState();
+        if (!user?.id) return;
+        const bal = await creditsApi.getBalance(user.id);
+        const creditValue = typeof (bal as any)?.balance === 'number' ? (bal as any).balance : (typeof bal === 'number' ? bal : undefined);
+        setParentCredits(creditValue);
+      } catch (e) {
+        // silent fail; keep placeholder
+      }
+    };
+    loadCredits();
+  }, []);
+
+  // When intro opens, fetch latest course details and coach info
+  useEffect(() => {
+    const prefetch = async () => {
+      if (!showIntroModal || !enrollCourse) return;
+      setIsLoadingIntroData(true);
+      try {
+        // Fetch full course details
+        const res = await getCourseById(enrollCourse.id);
+        const cd = res?.data?.data || res?.data;
+        if (cd) {
+          // Merge into enrollCourse for fresh details (price/thumbnail/introVideo etc.)
+          setEnrollCourse(prev => prev ? { ...prev, ...cd, coach: { ...prev.coach, ...cd.coach } } : cd);
+        }
+        // Also ensure coach info via parent endpoint (email/phone/status)
+        try {
+          const coachRes = await getCoachDetailsByCourse(enrollCourse.id);
+          const coachData = coachRes?.data?.data;
+          if (coachData) {
+            setEnrollCourse(prev => prev ? { ...prev, coach: {
+              ...prev.coach,
+              name: coachData.name || coachData.firstName + ' ' + (coachData.lastName || ''),
+              email: coachData.email || prev.coach?.email,
+              phone: coachData.phone || prev.coach?.phone,
+              status: coachData.status || prev.coach?.status
+            } } : prev);
+          }
+        } catch {}
+      } catch (e) {
+        // ignore
+      } finally {
+        setIsLoadingIntroData(false);
+      }
+    };
+    prefetch();
+  }, [showIntroModal, enrollCourse?.id]);
 
   const categories = ['all', ...Array.from(new Set(courses.map(course => course.category)))];
   
@@ -1421,442 +1385,53 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
         </div>
       )}
 
-      {/* Enrollment Modal */}
-      {showEnrollmentModal && selectedCourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3 truncate">
-                    <FaGraduationCap className="text-indigo-600 text-lg sm:text-xl flex-shrink-0" />
-                    Enroll in Course
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-2 truncate">{paymentSteps.find(step => step.step === currentStep)?.description}</p>
-                </div>
-                <button
-                  onClick={resetEnrollmentFlow}
-                  className="text-gray-400 hover:text-gray-600 transition-colors duration-200 p-2 hover:bg-white rounded-lg flex-shrink-0 ml-2"
-                  aria-label="Close enrollment modal"
-                >
-                  <FaTimes className="text-lg sm:text-xl" />
-                </button>
-              </div>
-              
-              {/* Progress Steps */}
-              <div className="mt-4 sm:mt-6">
-                <div className="flex items-center justify-between">
-                  {paymentSteps.map((step, index) => {
-                    const isActive = step.step === currentStep;
-                    const isCompleted = paymentSteps.findIndex(s => s.step === currentStep) > index;
-                    
-                    return (
-                      <div key={step.step} className="flex flex-col items-center space-y-1 flex-1">
-                        <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium flex-shrink-0 ${
-                          isActive 
-                            ? 'bg-indigo-600 text-white' 
-                            : isCompleted 
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-200 text-gray-600'
-                        }`}>
-                          {isCompleted ? <FaCheck className="text-xs" /> : index + 1}
-                        </div>
-                        <div className="text-center min-w-0 flex-1">
-                          <p className={`text-xs sm:text-sm font-medium truncate ${
-                            isActive ? 'text-indigo-600' : 'text-gray-500'
-                          }`}>
-                            {step.title}
-                          </p>
-                        </div>
-                        {index < paymentSteps.length - 1 && (
-                          <div className={`w-8 h-0.5 mx-2 flex-shrink-0 ${
-                            isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                          }`} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-4 sm:p-6">
-              {/* Course Info */}
-              <div className="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-                <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base break-words">{selectedCourse.title}</h3>
-                <div className="flex flex-col space-y-1 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm text-gray-600">
-                  <span className="break-words">Coach: {selectedCourse.coach.name}</span>
-                  <span className="font-semibold text-blue-600 flex-shrink-0">Course Credits: {selectedCourse.credits}</span>
-                </div>
-              </div>
-
-              {/* Step Content */}
-              {currentStep === 'children' && (
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaChild className="text-indigo-600 flex-shrink-0" />
-                    Select Children to Enroll
-                  </h4>
-                  
-                  {availableChildren && availableChildren.length > 0 ? (
-                    <div className="space-y-3">
-                      {/* Search */}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={searchChild}
-                          onChange={(e) => setSearchChild(e.target.value)}
-                          placeholder="Search children by name, grade, school..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                          aria-label="Search children"
-                        />
-                      </div>
-
-                      <label className="block text-sm font-medium text-gray-700 mt-1">
-                        Choose children to enroll in this course:
-                      </label>
-                      <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2 sm:p-3">
-                        {availableChildren
-                          .filter((c) => {
-                            if (!searchChild) return true;
-                            const q = searchChild.toLowerCase();
-                            return (
-                              `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
-                              (c.currentGrade || '').toLowerCase().includes(q) ||
-                              (c.schoolName || '').toLowerCase().includes(q)
-                            );
-                          })
-                          .map((child) => {
-                              const isSelected = enrollmentData.selectedChildren.includes(child.id);
-                              const age = calculateAge(child.dateOfBirth);
-                              return (
-                                <div key={child.id} className="flex items-start justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors duration-200">
-                                  <label className="flex items-start gap-3 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={isSelected}
-                                      onChange={() => handleChildSelection(child.id)}
-                                      className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 flex-shrink-0"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-gray-900 text-sm sm:text-base break-words">
-                                        {child.firstName} {child.lastName}
-                                      </div>
-                                      <div className="text-xs sm:text-sm text-gray-500 break-words">
-                                        ({age} years old • {child.currentGrade || 'N/A'})
-                                      </div>
-                                    </div>
-                                  </label>
-                                  <button
-                                    type="button"
-                                    onClick={() => { setDetailsChild(child); setShowChildModal(true); }}
-                                    className="text-xs text-indigo-600 hover:text-indigo-700 px-2 py-1 border border-indigo-200 rounded"
-                                  >
-                                    View details
-                                  </button>
-                                </div>
-                              );
-                            })}
-                      </div>
-                      {enrollmentData.selectedChildren.length > 0 && (
-                        <div className="mt-3 p-3 bg-indigo-50 rounded-lg">
-                          <p className="text-sm text-indigo-800">
-                            <strong>Selected:</strong> {enrollmentData.selectedChildren.length} child{enrollmentData.selectedChildren.length > 1 ? 'ren' : ''}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <FaChild className="text-gray-300 text-4xl mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No children found</h3>
-                      <p className="text-gray-500 text-sm">
-                        Please add children to your profile before enrolling in courses.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Enrollment Summary */}
-              {enrollmentData.selectedChildren.length > 0 && (
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 sm:p-6 mb-6 border border-indigo-200">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <FaChild className="text-indigo-600 text-sm" />
-                        </div>
-                        <p className="text-sm font-medium text-gray-700 break-words">
-                          {enrollmentData.selectedChildren.length} child{enrollmentData.selectedChildren.length !== 1 ? 'ren' : ''} selected
-                        </p>
-                      </div>
-                      <p className="text-sm text-gray-600 ml-10 break-words">
-                        Course Credits: {selectedCourse.credits} per child
-                      </p>
-                    </div>
-                    <div className="flex justify-center sm:justify-end flex-shrink-0">
-                      <div className="bg-white rounded-lg p-4 shadow-sm text-center">
-                        <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                          {enrollmentData.selectedChildren.length * selectedCourse.credits} Credits
-                        </p>
-                        <p className="text-sm text-gray-600 font-medium">Total Credits</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Payment Step */}
-              {currentStep === 'payment' && (
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaCreditCard className="text-indigo-600" />
-                    Payment Information
-                  </h4>
-                  
-                  {/* Stripe-like Payment Form */}
-                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                    {/* Payment Header */}
-                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <FaShieldAlt className="text-green-600 text-sm" />
-                          </div>
-                          <div>
-                            <h5 className="font-semibold text-gray-900 text-sm sm:text-base">Secure Payment</h5>
-                            <p className="text-xs sm:text-sm text-gray-600">Powered by Stripe</p>
-                          </div>
-                        </div>
-                    
-                      </div>
-                    </div>
-
-                    {/* Payment Form */}
-                    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                      {/* Card Number */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Card number
-                        </label>
-                        <div className="relative">
-                          <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                            <div className="w-6 h-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-sm flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">••</span>
-                            </div>
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="1234 5678 9012 3456"
-                            value={enrollmentData.paymentMethod?.cardNumber || ''}
-                            onChange={(e) => handlePaymentMethodChange('cardNumber', formatCardNumber(e.target.value))}
-                            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-base sm:text-lg"
-                            maxLength={19}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Card Details Row */}
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Expiry Date */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Expiry date
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="MM/YY"
-                            value={enrollmentData.paymentMethod?.expiryDate || ''}
-                            onChange={(e) => handlePaymentMethodChange('expiryDate', formatExpiryDate(e.target.value))}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                            maxLength={5}
-                          />
-                        </div>
-
-                        {/* CVV */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            CVC
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              placeholder="123"
-                              value={enrollmentData.paymentMethod?.cvv || ''}
-                              onChange={(e) => handlePaymentMethodChange('cvv', e.target.value.replace(/\D/g, ''))}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                              maxLength={4}
-                            />
-                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                              <FaQuestionCircle className="text-gray-400 text-sm" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Cardholder Name */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Name on card
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="John Doe"
-                          value={enrollmentData.paymentMethod?.cardholderName || ''}
-                          onChange={(e) => handlePaymentMethodChange('cardholderName', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-
-                      {/* Payment Summary */}
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-gray-600">Course enrollment</span>
-                          <span className="text-sm font-medium text-gray-900">
-                            ${selectedCourse?.credits ? selectedCourse.credits * enrollmentData.selectedChildren.length : 0}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-lg font-semibold text-gray-900">
-                          <span>Total</span>
-                          <span>${selectedCourse?.credits ? selectedCourse.credits * enrollmentData.selectedChildren.length : 0}</span>
-                        </div>
-                      </div>
-
-                      {/* Security Notice */}
-                      <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <FaLock className="text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div className="text-sm text-blue-800">
-                          <p className="font-medium">Your payment is secure</p>
-                          <p className="text-blue-700">We use industry-standard encryption to protect your payment information.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-
-              {/* Confirmation Step */}
-              {currentStep === 'confirmation' && (
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <FaCheck className="text-green-600" />
-                    Confirm Enrollment
-                  </h4>
-                  
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100 mb-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                        <FaCheck className="text-green-600 text-xl" />
-                      </div>
-                      <div>
-                        <h5 className="font-semibold text-gray-900">Ready to Enroll!</h5>
-                        <p className="text-sm text-gray-600">Please review your enrollment details below</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    {/* Course Details */}
-                    <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
-                      <h5 className="font-semibold text-gray-900 mb-3">Course Information</h5>
-                      <div className="space-y-2 text-sm sm:text-base">
-                        <p><span className="text-gray-600">Course:</span> {selectedCourse.title}</p>
-                        <p><span className="text-gray-600">Coach:</span> {selectedCourse.coach.name}</p>
-                        <p><span className="text-gray-600">Credits:</span> {selectedCourse.credits} per child</p>
-                        <p><span className="text-gray-600">Children:</span> {enrollmentData.selectedChildren.length}</p>
-                      </div>
-                    </div>
-
-                    {/* Payment Details */}
-                    <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
-                      <h5 className="font-semibold text-gray-900 mb-3">Payment Details</h5>
-                      <div className="space-y-2 text-sm sm:text-base">
-                        <p><span className="text-gray-600">Card:</span> **** **** **** {enrollmentData.paymentMethod?.cardNumber?.slice(-4)}</p>
-                        <p><span className="text-gray-600">Name:</span> {enrollmentData.paymentMethod?.cardholderName}</p>
-                        <p><span className="text-gray-600">Total:</span> ${(enrollmentData.selectedChildren.length * selectedCourse.credits * 99).toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
-              <div className="flex flex-row items-center justify-between space-x-3">
-                <button
-                  onClick={currentStep === 'children' ? resetEnrollmentFlow : handlePreviousStep}
-                  className="px-4 sm:px-6 py-2 sm:py-3 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors duration-200 font-medium flex items-center gap-2 text-sm sm:text-base"
-                >
-                  <FaArrowLeft />
-                  {currentStep === 'children' ? 'Cancel' : 'Back'}
-                </button>
-                
-                {currentStep === 'children' && (
-                  <button
-                    onClick={handleNextStep}
-                    disabled={enrollmentData.selectedChildren.length === 0}
-                    className="px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-                  >
-                    Next
-                    <FaArrowRight />
-                  </button>
-                )}
-                
-                {currentStep === 'payment' && (
-                  <button
-                    onClick={handleNextStep}
-                    disabled={!enrollmentData.paymentMethod?.cardNumber || !enrollmentData.paymentMethod?.expiryDate || !enrollmentData.paymentMethod?.cvv || !enrollmentData.paymentMethod?.cardholderName}
-                    className="px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-                  >
-                    Review
-                    <FaArrowRight />
-                  </button>
-                )}
-                
-                {currentStep === 'confirmation' && (
-                  <button
-                    onClick={processPayment}
-                    disabled={isProcessingPayment}
-                    className="px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base"
-                  >
-                    {isProcessingPayment ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <FaCreditCard />
-                        Pay & Enroll
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Checkout Modal (credits-first) */}
-      <CheckoutModal
-        open={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        course={selectedCourse}
-        selectedChildren={
-          enrollmentData.selectedChildren
-            .map(childId => availableChildren.find(child => child.id === childId)!)
-            .filter(Boolean) as any
-        }
-        creditBalance={creditBalance}
-        onBuyWithCredits={buyWithCredits}
-        onBuyCash={() => showErrorToast('Cash checkout coming soon')}
-        onAddToCart={() => showErrorToast('Cart coming soon')}
+      {/* Enrollment Modal (modularized) */}
+      <EnrollmentFlow
+        open={showEnrollmentModal && !!enrollCourse}
+        onClose={resetEnrollmentFlow}
+        course={enrollCourse ? { id: enrollCourse.id, title: enrollCourse.title, credits: enrollCourse.credits, coach: { name: enrollCourse.coach?.name || '' } } : null}
+        availableChildren={availableChildren}
+        childrenLoading={childrenLoading}
+        state={enrollmentData}
+        step={currentStep}
+        steps={paymentSteps as any}
+        onToggleChild={handleChildSelection}
+        onNext={handleNextStep}
+        onPrev={handlePreviousStep}
+        onReset={resetEnrollmentFlow}
+        onPaymentChange={(field, value) => handlePaymentMethodChange(field as any, value)}
+        canProceedPayment={!!(enrollmentData.paymentMethod?.cardNumber && enrollmentData.paymentMethod?.expiryDate && enrollmentData.paymentMethod?.cvv && enrollmentData.paymentMethod?.cardholderName)}
+        isProcessing={isProcessingPayment}
+        onProcessPayment={processPayment}
+        onViewChild={(child) => { setDetailsChild(child as any); setShowChildModal(true); }}
       />
+      {/* New: Intro modal shown before children selection */}
+      <EnrollmentIntroModal
+        open={showIntroModal && !!enrollCourse}
+        onClose={() => { setShowIntroModal(false); setEnrollCourse(null); }}
+        onContinue={proceedFromIntro}
+        course={enrollCourse ? {
+          id: enrollCourse.id,
+          title: enrollCourse.title,
+          description: enrollCourse.description,
+          credits: enrollCourse.credits,
+          thumbnail: enrollCourse.thumbnail,
+          introVideo: enrollCourse.introVideo,
+          coach: { name: enrollCourse.coach?.name || '', email: enrollCourse.coach?.email, phone: enrollCourse.coach?.phone, status: enrollCourse.coach?.status },
+          category: enrollCourse.category,
+          lengthText: (enrollCourse.weeklySchedule?.[0]?.timeSlots?.[0]?.sessionDuration ? `${enrollCourse.weeklySchedule[0].timeSlots[0].sessionDuration} min/session` : undefined),
+          rating: enrollCourse.coach?.totalReviews ? { value: Math.min(5, (enrollCourse.credits * 0.8)), count: enrollCourse.coach.totalReviews } : undefined,
+          createdAt: new Date().toISOString(),
+          // Map price: prefer course.price if backend provides, else fall back to credits
+          price: Number.isFinite((enrollCourse as any).price) ? (enrollCourse as any).price : (Number.isFinite(enrollCourse.credits) ? enrollCourse.credits : undefined),
+        } : null}
+        creditsAvailable={typeof parentCredits === 'number' ? parentCredits : undefined}
+        onBuyWithCredit={proceedFromIntro}
+        onPreview={() => setSelectedCourse(enrollCourse as any)}
+      />
+  {/* Backup: Checkout Modal (credits-first) kept for later
+  <CheckoutModal ... />
+  */}
 
       {/* Child Details Modal */}
       <ChildDetailsModal

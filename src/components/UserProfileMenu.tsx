@@ -128,7 +128,13 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
         <>
         {/* Mobile overlay */}
         <div className="fixed inset-0 bg-black/20 sm:hidden z-40" onClick={() => setOpen(false)} />
-        <div className="sm:absolute sm:right-0 sm:mt-2 sm:w-80 sm:max-w-[85vw] fixed top-16 left-1/2 -translate-x-1/2 w-[92vw] max-w-[92vw] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50 transition-all">
+        <div
+          className="
+            fixed top-16 left-1/2 -translate-x-1/2 w-[92vw] max-w-[92vw]
+            sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:translate-x-0 sm:w-80 sm:max-w-[85vw]
+            bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50 transition-all
+          "
+        >
           {/* Accent header (non-blue) */}
           <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 text-white p-4">
             <div className="flex items-center gap-3">
