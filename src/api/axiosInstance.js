@@ -35,6 +35,14 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    if (error.response?.status === 403) {
+      const raw = error.response?.data?.message || "";
+      const message = raw || "Your account has been suspended or deactivated.";
+      const { blockSession } = useAuthStore.getState();
+      blockSession(message);
+      return Promise.reject(error);
+    }
+
     // If error is 401 and we haven't tried to refresh token yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;

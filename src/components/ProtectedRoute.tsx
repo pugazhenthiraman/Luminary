@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, sessionBlock } = useAuthStore();
   const [isHydrated, setIsHydrated] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,7 +40,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
     );
   }
 
-      // If not authenticated, redirect to appropriate login based on required role
+  // If not authenticated, redirect to appropriate login based on required role
   if (!isAuthenticated) {
     console.log('ProtectedRoute - Redirecting to login (not authenticated)');
     console.log('ProtectedRoute - Current path:', location.pathname);
@@ -56,6 +56,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
         return <Navigate to="/loginParent" replace />;
       default:
         return <Navigate to="/loginParent" replace />;
+    }
+  }
+
+  // If session is blocked (e.g., deactivated while online), prevent navigation to protected routes
+  if (sessionBlock?.active) {
+    // For simplicity, redirect to the dashboard where overlay is shown
+    if (requiredRole === 'COACH') {
+      return <Navigate to="/coach/dashboard" replace />;
     }
   }
 
@@ -78,4 +86,4 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
   return <>{children}</>;
 };
 
-export default ProtectedRoute; 
+export default ProtectedRoute;

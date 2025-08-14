@@ -9,6 +9,12 @@ interface User {
   role: 'PARENT' | 'COACH' | 'ADMIN';
   isVerified: boolean;
   lastLogin?: string;
+  // Optional nested coach payload
+  coach?: {
+    id?: string | number;
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+    isFrozen?: boolean;
+  };
 }
 
 interface AuthState {
@@ -17,12 +23,19 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  // Session block overlay (e.g., admin deactivated while online)
+  sessionBlock: {
+    active: boolean;
+    message: string;
+  };
   
   // Actions
   login: (user: User, accessToken: string, refreshToken: string) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
   updateUser: (user: Partial<User>) => void;
+  blockSession: (message?: string) => void;
+  clearSessionBlock: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,6 +46,7 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
+      sessionBlock: { active: false, message: '' },
 
       login: (user, accessToken, refreshToken) => {
         console.log('🔐 useAuthStore login called with:', {
@@ -46,6 +60,7 @@ export const useAuthStore = create<AuthState>()(
           refreshToken,
           isAuthenticated: true,
           isLoading: false,
+          sessionBlock: { active: false, message: '' },
         });
         console.log('✅ useAuthStore state updated - user is now authenticated');
       },
@@ -58,6 +73,7 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: null,
           isAuthenticated: false,
           isLoading: false,
+          sessionBlock: { active: false, message: '' },
         });
         console.log('✅ useAuthStore state cleared - user is now logged out');
       },
@@ -67,6 +83,9 @@ export const useAuthStore = create<AuthState>()(
       updateUser: (updatedUser) => set((state) => ({
         user: state.user ? { ...state.user, ...updatedUser } : null,
       })),
+
+      blockSession: (message) => set({ sessionBlock: { active: true, message: message || 'Your account has been deactivated by Admin.' } }),
+      clearSessionBlock: () => set({ sessionBlock: { active: false, message: '' } }),
     }),
     {
       name: 'auth-storage', // localStorage key
@@ -74,8 +93,9 @@ export const useAuthStore = create<AuthState>()(
         user: state.user, 
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated,
+        sessionBlock: state.sessionBlock,
       }),
     }
   )
-); 
+);

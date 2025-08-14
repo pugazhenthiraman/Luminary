@@ -31,39 +31,37 @@ const CoachDashboard: React.FC = () => {
   const [apiCourses, setApiCourses] = useState<any[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const navigate = useNavigate();
+  // Countdown for auto-logout when suspended mid-session
+  const [countdown, setCountdown] = useState<number | null>(null);
   
   // Use Zustand auth store
-  const { user, accessToken, isAuthenticated, logout: logoutFromStore } = useAuthStore();
+  const { user, accessToken, isAuthenticated, logout: logoutFromStore, sessionBlock, clearSessionBlock, blockSession } = useAuthStore();
 
-  const extractCoachIdFromToken = (token?: string): string | null => {
-    if (!token || typeof token !== 'string') return null;
-    try {
-      const parts = token.split('.');
-      if (parts.length < 2) return null;
-      const payload = parts[1]
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
-      const decoded = JSON.parse(decodeURIComponent(
-        atob(payload)
-          .split('')
-          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      ));
-      const possible = (
-        decoded?.coachId ||
-        decoded?.coach_id ||
-        decoded?.coachUUID ||
-        decoded?.coachUuid ||
-        decoded?.cid ||
-        decoded?.coach?.id ||
-        decoded?.coach?.uuid ||
-        null
-      );
-      return typeof possible === 'string' ? possible : null;
-    } catch {
-      return null;
-    }
-  };
+  // Heartbeat: poll profile endpoint to catch suspension ASAP
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.role !== 'COACH') return;
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        await axiosInstance.get('/auth/profile');
+      } catch (err: any) {
+        const status = err?.response?.status;
+        if (status === 403 && !cancelled) {
+          const msg = err?.response?.data?.message || 'Your account is suspended by Admin.';
+          blockSession?.(msg);
+        }
+      }
+    };
+
+    // immediate ping
+    poll();
+    const id = setInterval(poll, 10000); // 10s
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [isAuthenticated, user?.role]);
 
   // Check authentication on component mount
   useEffect(() => {
@@ -93,6 +91,36 @@ const CoachDashboard: React.FC = () => {
     checkAuth();
   }, [isAuthenticated, user, navigate]);
 
+  // Helper: extract coachId from JWT access token payload (best-effort)
+  const extractCoachIdFromToken = (token?: string): string | null => {
+    if (!token || typeof token !== 'string') return null;
+    try {
+      const parts = token.split('.');
+      if (parts.length < 2) return null;
+      const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = JSON.parse(
+        decodeURIComponent(
+          atob(payload)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        )
+      );
+      const possible =
+        decoded?.coachId ||
+        decoded?.coach_id ||
+        decoded?.coachUUID ||
+        decoded?.coachUuid ||
+        decoded?.cid ||
+        decoded?.coach?.id ||
+        decoded?.coach?.uuid ||
+        null;
+      return typeof possible === 'string' ? possible : null;
+    } catch {
+      return null;
+    }
+  };
+
   // Fetch courses for this coach when Courses tab becomes active
   useEffect(() => {
     const fetchCourses = async () => {
@@ -101,7 +129,7 @@ const CoachDashboard: React.FC = () => {
       // Determine correct coachId from user payload (could be nested)
       // Try multiple sources for coachId
       // Extract coachId from token and ensure it is always an integer
-      const coachIdFromToken = extractCoachIdFromToken(accessToken || undefined);
+  const coachIdFromToken = extractCoachIdFromToken(accessToken || undefined);
       let coachIdCandidate = coachIdFromToken
         ?? (user as any)?.coachId
         ?? (user as any)?.coach?.id
@@ -161,9 +189,31 @@ const CoachDashboard: React.FC = () => {
   }, [activeTab, user]);
 
   const handleLogout = () => {
+    clearSessionBlock();
     logoutFromStore();
     navigate('/loginCoach');
   };
+
+  // Start 10s countdown when session gets blocked, then auto-logout
+  useEffect(() => {
+    if (sessionBlock?.active) {
+      setCountdown(10);
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === null) return prev;
+          if (prev <= 1) {
+            clearInterval(timer);
+            handleLogout();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    } else {
+      setCountdown(null);
+    }
+  }, [sessionBlock?.active]);
 
   const handleToggleSidebar = () => {
     setShowSidebar(!showSidebar);
@@ -252,7 +302,7 @@ const CoachDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative">
       {/* Header */}
       <Header
         coachName={`${coachData.firstName} ${coachData.lastName}`}
@@ -275,6 +325,22 @@ const CoachDashboard: React.FC = () => {
           {renderContent()}
         </main>
       </div>
+
+      {sessionBlock?.active && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-11/12 text-center">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Account Access Restricted</h3>
+            <p className="text-sm text-gray-600 mb-2">{sessionBlock.message || 'Your account has been suspended by Admin.'}</p>
+            <p className="text-xs text-gray-500 mb-4">You will be signed out in {countdown ?? 10}s</p>
+            <button
+              className="w-full bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-900"
+              onClick={handleLogout}
+            >
+              Sign out now
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

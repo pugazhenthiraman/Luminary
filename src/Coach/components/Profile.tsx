@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FaStar } from 'react-icons/fa';
+import { useAuthStore } from '../../stores/useAuthStore';
 
 interface CoachData {
   name: string;
@@ -18,6 +19,20 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ coachData }) => {
+  const { user } = useAuthStore();
+  const coachStatus: string = (user as any)?.coach?.status || (user as any)?.status || 'PENDING';
+  const isFrozen: boolean = Boolean((user as any)?.coach?.isFrozen || (user as any)?.isFrozen);
+  const canEdit = coachStatus?.toUpperCase() === 'PENDING' && !isFrozen;
+  const lockMessage = useMemo(() => {
+    if (coachStatus?.toUpperCase() !== 'PENDING') {
+      return 'Profile editing is available only while your application is Pending.';
+    }
+    if (isFrozen) {
+      return 'Your profile has been frozen by Admin during review. You can view but cannot edit until it is unfrozen.';
+    }
+    return '';
+  }, [coachStatus, isFrozen]);
+
   return (
     <div className="space-y-4 sm:space-y-6 lg:space-y-8 animate-in fade-in duration-500">
       {/* Header */}
@@ -38,7 +53,8 @@ const Profile: React.FC<ProfileProps> = ({ coachData }) => {
                 <input
                   type="text"
                   defaultValue={coachData.name}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
+                  disabled={!canEdit}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   placeholder="Enter your full name"
                 />
               </div>
@@ -47,7 +63,8 @@ const Profile: React.FC<ProfileProps> = ({ coachData }) => {
                 <input
                   type="email"
                   defaultValue={coachData.email}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
+                  disabled={!canEdit}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   placeholder="Enter your email"
                 />
               </div>
@@ -56,7 +73,8 @@ const Profile: React.FC<ProfileProps> = ({ coachData }) => {
                 <input
                   type="text"
                   defaultValue={coachData.experience}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
+                  disabled={!canEdit}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   placeholder="e.g., 5 years teaching"
                 />
               </div>
@@ -65,14 +83,18 @@ const Profile: React.FC<ProfileProps> = ({ coachData }) => {
                 <input
                   type="text"
                   defaultValue={coachData.specialization}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
+                  disabled={!canEdit}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   placeholder="e.g., Mathematics, Physics"
                 />
               </div>
             </div>
-            <button className="mt-4 bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200 text-sm sm:text-base font-medium">
-              Save Changes
+            <button disabled={!canEdit} className={`mt-4 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors duration-200 text-sm sm:text-base font-medium ${canEdit ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>
+              {canEdit ? 'Save Changes' : 'Editing Locked'}
             </button>
+            {!canEdit && (
+              <p className="mt-2 text-sm text-gray-600">{lockMessage}</p>
+            )}
           </div>
 
           {/* Bio Section */}
@@ -81,10 +103,11 @@ const Profile: React.FC<ProfileProps> = ({ coachData }) => {
             <textarea
               rows={4}
               placeholder="Tell students about your teaching experience and expertise..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
+              disabled={!canEdit}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             />
-            <button className="mt-4 bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200 text-sm sm:text-base font-medium">
-              Update Bio
+            <button disabled={!canEdit} className={`mt-4 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors duration-200 text-sm sm:text-base font-medium ${canEdit ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>
+              {canEdit ? 'Update Bio' : 'Editing Locked'}
             </button>
           </div>
         </div>
@@ -138,4 +161,4 @@ const Profile: React.FC<ProfileProps> = ({ coachData }) => {
   );
 };
 
-export default Profile; 
+export default Profile;

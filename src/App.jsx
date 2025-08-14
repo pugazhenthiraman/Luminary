@@ -13,6 +13,7 @@ import RegisterParent from "./Login/RegisterParent";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EmailVerifyLink from "./components/EmailVerifyLink";
 import ResetPassword from "./components/ResetPassword";
+import SessionBlockOverlay from "./components/SessionBlockOverlay";
 import ProfileOverview from "./components/ProfileOverview";
 
 function App() {
@@ -66,6 +67,8 @@ function App() {
 
       {/* Reusable Toast Container */}
       <ToastContainerComponent />
+      {/* Global session block modal (suspension/deactivation) */}
+      <SessionBlockOverlay />
     </>
   );
 }

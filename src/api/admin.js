@@ -39,6 +39,12 @@ export const suspendCoach = (coachId, reason, adminNotes, config = {}) =>
     },
     config
   );
+export const reactivateCoach = (coachId, adminNotes, config = {}) =>
+  axiosInstance.post(
+    `/admin/coaches/${coachId}/reactivate`,
+    { adminNotes },
+    config
+  );
 export const updateCoachNotes = (coachId, adminNotes, config = {}) =>
   axiosInstance.put(`/admin/coaches/${coachId}/notes`, { adminNotes }, config);
 export const deactivateApprovedCoach = (coachId, config = {}) =>
@@ -49,6 +55,11 @@ export const activateRejectedCoach = (coachId, config = {}) =>
     undefined,
     config
   );
+
+export const freezePendingCoach = (coachId, config = {}) =>
+  axiosInstance.post(`/admin/coaches/${coachId}/freeze`, undefined, config);
+export const unfreezePendingCoach = (coachId, config = {}) =>
+  axiosInstance.post(`/admin/coaches/${coachId}/unfreeze`, undefined, config);
 
 // Courses
 export const getCourses = (params = {}, config = {}) =>

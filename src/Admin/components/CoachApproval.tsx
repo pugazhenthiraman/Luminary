@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getGradient } from '../../utils/getGradient';
 import CoachDetailsModal from '../../components/CoachDetailsModal';
-import { FaCheck, FaTimes, FaEye, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaClock, FaSpinner, FaGlobe } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaEye, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaClock, FaSpinner, FaGlobe, FaSnowflake, FaFire, FaPauseCircle, FaPlayCircle } from 'react-icons/fa';
 import Avatar from '../../components/Avatar';
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
-import { getCoaches, approveCoach, rejectCoach, deactivateApprovedCoach, activateRejectedCoach } from '../../api/admin';
+import { getCoaches, approveCoach, rejectCoach, deactivateApprovedCoach, activateRejectedCoach, freezePendingCoach, unfreezePendingCoach, suspendCoach, reactivateCoach } from '../../api/admin';
 
 export interface CoachData {
   id: string;
@@ -40,13 +40,17 @@ const CoachApproval: React.FC = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [currentPage, setCurrentPage] = useState(() => parseInt(localStorage.getItem('adminCurrentPage') || '1'));
   const itemsPerPage = 10;
+  const [isFreezing, setIsFreezing] = useState(false);
+  const [isUnfreezing, setIsUnfreezing] = useState(false);
+  const [isSuspending, setIsSuspending] = useState(false);
+  const [isReactivating, setIsReactivating] = useState(false);
 
   const filteredCoaches = coaches.filter(coach => {
     const matchesSearch = coach.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       coach.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       coach.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       coach.duration.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filter === 'all' || coach.status === filter;
+  const matchesStatus = filter === 'all' || coach.status === filter;
     return matchesSearch && matchesStatus;
   });
 
@@ -73,6 +77,7 @@ const CoachApproval: React.FC = () => {
           address: coach.address || '',
           languages: coach.languages || [],
           status: coach.status ? coach.status.toLowerCase() : 'pending',
+          isFrozen: Boolean(coach.isFrozen),
           registrationDate: coach.registrationDate || '',
           adminNotes: coach.adminNotes || '',
         }));
@@ -188,6 +193,7 @@ const CoachApproval: React.FC = () => {
             <button onClick={() => setFilter('pending')} className={`px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Pending</button>
             <button onClick={() => setFilter('approved')} className={`px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Approved</button>
             <button onClick={() => setFilter('rejected')} className={`px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Rejected</button>
+            <button onClick={() => setFilter('suspended')} className={`px-2 sm:px-3 py-1.5 rounded-md font-medium transition-colors duration-200 text-xs sm:text-sm ${filter === 'suspended' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Suspended</button>
           </div>
         </div>
       </div>
@@ -239,10 +245,15 @@ const CoachApproval: React.FC = () => {
                   </div>
                   <div className="flex justify-end space-x-2 mt-4 pt-3 border-t border-gray-100">
                     <button onClick={() => handleViewDetails(coach)} className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200" title="View Details"><FaEye className="text-sm" /></button>
-                    {coach.status === 'pending' && (
+                        {coach.status === 'pending' && (
                       <>
-                        <button onClick={() => confirmApprove(coach.id)} disabled={isApproving || isRejecting} className="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 disabled:opacity-50" title="Approve">{isApproving ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}</button>
-                        <button onClick={() => confirmReject(coach.id)} disabled={isApproving || isRejecting} className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200 disabled:opacity-50" title="Reject">{isRejecting ? <FaSpinner className="animate-spin text-sm" /> : <FaTimes className="text-sm" />}</button>
+                        <button onClick={() => !coach.isFrozen && confirmApprove(coach.id)} disabled={isApproving || isRejecting || coach.isFrozen} className={`p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 ${coach.isFrozen ? 'text-gray-400 cursor-not-allowed' : 'text-green-600 hover:text-green-900 hover:bg-green-50'}`} title={coach.isFrozen ? 'Unfreeze to approve' : 'Approve'}>{isApproving ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}</button>
+                        <button onClick={() => !coach.isFrozen && confirmReject(coach.id)} disabled={isApproving || isRejecting || coach.isFrozen} className={`p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 ${coach.isFrozen ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900 hover:bg-red-50'}`} title={coach.isFrozen ? 'Unfreeze to reject' : 'Reject'}>{isRejecting ? <FaSpinner className="animate-spin text-sm" /> : <FaTimes className="text-sm" />}</button>
+                        {coach.isFrozen ? (
+                          <button onClick={async () => { try { setIsUnfreezing(true); await unfreezePendingCoach(coach.id); showSuccessToast('Coach unfrozen'); loadCoaches(); } catch { showErrorToast('Failed to unfreeze coach'); } finally { setIsUnfreezing(false); } }} disabled={isUnfreezing} className="text-orange-600 hover:text-orange-800 p-2 rounded-lg hover:bg-orange-50 transition-colors duration-200 disabled:opacity-50" title="Unfreeze"><FaFire className="text-sm" /></button>
+                        ) : (
+                          <button onClick={async () => { if (!window.confirm('Freeze this pending coach? They will not be able to edit their profile.')) return; try { setIsFreezing(true); await freezePendingCoach(coach.id); showSuccessToast('Coach frozen'); loadCoaches(); } catch { showErrorToast('Failed to freeze coach'); } finally { setIsFreezing(false); } }} disabled={isFreezing} className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200 disabled:opacity-50" title="Freeze (lock edits)"><FaSnowflake className="text-sm" /></button>
+                        )}
                       </>
                     )}
                   </div>
@@ -330,14 +341,16 @@ const CoachApproval: React.FC = () => {
                         {coach.status === 'approved' && (
                           <>
                             <button onClick={async () => {
+                              if (!window.confirm('Suspend this coach? They will be logged out and cannot log in until reactivated.')) return;
                               try {
-                                await deactivateApprovedCoach(coach.id);
-                                showSuccessToast('Coach moved to Rejected');
+                                setIsSuspending(true);
+                                await suspendCoach(coach.id, 'Suspended by admin');
+                                showSuccessToast('Coach suspended');
                                 loadCoaches();
                               } catch (e) {
-                                showErrorToast('Failed to deactivate coach');
-                              }
-                            }} className="text-red-600 hover:text-red-900 p-1" title="Deactivate (move to Rejected)"><FaTimes /></button>
+                                showErrorToast('Failed to suspend coach');
+                              } finally { setIsSuspending(false); }
+                            }} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" disabled={isSuspending} title="Suspend (disable login)"><FaPauseCircle /></button>
                           </>
                         )}
                         {coach.status === 'rejected' && (
@@ -350,7 +363,22 @@ const CoachApproval: React.FC = () => {
                               } catch (e) {
                                 showErrorToast('Failed to activate coach');
                               }
-                            }} className="text-yellow-600 hover:text-yellow-900 p-1" title="Activate (move to Pending)"><FaCheck /></button>
+                            }} className="text-yellow-600 hover:text-yellow-900 p-1" title="Activate (move to Pending)"><FaPlayCircle /></button>
+                          </>
+                        )}
+                        {coach.status === 'suspended' && (
+                          <>
+                            <button onClick={async () => {
+                              if (!window.confirm('Reactivate this coach to Approved?')) return;
+                              try {
+                                setIsReactivating(true);
+                                await reactivateCoach(coach.id, '');
+                                showSuccessToast('Coach reactivated');
+                                loadCoaches();
+                              } catch (e) {
+                                showErrorToast('Failed to reactivate coach');
+                              } finally { setIsReactivating(false); }
+                            }} className="text-green-600 hover:text-green-900 p-1 disabled:opacity-50" disabled={isReactivating} title="Reactivate (to Approved)"><FaPlayCircle /></button>
                           </>
                         )}
                       </div>

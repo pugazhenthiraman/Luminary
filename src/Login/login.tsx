@@ -45,8 +45,8 @@ const Login = () => {
   // Registration state
   const [showRegister, setShowRegister] = useState(false);
   const [registerRole, setRegisterRole] = useState<'coach' | 'parent' | null>(null);
-
-
+  // Deactivated/suspended inline message on login page
+  const [blockedMessage, setBlockedMessage] = useState('');
 
   // Reset registration state when URL changes
   useEffect(() => {
@@ -224,32 +224,19 @@ const Login = () => {
     }
 
     setLoading(true);
-    
-    // Store current form values for preservation in case of error
     const currentEmail = email;
     const currentPassword = password;
-    
+
     try {
-      console.log('Attempting login with:', { email, password });
-      
       const result = await handleLogin({ email, password });
-      
-      console.log('Login result:', result);
       
       // Check if result has the expected structure
       if (result && result.success && result.data && result.data.user) {
         const { user, accessToken, refreshToken } = result.data;
         
-        console.log('User data:', user); // Debug log
-        console.log('User role:', user.role); // Debug log
-        console.log('Access token:', accessToken ? 'Present' : 'Missing'); // Debug log
-        console.log('Refresh token:', refreshToken ? 'Present' : 'Missing'); // Debug log
-        
         // Store in Zustand (automatically persists to localStorage)
         if (accessToken && refreshToken) {
-          console.log('Storing user in auth store...'); // Debug log
           loginToStore(user, accessToken, refreshToken);
-          console.log('User stored successfully'); // Debug log
         } else {
           showErrorToast('Authentication failed. Missing tokens.');
           return;
@@ -259,22 +246,17 @@ const Login = () => {
         
         // Redirect based on role with proper delay
         setTimeout(() => {
-          console.log('Redirecting to dashboard for role:', user.role); // Debug log
           switch (user.role) {
             case 'ADMIN':
-              console.log('Navigating to admin dashboard'); // Debug log
               navigate('/admin/dashboard');
               break;
             case 'COACH':
-              console.log('Navigating to coach dashboard'); // Debug log
               navigate('/coach/dashboard');
               break;
             case 'PARENT':
-              console.log('Navigating to parent dashboard'); // Debug log
               navigate('/parent/dashboard');
               break;
             default:
-              console.log('Unknown role, navigating to default dashboard'); // Debug log
               navigate('/dashboard');
               break;
           }
@@ -283,16 +265,9 @@ const Login = () => {
         // Fallback: direct user data structure
         const { user, accessToken, refreshToken } = result;
         
-        console.log('User data (fallback):', user); // Debug log
-        console.log('User role (fallback):', user.role); // Debug log
-        console.log('Access token (fallback):', accessToken ? 'Present' : 'Missing'); // Debug log
-        console.log('Refresh token (fallback):', refreshToken ? 'Present' : 'Missing'); // Debug log
-        
         // Store in Zustand (automatically persists to localStorage)
         if (accessToken && refreshToken) {
-          console.log('Storing user in auth store (fallback)...'); // Debug log
           loginToStore(user, accessToken, refreshToken);
-          console.log('User stored successfully (fallback)'); // Debug log
         } else {
           showErrorToast('Authentication failed. Missing tokens.');
           return;
@@ -302,22 +277,17 @@ const Login = () => {
         
         // Redirect based on role with proper delay
         setTimeout(() => {
-          console.log('Redirecting to dashboard for role (fallback):', user.role); // Debug log
           switch (user.role) {
             case 'ADMIN':
-              console.log('Navigating to admin dashboard (fallback)'); // Debug log
               navigate('/admin/dashboard');
               break;
             case 'COACH':
-              console.log('Navigating to coach dashboard (fallback)'); // Debug log
               navigate('/coach/dashboard');
               break;
             case 'PARENT':
-              console.log('Navigating to parent dashboard (fallback)'); // Debug log
               navigate('/parent/dashboard');
               break;
             default:
-              console.log('Unknown role, navigating to default dashboard (fallback)'); // Debug log
               navigate('/dashboard');
               break;
           }
@@ -328,36 +298,42 @@ const Login = () => {
         showErrorToast('Login failed. Please check your credentials.');
       }
     } catch (err: any) {
-      console.error('Login error:', err); // Debug log
-      // Handle specific backend errors
+      console.error('Login error:', err);
       let errorMessage = 'Login failed. Please try again.';
-      
-      if (err.response?.data?.message) {
-        // Use backend error message
+
+      if (err.response?.status === 403) {
+        errorMessage = err.response?.data?.message || 'Your account is suspended. Please contact support.';
+        setBlockedMessage(errorMessage);
+        showErrorToast(errorMessage);
+      } else if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
+        showErrorToast(errorMessage);
       } else if (err.response?.status === 401) {
         errorMessage = 'Invalid email or password';
-      } else if (err.response?.status === 403) {
-        errorMessage = 'Account locked or coach not approved';
+        showErrorToast(errorMessage);
       } else if (err.response?.status === 404) {
         errorMessage = 'User not found';
+        showErrorToast(errorMessage);
       } else if (err.response?.status === 422) {
         errorMessage = 'Invalid email or password format';
+        showErrorToast(errorMessage);
       } else if (err.response?.status === 423) {
         errorMessage = 'Account temporarily locked';
+        showErrorToast(errorMessage);
       } else if (err.message === 'Network Error') {
         errorMessage = 'Network error. Please check your connection.';
+        showErrorToast(errorMessage);
+      } else {
+        showErrorToast(errorMessage);
       }
-      
-             showErrorToast(errorMessage);
-       
-       // Preserve email for better UX, but clear password for security
-       setEmail(currentEmail);
-       setPassword(''); // Clear password for security
-     } finally {
-       setLoading(false);
-     }
-   };
+
+      // Preserve email, clear password
+      setEmail(currentEmail);
+      setPassword('');
+    } finally {
+      setLoading(false);
+    }
+  };
 
       const handleRoleSelect = async (role: string) => {
       // No selectRole function in new useAuth, so this function is removed.
@@ -796,6 +772,18 @@ const Login = () => {
 
         {!showVerification ? (
           <form onSubmit={handleSubmit} role="form" noValidate>
+            {blockedMessage && (
+              <div className="mb-3 sm:mb-4 bg-red-50 border border-red-200 text-red-700 p-3 sm:p-4 rounded-lg">
+                <div className="font-semibold mb-1">Access Restricted</div>
+                <div className="text-xs sm:text-sm">{blockedMessage}</div>
+              </div>
+            )}
+            {blockedMessage && (
+              <div className="mb-3 sm:mb-4 bg-red-50 border border-red-200 text-red-700 p-3 sm:p-4 rounded-lg">
+                <div className="font-semibold mb-1">Access Restricted</div>
+                <div className="text-xs sm:text-sm">{blockedMessage}</div>
+              </div>
+            )}
             <div className="mb-3 sm:mb-4">
               <label htmlFor="email" className="block mb-1 sm:mb-1.5 font-medium text-gray-700 text-xs sm:text-sm">
                 Email Address

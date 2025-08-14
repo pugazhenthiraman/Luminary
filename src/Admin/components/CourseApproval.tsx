@@ -24,12 +24,10 @@ import {
   FaSpinner,
   FaFileAlt,
   FaSnowflake,
-  FaBan,
   FaUndo,
-  FaLock,
-  FaToggleOn,
-  FaToggleOff,
-  FaUnlock
+  FaPlayCircle,
+  FaPauseCircle,
+  FaFire
 } from 'react-icons/fa';
 import { showErrorToast, showSuccessToast } from '../../components/Toast';
 
@@ -852,7 +850,7 @@ const CourseApproval: React.FC = () => {
               {course.isFrozen && (
                 <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-sky-100 text-sky-700 border border-sky-200" title="This course is frozen; pending edits are locked">
-                    <FaLock className="text-[10px] sm:text-xs" />
+                    <FaSnowflake className="text-[10px] sm:text-xs" />
                     Frozen
                   </span>
                 </div>
@@ -990,9 +988,9 @@ const CourseApproval: React.FC = () => {
                   
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={(e) => { e.stopPropagation(); console.log("Eye clicked:", course); setSelectedCourse(course); setShowModal(true); }}
-                      className="text-blue-600 hover:text-blue-800 p-1.5 sm:p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
-                      title="View Details"
+                      onClick={(e) => { e.stopPropagation(); setSelectedCourse(course); setShowModal(true); }}
+                      className="text-blue-600 hover:text-blue-800 p-1.5 sm:p-2 rounded-lg hover:bg-blue-50 transition-colors duration-200 transition-transform hover:scale-110"
+                      title="View details"
                     >
                       <FaEye className="text-sm" />
                     </button>
@@ -1023,18 +1021,18 @@ const CourseApproval: React.FC = () => {
             {course.isActive === false ? (
                           <button
               onClick={() => { setCourseToActivate(course); setShowActivateConfirm(true); }}
-              className="text-emerald-600 hover:text-emerald-800 p-1.5 sm:p-2 rounded-lg hover:bg-emerald-50 transition-colors duration-200"
-              title="Activate Deactivated Course"
+              className="text-emerald-600 hover:text-emerald-800 p-1.5 sm:p-2 rounded-lg hover:bg-emerald-50 transition-colors duration-200 transition-transform hover:scale-110"
+              title="Make course visible (activate)"
                           >
-              <FaToggleOn className="text-sm" />
+              <FaPlayCircle className="text-sm" />
                           </button>
                         ) : (
                           <button
               onClick={() => { setCourseToDeactivate(course); setShowDeactivateConfirm(true); }}
-              className="text-amber-600 hover:text-amber-800 p-1.5 sm:p-2 rounded-lg hover:bg-amber-50 transition-colors duration-200"
-              title="Deactivate Course"
+              className="text-amber-600 hover:text-amber-800 p-1.5 sm:p-2 rounded-lg hover:bg-amber-50 transition-colors duration-200 transition-transform hover:scale-110"
+              title="Hide from parents (deactivate)"
                           >
-              <FaToggleOff className="text-sm" />
+              <FaPauseCircle className="text-sm" />
                           </button>
                         )}
                       </>
@@ -1068,18 +1066,18 @@ const CourseApproval: React.FC = () => {
             {!course.isFrozen ? (
                           <button
               onClick={() => { setCourseToFreeze(course); setShowFreezeConfirm(true); }}
-              className="text-sky-600 hover:text-sky-800 p-1.5 sm:p-2 rounded-lg hover:bg-sky-50 transition-colors duration-200"
+              className="text-sky-600 hover:text-sky-800 p-1.5 sm:p-2 rounded-lg hover:bg-sky-50 transition-colors duration-200 transition-transform hover:scale-110"
                             title="Freeze Pending Course"
                           >
-              <FaLock className="text-sm" />
+              <FaSnowflake className="text-sm" />
                           </button>
                         ) : (
                           <button
               onClick={() => { setCourseToUnfreeze(course); setShowUnfreezeConfirm(true); }}
-                            className="text-indigo-600 hover:text-indigo-800 p-1.5 sm:p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-200"
+              className="text-amber-600 hover:text-amber-800 p-1.5 sm:p-2 rounded-lg hover:bg-amber-50 transition-colors duration-200 transition-transform hover:scale-110"
                             title="Unfreeze Pending Course"
                           >
-              <FaUnlock className="text-sm" />
+              <FaFire className="text-sm" />
                           </button>
                         )}
                       </>
@@ -1275,7 +1273,7 @@ const CourseApproval: React.FC = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-4 sm:mb-6">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaBan className="text-red-600 text-xl sm:text-2xl" />
+                <FaPauseCircle className="text-red-600 text-xl sm:text-2xl" />
               </div>
               <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Deactivate Course</h3>
               <p className="text-sm text-gray-600 mb-4">
@@ -1380,8 +1378,8 @@ const CourseApproval: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => { setShowFreezeConfirm(false); setCourseToFreeze(null); }}>
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-4 sm:mb-6">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaLock className="text-blue-600 text-xl sm:text-2xl" />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaSnowflake className="text-sky-600 text-xl sm:text-2xl" />
               </div>
               <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Freeze Pending Course</h3>
               <p className="text-sm text-gray-600 mb-4">Freeze "{courseToFreeze.courseTitle}"? Coach can’t edit while frozen.</p>
@@ -1415,8 +1413,8 @@ const CourseApproval: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => { setShowUnfreezeConfirm(false); setCourseToUnfreeze(null); }}>
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-4 sm:mb-6">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaUnlock className="text-indigo-600 text-xl sm:text-2xl" />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaFire className="text-amber-600 text-xl sm:text-2xl" />
               </div>
               <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Unfreeze Course</h3>
               <p className="text-sm text-gray-600 mb-4">Unfreeze "{courseToUnfreeze.courseTitle}"? Coach can edit again.</p>
