@@ -373,8 +373,8 @@ const Login = () => {
     setAuthError(null);
     const status = await handleCheckEmailStatus(forgotPasswordEmail);
     if (status && status.success && status.data) {
-      const { role } = status.data as any;
-      const expectedRole = location.pathname === '/loginAdmin' ? 'ADMIN' : location.pathname === '/loginCoach' ? 'COACH' : 'PARENT';
+  const { role } = status.data as any;
+  const expectedRole = location.pathname === '/admin/login' ? 'ADMIN' : location.pathname === '/loginCoach' ? 'COACH' : 'PARENT';
       if (role && role !== expectedRole) {
         showErrorToast(`This email belongs to a different account type (${role}).`);
         return;
@@ -435,7 +435,7 @@ const Login = () => {
 
   // Get user type and styling based on current path
   const getUserTypeInfo = () => {
-    if (location.pathname === '/loginAdmin') {
+  if (location.pathname === '/admin/login') {
       return {
         title: 'Admin Login',
         subtitle: 'Access the admin dashboard',

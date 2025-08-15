@@ -76,9 +76,9 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
     const roleNow = (profile?.role || user?.role) as string | undefined;
     await handleLogout();
     // Redirect per role
-    if (roleNow === 'PARENT') navigate('/loginParent');
-    else if (roleNow === 'COACH') navigate('/loginCoach');
-    else if (roleNow === 'ADMIN') navigate('/loginAdmin');
+  if (roleNow === 'PARENT') navigate('/loginParent');
+  else if (roleNow === 'COACH') navigate('/loginCoach');
+  else if (roleNow === 'ADMIN') navigate('/admin/login');
     else navigate('/login');
     setOpen(false);
   };

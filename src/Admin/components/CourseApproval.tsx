@@ -41,7 +41,8 @@ interface CourseSubmission {
   courseDescription: string;
   category: string;
   price: string; // align with CourseDetailsModal
-  duration: number; // align with CourseDetailsModal
+  duration: number; // minutes
+  courseDuration?: string; // human-readable label from backend (e.g., "12 weeks")
   lessons: number;
   thumbnail: string;
   videoUrl?: string;
@@ -204,6 +205,7 @@ const CourseApproval: React.FC = () => {
           category: c.category,
           price: String(c.price ?? c.creditCost ?? '0'),
           duration: Number(c.duration ?? 0),
+          courseDuration: c.courseDuration || c.course_duration,
           lessons: c.lessons || 0,
           thumbnail: c.thumbnail || c.image || c.coverImage,
           videoUrl: c.videoUrl || c.previewVideo,
@@ -907,7 +909,7 @@ const CourseApproval: React.FC = () => {
                     {course.category}
                   </span>
                   <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium self-start">
-                    {course.duration}
+                    {course.courseDuration || (course.duration ? `${Math.round(course.duration / 60)} hrs` : '—')}
                   </span>
                 </div>
 

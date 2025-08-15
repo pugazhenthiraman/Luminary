@@ -32,6 +32,7 @@ interface CourseSubmission {
   category: string;
   price: string;
   duration: number;
+  courseDuration?: string;
   thumbnail: string;
   videoUrl?: string;
   weeklySchedule: Array<{
@@ -291,7 +292,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
                       <FaClock className="text-green-600 text-sm" />
                     </div>
                     <p className="text-xs text-gray-600 uppercase tracking-wide">Duration</p>
-                    <p className="font-semibold text-gray-900 text-sm">{selectedCourse.duration} weeks</p>
+                    <p className="font-semibold text-gray-900 text-sm">{selectedCourse.courseDuration || `${selectedCourse.duration} weeks`}</p>
                   </div>
                 </div>
               </div>
