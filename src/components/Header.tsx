@@ -175,7 +175,7 @@ const Header = () => {
             // Show icon and name without link when on admin dashboard
             <div className="flex items-center space-x-2 md:space-x-3">
               <img 
-                src="/public/icon.png" 
+                src="/icon.png" 
                 alt="Luminary Learning Center" 
                 className="h-8 w-auto md:h-12 object-contain drop-shadow-lg"
               />
@@ -185,7 +185,7 @@ const Header = () => {
             // Show icon and name with link when not on admin dashboard
             <NavLink to="/" className="flex items-center space-x-2 md:space-x-3 transition-all duration-300 hover:scale-105">
               <img 
-                src="/public/icon.png" 
+                src="/icon.png" 
                 alt="Luminary Learning Center" 
                 className="h-8 w-auto md:h-12 object-contain drop-shadow-lg"
               />

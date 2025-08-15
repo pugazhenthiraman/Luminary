@@ -336,7 +336,7 @@ const HomePage = () => {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-3 mb-4 md:mb-6">
                 <img 
-                  src="/public/icon.png" 
+                  src="/icon.png" 
                   alt="Luminary" 
                   className="h-8 w-auto md:h-10"
                 />
