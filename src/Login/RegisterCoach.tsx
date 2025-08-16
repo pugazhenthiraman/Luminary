@@ -686,10 +686,12 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
   // Handle successful email verification
   const handleVerificationSuccess = (userData: any) => {
-    console.log('🎯 Email verification successful, redirecting to home page');
+    console.log('🎯 Email verification successful, returning to login form');
     showSuccessToast('Email verified successfully! You can now login.');
-  // Redirect to coach login after verification
-  setTimeout(() => navigate('/loginCoach'), 800);
+    // Close the registration view and return to the login form on the same route
+    setCurrentStep('registration');
+    setRegistrationData(null);
+    onBack();
   };
 
 

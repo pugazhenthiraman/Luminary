@@ -260,10 +260,11 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
 
   // Handle successful email verification
   const handleVerificationSuccess = (userData: any) => {
-    showSuccessToast('Email verified successfully! You can now login.');
-    setTimeout(() => {
-      navigate('/loginParent');
-    }, 1500);
+  showSuccessToast('Email verified successfully! You can now login.');
+  // Close the registration view and return to the login form on the same route
+  setCurrentStep('registration');
+  setRegistrationData(null);
+  onBack();
   };
 
 

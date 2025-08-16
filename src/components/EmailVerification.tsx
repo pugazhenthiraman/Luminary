@@ -121,16 +121,10 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
 
 
     try {
-  const response = await verifyEmailWithCode({ email, code, userType });
-     
+      const response = await verifyEmailWithCode({ email, code, userType });
       if (response.data.success) {
-        showSuccessToast('Email verified successfully!');
+        // Avoid double toasts and conflicting redirects; let parent handle UX.
         onVerificationSuccess(response.data.data);
-        // Route based on role to login page
-        const role = response.data?.data?.user?.role || 'PARENT';
-        setTimeout(() => {
-          if (role === 'COACH') navigate('/loginCoach'); else navigate('/loginParent');
-        }, 800);
       } else {
         throw new Error(response.data.message || 'Verification failed');
       }
@@ -222,7 +216,7 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
           </p>
           <p className="text-indigo-600 font-semibold">{email}</p>
           <p className="text-gray-500 text-xs mt-2">
-            After verification, you'll be redirected to the home page
+            After verification, you'll be redirected to the login page
           </p>
         </div>
 
