@@ -10,6 +10,7 @@ import {
   FaChartLine,
   FaCog,
   FaSignOutAlt,
+  FaWallet,
 } from 'react-icons/fa';
 
 interface SidebarProps {
@@ -39,6 +40,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, showSidebar }
       id: 'schedule', 
       label: 'Attendance', 
       icon: FaCalendarAlt
+    },
+    { 
+      id: 'wallet', 
+      label: 'Wallet', 
+      icon: FaWallet
     },
     { 
       id: 'profile', 

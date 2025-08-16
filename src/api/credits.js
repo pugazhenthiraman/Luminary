@@ -10,6 +10,15 @@ const creditsApi = {
     return res?.data?.data || res?.data; // ApiResponse wrapper
   },
 
+  getPackages: async (isActive = true) => {
+    const res = await api.get(`/credits/packages`, {
+      params: { isActive },
+      _noLogoutOn401: true,
+      _noBlockOn403: true,
+    });
+    return res?.data?.data || res?.data;
+  },
+
   enrollWithCredits: async (userId, { courseId, childrenIds }) => {
     const res = await api.post(
       `/credits/enroll/${userId}`,

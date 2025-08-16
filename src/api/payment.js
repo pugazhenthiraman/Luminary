@@ -12,6 +12,20 @@ export const paymentAPI = {
     }
   },
 
+  // Create a payment for credit package purchase
+  createCreditPayment: async ({ packageId, paymentMethodId, description }) => {
+    try {
+      const response = await axiosInstance.post("/payments/credits", {
+        packageId,
+        paymentMethodId,
+        description,
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
   // Confirm a payment
   confirmPayment: async (paymentId, paymentIntentId) => {
     try {

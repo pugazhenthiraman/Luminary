@@ -8,6 +8,7 @@ import Courses from './components/Courses';
 import Enrollments from './components/Enrollments';
 import Schedule from './components/Schedule';
 import Profile from './components/Profile';
+import Wallet from './components/Wallet.tsx';
 import { getCourses as getPublicCourses } from '../api/courses';
 import { testAllThumbnails } from '../utils/thumbnailUtils';
 import { getChildren, getEnrollments, getUpcomingSessions, getSchedule } from '../api/parent';
@@ -49,6 +50,7 @@ const ParentDashboard: React.FC = () => {
   const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
   const [schedule, setSchedule] = useState<any[]>([]);
   const [parentDataLoading, setParentDataLoading] = useState(true);
+  const [openPlansSignal, setOpenPlansSignal] = useState(0);
   
   const navigate = useNavigate();
   
@@ -99,10 +101,24 @@ const ParentDashboard: React.FC = () => {
       } finally {
         setIsLoading(false);
       }
-    };
+  };
 
     checkAuth();
   }, [isAuthenticated, user, navigate]);
+
+  // On first dashboard view per user, open Wallet plans modal once
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.role !== 'PARENT') return;
+    // Key scoped per user
+    const key = `walletPlansShown:${user.id}`;
+    const shown = localStorage.getItem(key);
+    if (!shown) {
+      // switch to wallet tab and open plans modal
+      setActiveTab('wallet');
+      setOpenPlansSignal((s) => s + 1);
+      localStorage.setItem(key, 'true');
+    }
+  }, [isAuthenticated, user]);
 
   // Load parent-specific data (enrollments, sessions, schedule)
   useEffect(() => {
@@ -135,11 +151,10 @@ const ParentDashboard: React.FC = () => {
           const sessionsData = sessionsRes.value.data?.data || [];
           setUpcomingSessions(sessionsData);
           console.log('[Parent] Loaded upcoming sessions:', sessionsData.length);
-        } else {
+  } else {
           console.error('[Parent] Failed to load upcoming sessions:', sessionsRes.reason);
           setUpcomingSessions([]);
         }
-
         // Handle schedule
         if (scheduleRes.status === 'fulfilled') {
           const scheduleData = scheduleRes.value.data?.data || [];
@@ -278,6 +293,13 @@ const ParentDashboard: React.FC = () => {
             onTabChange={handleTabChange}
           />
         );
+      case 'wallet':
+        return (
+          <Wallet
+            onTabChange={handleTabChange}
+            openPlansSignal={openPlansSignal}
+          />
+        );
       case 'courses':
         return <Courses courses={availableCourses as any} parentData={parentData!} loading={coursesLoading} />;
       case 'enrollments':
@@ -314,6 +336,9 @@ const ParentDashboard: React.FC = () => {
         user={parentData as any}
         onLogout={handleLogout}
         onToggleSidebar={handleToggleSidebar}
+        onWalletClick={() => setActiveTab('wallet')}
+        onOpenPlans={() => { setActiveTab('wallet'); setOpenPlansSignal((s) => s + 1); }}
+        creditsBalance={42}
       />
 
       <div className="flex h-[calc(100vh-64px)] lg:h-[calc(100vh-80px)]">

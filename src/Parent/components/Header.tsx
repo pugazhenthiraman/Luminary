@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaBars } from 'react-icons/fa';
+import { FaBars, FaCoins } from 'react-icons/fa';
 
 interface ParentUser {
   id: string;
@@ -22,9 +22,12 @@ interface HeaderProps {
   user: ParentUser;
   onLogout: () => void;
   onToggleSidebar: () => void;
+  onWalletClick?: () => void;
+  onOpenPlans?: () => void;
+  creditsBalance?: number; // optional display only
 }
 
-const Header: React.FC<HeaderProps> = ({ user, onLogout, onToggleSidebar }) => {
+const Header: React.FC<HeaderProps> = ({ user, onLogout, onToggleSidebar, onWalletClick, onOpenPlans, creditsBalance }) => {
   return (
     <header className="bg-white shadow-lg border-b-2 border-gray-100 sticky top-0 z-40">
       <div className="px-4 sm:px-6 lg:px-8">
@@ -52,8 +55,30 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onToggleSidebar }) => {
             </div>
           </div>
 
-          {/* Right side (profile handled by global header) */}
-          <div className="flex items-center space-x-2 sm:space-x-4"></div>
+          {/* Right actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={onWalletClick}
+              className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 text-blue-700 border border-blue-200 hover:from-indigo-100 hover:to-blue-100 transition"
+              title="Open Wallet"
+            >
+              <FaCoins />
+              <span className="font-semibold">Wallet</span>
+              {typeof creditsBalance === 'number' && (
+                <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-md bg-white text-blue-700 border border-blue-200 text-xs font-bold">
+                  {creditsBalance} cr
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={onOpenPlans}
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 text-white shadow-md hover:shadow-lg hover:opacity-95 transition"
+              title="Get a Plan"
+            >
+              Get Plan
+            </button>
+          </div>
         </div>
       </div>
     </header>
