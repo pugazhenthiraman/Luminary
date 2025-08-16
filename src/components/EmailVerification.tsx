@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaEnvelope, FaSpinner, FaCheckCircle, FaTimesCircle, FaArrowLeft } from 'react-icons/fa';
 import { showSuccessToast, showErrorToast, showWarningToast } from './Toast';
-import { requestVerificationCode, verifyEmailWithCode, resendVerificationCode } from '../api/auth';
+import { requestVerificationCode, verifyEmailWithCode, resendVerificationCode, cancelRegistration } from '../api/auth';
+import { useNavigate } from 'react-router-dom';
 
 
 interface EmailVerificationProps {
@@ -20,6 +21,7 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
   onVerificationSuccess,
   onBack
 }) => {
+  const navigate = useNavigate();
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -40,6 +42,8 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
       return () => clearTimeout(timer);
     } else {
       setCanResend(true);
+  // Token considered expired in UI; offer deletion
+  showWarningToast('Verification code expired. You can resend a new code or cancel to delete your account.');
     }
   }, [timeLeft]);
 
@@ -117,11 +121,16 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
 
 
     try {
-      const response = await verifyEmailWithCode({ email, code });
+  const response = await verifyEmailWithCode({ email, code, userType });
      
       if (response.data.success) {
         showSuccessToast('Email verified successfully!');
         onVerificationSuccess(response.data.data);
+        // Route based on role to login page
+        const role = response.data?.data?.user?.role || 'PARENT';
+        setTimeout(() => {
+          if (role === 'COACH') navigate('/loginCoach'); else navigate('/loginParent');
+        }, 800);
       } else {
         throw new Error(response.data.message || 'Verification failed');
       }
@@ -137,6 +146,21 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
       setIsLoading(false);
     }
   };
+  // Cancel flow: confirm and delete unverified account
+  const handleCancel = async () => {
+    const confirmed = window.confirm('Cancel verification? This will expire your token and delete your unverified account.');
+    if (!confirmed) return; // Stay on verification
+    try {
+  await cancelRegistration(email, userType);
+      showSuccessToast('Your unverified account has been deleted.');
+      // Navigate back to registration screen
+      onBack();
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'Failed to cancel registration';
+      showErrorToast(msg);
+    }
+  };
+
 
 
   // Resend code
@@ -263,7 +287,7 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
         </button>
 
 
-        {/* Resend Code */}
+  {/* Resend / Cancel */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600 mb-2">Didn't receive the code?</p>
           <button
@@ -280,6 +304,14 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
               'Resend Code'
             )}
           </button>
+          <div className="mt-3">
+            <button
+              onClick={handleCancel}
+              className="text-red-600 hover:text-red-700 font-semibold text-sm"
+            >
+              Cancel and Delete Account
+            </button>
+          </div>
         </div>
 
 

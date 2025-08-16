@@ -110,5 +110,9 @@ export const resendVerificationCode = (data) =>
 export const checkVerificationStatus = (email) =>
   axiosInstance.get(`/auth/verification-status/${encodeURIComponent(email)}`);
 
+// Cancel registration and delete unverified user
+export const cancelRegistration = (email, userType = "parent") =>
+  axiosInstance.post("/auth/cancel-registration", { email, userType });
+
 // Get current user profile
 export const getProfile = () => axiosInstance.get("/auth/profile");

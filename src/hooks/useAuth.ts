@@ -37,7 +37,21 @@ export function useAuth() {
         return null;
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || "Login failed";
+      // Handle multiple roles case: backend returns 409 with roles array
+      if (err.response?.status === 409) {
+        const roles = err.response?.data?.data?.roles || err.response?.data?.roles;
+        if (Array.isArray(roles) && roles.length > 0) {
+          return { requiresRoleSelection: true, roles } as any;
+        }
+      }
+      // Friendlier messages
+      const rawMsg = err.response?.data?.message || err.message || "Login failed";
+      let errorMessage = rawMsg;
+      if (err.response?.status === 403 && /verify your email/i.test(rawMsg)) {
+        errorMessage = 'Please verify your email before logging in. Check your inbox for the 6-digit code.';
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Invalid email or password';
+      }
       setError(errorMessage);
       return null;
     } finally {
@@ -108,8 +122,27 @@ export function useAuth() {
     } catch (err: any) {
       console.error('Registration error:', err);
       console.error('Registration error response:', err.response);
-      const errorMessage = err.response?.data?.message || err.message || "Registration failed";
-      setError(errorMessage);
+      const status = err.response?.status;
+      const backendMsg: string = err.response?.data?.message || '';
+      const target = err.response?.data?.data?.target || err.response?.data?.target || '';
+      let friendly = 'Registration failed';
+      if (status === 409) {
+        friendly = 'This email is already registered for this role. Please log in or use a different email.';
+      } else if (status === 400 && /Duplicate field value/i.test(backendMsg)) {
+        // Prisma P2002 path: optionally include which unique hit
+        if (/users_email_role_key/i.test(backendMsg) || /email, role/i.test(backendMsg) || /email_role/i.test(target)) {
+          friendly = 'An account with this email already exists for this role.';
+        } else {
+          friendly = 'This email is already in use.';
+        }
+      } else if (status === 403 && /verify/i.test(backendMsg)) {
+        friendly = 'Please verify your email to continue. Check your inbox for the 6-digit code.';
+      } else if (status === 422) {
+        friendly = 'Some fields are invalid. Please check and try again.';
+      } else if (backendMsg) {
+        friendly = backendMsg;
+      }
+      setError(friendly);
       return null;
     } finally {
       setLoading(false);

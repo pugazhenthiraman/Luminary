@@ -688,8 +688,8 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   const handleVerificationSuccess = (userData: any) => {
     console.log('🎯 Email verification successful, redirecting to home page');
     showSuccessToast('Email verified successfully! You can now login.');
-    // Redirect to home page after verification
-    navigate('/');
+  // Redirect to coach login after verification
+  setTimeout(() => navigate('/loginCoach'), 800);
   };
 
 

@@ -229,6 +229,12 @@ const Login = () => {
 
     try {
       const result = await handleLogin({ email, password });
+      if ((result as any)?.requiresRoleSelection) {
+        const roles = (result as any).roles || [];
+        setAvailableRoles(roles);
+        setShowRoleSelection(true);
+        return;
+      }
       
       // Check if result has the expected structure
       if (result && result.success && result.data && result.data.user) {
@@ -257,7 +263,7 @@ const Login = () => {
               navigate('/parent/dashboard');
               break;
             default:
-              navigate('/dashboard');
+              navigate('/');
               break;
           }
         }, 1000);
@@ -288,7 +294,7 @@ const Login = () => {
               navigate('/parent/dashboard');
               break;
             default:
-              navigate('/dashboard');
+              navigate('/');
               break;
           }
         }, 1000);
@@ -336,9 +342,39 @@ const Login = () => {
   };
 
       const handleRoleSelect = async (role: string) => {
-      // No selectRole function in new useAuth, so this function is removed.
-      // If role selection logic is managed elsewhere, this might need adjustment.
-    setShowRoleSelection(false);
+    try {
+      setLoading(true);
+      const result = await handleLogin({ email, password, role });
+      if (result && (result as any).user && (result as any).accessToken && (result as any).refreshToken) {
+        const { user, accessToken, refreshToken } = result as any;
+        loginToStore(user, accessToken, refreshToken);
+        showSuccessToast('Login successful!');
+        setShowRoleSelection(false);
+        setAvailableRoles([]);
+        setTimeout(() => {
+          switch (user.role) {
+            case 'ADMIN':
+              navigate('/admin/dashboard');
+              break;
+            case 'COACH':
+              navigate('/coach/dashboard');
+              break;
+            case 'PARENT':
+              navigate('/parent/dashboard');
+              break;
+            default:
+              navigate('/');
+              break;
+          }
+        }, 800);
+      } else {
+        showErrorToast('Login failed after selecting role.');
+      }
+    } catch (e: any) {
+      showErrorToast(e?.response?.data?.message || 'Login failed with selected role');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerificationSubmit = async (e: React.FormEvent) => {
