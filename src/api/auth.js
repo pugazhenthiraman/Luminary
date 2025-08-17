@@ -116,3 +116,9 @@ export const cancelRegistration = (email, userType = "parent") =>
 
 // Get current user profile
 export const getProfile = () => axiosInstance.get("/auth/profile");
+
+// List roles available for current user (by email)
+export const getMyRoles = () => axiosInstance.get("/auth/me/roles");
+
+// Secure role switch (requires password), returns new tokens and user
+export const switchRole = (payload) => axiosInstance.post("/auth/switch-role", payload);

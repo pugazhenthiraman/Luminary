@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { FaExchangeAlt } from 'react-icons/fa';
 import { useAuthStore } from '../stores/useAuthStore';
 import Avatar from './Avatar';
 import { FaChevronDown, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
+import ConfirmModal from './ConfirmModal';
 
 type Profile = {
   id?: string;
@@ -31,6 +33,10 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
   const loadedOnceRef = useRef(false);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    mode: 'logout' | 'switch' | null;
+  }>({ open: false, mode: null });
 
   // Close on route change or outside click
   useEffect(() => {
@@ -75,12 +81,20 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
   const doLogout = async () => {
     const roleNow = (profile?.role || user?.role) as string | undefined;
     await handleLogout();
-    // Redirect per role
-  if (roleNow === 'PARENT') navigate('/loginParent');
-  else if (roleNow === 'COACH') navigate('/loginCoach');
-  else if (roleNow === 'ADMIN') navigate('/admin/login');
+    if (roleNow === 'PARENT') navigate('/loginParent');
+    else if (roleNow === 'COACH') navigate('/loginCoach');
+    else if (roleNow === 'ADMIN') navigate('/admin/login');
     else navigate('/login');
     setOpen(false);
+  };
+
+  const handleSwitchUser = async () => {
+    const current = (profile?.role || user?.role || '').toUpperCase();
+    const target = current === 'PARENT' ? 'COACH' : current === 'COACH' ? 'PARENT' : '';
+    if (!target) return;
+    await handleLogout();
+    setOpen(false);
+    navigate(target === 'COACH' ? '/loginCoach' : '/loginParent', { replace: true });
   };
 
   const fullName = `${profile?.firstName ?? user?.firstName ?? ''} ${profile?.lastName ?? user?.lastName ?? ''}`.trim() || 'User';
@@ -94,7 +108,6 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
           onClick={onToggle}
           className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
           aria-haspopup="menu"
-          aria-expanded={open}
           title="Profile"
         >
       {/* Legacy profile icon trigger (FaUserCircle) */}
@@ -105,7 +118,6 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
           onClick={onToggle}
           className="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-white shadow-sm/0 hover:shadow-sm transition-all"
           aria-haspopup="menu"
-          aria-expanded={open}
         >
           <div className="relative">
             <Avatar
@@ -232,8 +244,17 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
 
           {/* Sticky footer */}
           <div className="sticky bottom-0 bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+            {/* Switch user button (above logout) */}
+            {(['PARENT','COACH'].includes((role || '').toUpperCase())) && (
+              <button
+                onClick={() => setConfirmState({ open: true, mode: 'switch' })}
+                className="w-full mb-2 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-500/20"
+              >
+                <FaExchangeAlt /> Switch to {(role || '').toUpperCase() === 'PARENT' ? 'Coach' : 'Parent'}
+              </button>
+            )}
             <button
-              onClick={doLogout}
+              onClick={() => setConfirmState({ open: true, mode: 'logout' })}
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 shadow-lg shadow-rose-500/20"
             >
               <FaSignOutAlt /> Logout
@@ -242,6 +263,27 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
         </div>
         </>
       )}
+    {/* Confirm Modals */}
+    <ConfirmModal
+      isOpen={confirmState.open && confirmState.mode === 'logout'}
+      title="Log out from Luminary?"
+      description="You will need to sign in again to continue."
+      confirmText="Log out"
+      cancelText="Stay"
+      variant="danger"
+      onConfirm={doLogout}
+      onClose={() => setConfirmState({ open: false, mode: null })}
+    />
+    <ConfirmModal
+      isOpen={confirmState.open && confirmState.mode === 'switch'}
+      title={`Switch account?`}
+      description={`You'll be logged out and redirected to the other role login.`}
+      confirmText="Switch"
+      cancelText="Cancel"
+      variant="primary"
+      onConfirm={handleSwitchUser}
+      onClose={() => setConfirmState({ open: false, mode: null })}
+    />
     </div>
   );
 };

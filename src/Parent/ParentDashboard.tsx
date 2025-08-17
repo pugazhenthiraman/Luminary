@@ -9,6 +9,8 @@ import Enrollments from './components/Enrollments';
 import Schedule from './components/Schedule';
 import Profile from './components/Profile';
 import Wallet from './components/Wallet.tsx';
+import WalletPlansModal, { type WalletPlan } from '../components/WalletPlansModal';
+import WalletPaymentModal from '../components/WalletPaymentModal';
 import { getCourses as getPublicCourses } from '../api/courses';
 import { testAllThumbnails } from '../utils/thumbnailUtils';
 import { getChildren, getEnrollments, getUpcomingSessions, getSchedule } from '../api/parent';
@@ -51,6 +53,10 @@ const ParentDashboard: React.FC = () => {
   const [schedule, setSchedule] = useState<any[]>([]);
   const [parentDataLoading, setParentDataLoading] = useState(true);
   const [openPlansSignal, setOpenPlansSignal] = useState(0);
+  // Dashboard-level Wallet modals (so we can show over any tab)
+  const [showPlansModal, setShowPlansModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<WalletPlan | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
   
   const navigate = useNavigate();
   
@@ -106,17 +112,20 @@ const ParentDashboard: React.FC = () => {
     checkAuth();
   }, [isAuthenticated, user, navigate]);
 
-  // On first dashboard view per user, open Wallet plans modal once
+  // On first dashboard view per user, show plans popup without routing to Wallet
   useEffect(() => {
     if (!isAuthenticated || !user || user.role !== 'PARENT') return;
     // Key scoped per user
     const key = `walletPlansShown:${user.id}`;
     const shown = localStorage.getItem(key);
-    if (!shown) {
-      // switch to wallet tab and open plans modal
-      setActiveTab('wallet');
-      setOpenPlansSignal((s) => s + 1);
+    const afterLoginFlag = localStorage.getItem('showWalletPlansAfterLogin');
+    if (!shown || afterLoginFlag === 'true') {
+      // Show plans modal over the current dashboard tab
+      setShowPlansModal(true);
       localStorage.setItem(key, 'true');
+      if (afterLoginFlag === 'true') {
+        localStorage.removeItem('showWalletPlansAfterLogin');
+      }
     }
   }, [isAuthenticated, user]);
 
@@ -336,8 +345,9 @@ const ParentDashboard: React.FC = () => {
         user={parentData as any}
         onLogout={handleLogout}
         onToggleSidebar={handleToggleSidebar}
-        onWalletClick={() => setActiveTab('wallet')}
-        onOpenPlans={() => { setActiveTab('wallet'); setOpenPlansSignal((s) => s + 1); }}
+        // Clicking wallet should keep user on current tab and just open the plans modal
+        onWalletClick={() => setShowPlansModal(true)}
+        onOpenPlans={() => setShowPlansModal(true)}
         creditsBalance={42}
       />
 
@@ -354,6 +364,22 @@ const ParentDashboard: React.FC = () => {
             <div className="p-4 sm:p-6 lg:p-8">
               <div className="w-full max-w-7xl mx-auto">
                 {renderContent()}
+                {/* Plans modal shown over any tab */}
+                <WalletPlansModal
+                  isOpen={showPlansModal}
+                  onClose={() => setShowPlansModal(false)}
+                  onBuy={(plan) => { setShowPlansModal(false); setSelectedPlan(plan); setPaymentOpen(true); }}
+                />
+                {/* Payment modal for selected plan */}
+                <WalletPaymentModal
+                  isOpen={paymentOpen}
+                  onClose={() => setPaymentOpen(false)}
+                  plan={selectedPlan as any}
+                  onSuccess={({ creditsAdded }) => {
+                    // Optionally, refresh wallet balance in state/store later
+                    setPaymentOpen(false);
+                  }}
+                />
               </div>
             </div>
           </div>

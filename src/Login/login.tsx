@@ -228,7 +228,8 @@ const Login = () => {
     const currentPassword = password;
 
     try {
-      const result = await handleLogin({ email, password });
+      const roleFromPath = location.pathname === '/admin/login' ? 'ADMIN' : (location.pathname === '/loginCoach' ? 'COACH' : 'PARENT');
+      const result = await handleLogin({ email, password, role: roleFromPath });
       if ((result as any)?.requiresRoleSelection) {
         const roles = (result as any).roles || [];
         setAvailableRoles(roles);
@@ -250,6 +251,11 @@ const Login = () => {
         
         showSuccessToast('Login successful!');
         
+        // Hint Parent dashboard to show plans modal on next load
+        if (user.role === 'PARENT') {
+          localStorage.setItem('showWalletPlansAfterLogin', 'true');
+        }
+
         // Redirect based on role with proper delay
         setTimeout(() => {
           switch (user.role) {
@@ -280,7 +286,12 @@ const Login = () => {
         }
         
         showSuccessToast('Login successful!');
-        
+
+        // Hint Parent dashboard to show plans modal on next load
+        if (user.role === 'PARENT') {
+          localStorage.setItem('showWalletPlansAfterLogin', 'true');
+        }
+
         // Redirect based on role with proper delay
         setTimeout(() => {
           switch (user.role) {
@@ -310,6 +321,14 @@ const Login = () => {
       if (err.response?.status === 403) {
         errorMessage = err.response?.data?.message || 'Your account is suspended. Please contact support.';
         setBlockedMessage(errorMessage);
+        showErrorToast(errorMessage);
+      } else if (err.response?.status === 404 && /no account found for role/i.test(err.response?.data?.message || '')) {
+        // Role mismatch (e.g., tried Parent login with a Coach-only email)
+        errorMessage = 'Invalid credentials. Make sure you\'re using the correct login for this account.';
+        showErrorToast(errorMessage);
+      } else if (err.response?.status === 409) {
+        // Legacy multi-role flow: treat as generic invalid/route mismatch
+        errorMessage = 'Invalid credentials. Make sure you\'re using the correct login for this account.';
         showErrorToast(errorMessage);
       } else if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
@@ -344,13 +363,17 @@ const Login = () => {
       const handleRoleSelect = async (role: string) => {
     try {
       setLoading(true);
-      const result = await handleLogin({ email, password, role });
+  const result = await handleLogin({ email, password, role });
       if (result && (result as any).user && (result as any).accessToken && (result as any).refreshToken) {
         const { user, accessToken, refreshToken } = result as any;
         loginToStore(user, accessToken, refreshToken);
         showSuccessToast('Login successful!');
         setShowRoleSelection(false);
         setAvailableRoles([]);
+        // Hint Parent dashboard to show plans modal on next load
+        if (user.role === 'PARENT') {
+          localStorage.setItem('showWalletPlansAfterLogin', 'true');
+        }
         setTimeout(() => {
           switch (user.role) {
             case 'ADMIN':

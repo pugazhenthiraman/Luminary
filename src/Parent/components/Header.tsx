@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaBars, FaCoins } from 'react-icons/fa';
+import { FaBars, FaWallet } from 'react-icons/fa';
 
 interface ParentUser {
   id: string;
@@ -57,18 +57,30 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onToggleSidebar, onWall
 
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Mobile: icon + amount (full word), same sizing style as Get Plan */}
             <button
               onClick={onWalletClick}
-              className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 text-blue-700 border border-blue-200 hover:from-indigo-100 hover:to-blue-100 transition"
+              className="sm:hidden inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition shadow-md"
+              aria-label={`Open wallet. Balance ${typeof creditsBalance === 'number' ? creditsBalance : 0} credits`}
               title="Open Wallet"
             >
-              <FaCoins />
-              <span className="font-semibold">Wallet</span>
-              {typeof creditsBalance === 'number' && (
-                <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-md bg-white text-blue-700 border border-blue-200 text-xs font-bold">
-                  {creditsBalance} cr
-                </span>
-              )}
+              <FaWallet className="text-base" />
+              <span className="text-xs font-semibold">
+                {typeof creditsBalance === 'number' ? creditsBalance : 0} credits
+              </span>
+            </button>
+
+            {/* Desktop: modern pill with big number and full word, size like Get Plan */}
+            <button
+              onClick={onWalletClick}
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-orange-700 text-white shadow-md hover:shadow-lg hover:brightness-110 transition"
+              title="Open Wallet"
+            >
+              <FaWallet className="text-sm sm:text-base" />
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-sm sm:text-base font-semibold leading-none tabular-nums">{typeof creditsBalance === 'number' ? creditsBalance : 0}</span>
+                <span className="text-xs sm:text-sm font-medium tracking-wide">credits</span>
+              </div>
             </button>
 
             <button
@@ -78,6 +90,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onToggleSidebar, onWall
             >
               Get Plan
             </button>
+
           </div>
         </div>
       </div>
