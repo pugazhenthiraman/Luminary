@@ -171,7 +171,11 @@ const CoachDashboard: React.FC = () => {
           lessons: c.lessonsCount || c.lessons || 0,
           weeklySchedule: c.weeklySchedule || [],
           videoThumbnail: c.videoThumbnail || '',
-          hasVideo: Boolean(c.videoUrl)
+          hasVideo: Boolean(c.videoUrl),
+          location: c.location || '',
+          locationType: c.locationType || 'online',
+          ageRanges: c.ageRanges || [],
+          timezone: c.timezone || 'UTC'
           };
         });
         setApiCourses(normalized);

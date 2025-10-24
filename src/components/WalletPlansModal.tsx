@@ -17,9 +17,9 @@ type Props = {
 };
 
 const DEFAULT_PLANS: WalletPlan[] = [
-  { id: 'basic', name: 'Basic', price: 15, credits: 15 },
-  { id: 'medium', name: 'Medium', price: 25, credits: 30, popular: true },
-  { id: 'family', name: 'Family', price: 50, credits: 70 },
+  { id: 'basic', name: 'Basic', price: 120, credits: 10 },
+  { id: 'medium', name: 'Medium', price: 300, credits: 30, popular: true },
+  { id: 'family', name: 'Family', price: 500, credits: 70 },
 ];
 
 const WalletPlansModal: React.FC<Props> = ({ isOpen, onClose, onBuy, initialPlanId = 'medium' }) => {
@@ -55,7 +55,7 @@ const WalletPlansModal: React.FC<Props> = ({ isOpen, onClose, onBuy, initialPlan
           </button>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center text-white">
-              <h3 className="text-2xl sm:text-3xl font-extrabold">Top‑up your Wallet</h3>
+              <h3 className="text-2xl sm:text-3xl font-extrabold">Pick your plan</h3>
               <p className="text-white/90 text-sm mt-1">Pick a plan. Pay securely. Credits appear instantly.</p>
             </div>
           </div>
@@ -75,11 +75,12 @@ const WalletPlansModal: React.FC<Props> = ({ isOpen, onClose, onBuy, initialPlan
                 <div className="-mt-8 pb-6 px-5">
                   <div className="w-24 h-24 mx-auto rounded-full bg-white shadow-lg border flex items-center justify-center text-2xl font-extrabold text-gray-900">${p.price}</div>
                   <h4 className="mt-3 text-xl font-bold text-center">{p.name}</h4>
-                  <p className="text-xs text-gray-500 text-center">One-time purchase</p>
+                  {/* <p className="text-xs text-gray-500 text-center">One-time purchase</p> */}
                   <ul className="mt-4 space-y-2 text-sm">
                     <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> {p.credits} credits included</li>
                     <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> Use across any course</li>
                     <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> Instant wallet top-up</li>
+                    <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> {p.id === 'basic' ? 'One-time access' : p.id === 'medium' ? '2-3 classes' : '5-6+ classes'}</li>
                   </ul>
                   <button
                     onClick={() => onBuy(p)}

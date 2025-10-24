@@ -26,7 +26,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     confirmPassword: '',
     domain: '',
     experience: '',
-    address: '',
+    street: '',
+    city: '',
+    state: '',
+    linkedIn: '',
+    instagram: '',
     language: '',
   });
 
@@ -49,6 +53,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   const [photoError, setPhotoError] = useState('');
   const [resumeError, setResumeError] = useState('');
   const [videoError, setVideoError] = useState('');
+  const [idVerificationError, setIdVerificationError] = useState('');
 
 
   // Uploaded files state
@@ -56,7 +61,8 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     photo: null as File | null,
     license: null as File | null,
     resume: null as File | null,
-    video: null as File | null
+    video: null as File | null,
+    idVerification: null as File | null
   });
 
 
@@ -64,6 +70,7 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   const RESUME_MAX_SIZE = 10 * 1024 * 1024; // 10MB
   const VIDEO_MAX_SIZE = 50 * 1024 * 1024; // 50MB
   const LICENSE_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  const ID_VERIFICATION_MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 
 
@@ -75,7 +82,11 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   const [lastNameError, setLastNameError] = useState('');
   const [domainError, setDomainError] = useState('');
   const [experienceError, setExperienceError] = useState('');
-  const [addressError, setAddressError] = useState('');
+  const [streetError, setStreetError] = useState('');
+  const [cityError, setCityError] = useState('');
+  const [stateError, setStateError] = useState('');
+  const [linkedInError, setLinkedInError] = useState('');
+  const [instagramError, setInstagramError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
@@ -391,8 +402,20 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       case 'experience':
         setExperienceError('');
         break;
-      case 'address':
-        setAddressError('');
+      case 'street':
+        setStreetError('');
+        break;
+      case 'city':
+        setCityError('');
+        break;
+      case 'state':
+        setStateError('');
+        break;
+      case 'linkedIn':
+        setLinkedInError('');
+        break;
+      case 'instagram':
+        setInstagramError('');
         break;
       case 'password':
         setPasswordError('');
@@ -493,13 +516,38 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
   };
 
 
+  const handleIdVerificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > ID_VERIFICATION_MAX_SIZE) {
+        setIdVerificationError('ID verification file size must be less than 5MB.');
+        e.target.value = ''; // Clear the input
+        return;
+      }
+     
+      const allowedTypes = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+     
+      if (!allowedTypes.includes(fileExtension)) {
+        setIdVerificationError('Please upload a valid file (JPG, PNG, WEBP, PDF)');
+        e.target.value = ''; // Clear the input
+        return;
+      }
+     
+      setIdVerificationError('');
+      setUploadedFiles(prev => ({ ...prev, idVerification: file }));
+    }
+  };
+
+
   // Remove file functions
-  const removeFile = (fileType: 'photo' | 'license' | 'resume' | 'video') => {
+  const removeFile = (fileType: 'photo' | 'license' | 'resume' | 'video' | 'idVerification') => {
     setUploadedFiles(prev => ({ ...prev, [fileType]: null }));
     // Clear the file input
     const inputId = fileType === 'photo' ? 'photo-upload' :
                    fileType === 'license' ? 'license-upload' :
-                   fileType === 'resume' ? 'resume-upload' : 'introVideo-upload';
+                   fileType === 'resume' ? 'resume-upload' :
+                   fileType === 'idVerification' ? 'id-verification-upload' : 'introVideo-upload';
     const input = document.getElementById(inputId) as HTMLInputElement;
     if (input) {
       input.value = '';
@@ -519,7 +567,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
     setConfirmPasswordError('');
     setDomainError('');
     setExperienceError('');
-    setAddressError('');
+    setStreetError('');
+    setCityError('');
+    setStateError('');
     setPhotoError('');
     setLanguageError('');
 
@@ -564,10 +614,20 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       errors.push(error);
       setExperienceError(error);
     }
-    if (!form.address) {
-      const error = 'Address is required';
+    if (!form.street) {
+      const error = 'Street address is required';
       errors.push(error);
-      setAddressError(error);
+      setStreetError(error);
+    }
+    if (!form.city) {
+      const error = 'City is required';
+      errors.push(error);
+      setCityError(error);
+    }
+    if (!form.state) {
+      const error = 'State is required';
+      errors.push(error);
+      setStateError(error);
     }
     if (!uploadedFiles.photo) {
       const error = 'Profile photo is required';
@@ -635,6 +695,9 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
 
     // Prepare coach data for backend
+    // Combine street, city, state into full address
+    const fullAddress = `${form.street}, ${form.city}, ${form.state}`;
+    
     const coachData = {
       firstName: form.firstName,
       lastName: form.lastName,
@@ -643,12 +706,16 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
       password: form.password,
       experience: form.experience,
       domain: form.domain,
-      address: form.address,
+      address: fullAddress,
       languages: selectedLanguages,
+      // Add social links if provided
+      linkedIn: form.linkedIn || undefined,
+      instagram: form.instagram || undefined,
       // Add files if they exist
       license: uploadedFiles.license,
       resume: uploadedFiles.resume,
-      video: uploadedFiles.video
+      video: uploadedFiles.video,
+      idVerification: uploadedFiles.idVerification
     };
    
     console.log('=== COACH REGISTRATION DEBUG START ===');
@@ -976,6 +1043,23 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div>
+              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                Area of Expertise <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="domain"
+                placeholder="e.g., Mathematics, Sports, Music"
+                value={form.domain}
+                onChange={handleChange}
+                className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+              />
+              {domainError && (
+                <div className="flex items-center mt-1 text-red-500 text-xs">
+                  <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
+                  {domainError}
+                </div>
+              )}            </div>
             <div>
               <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
                 Years of Experience <span className="text-red-500">*</span>
@@ -993,44 +1077,70 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 {experienceError}
               </div>
             )}            </div>
-            <div>
-              <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
-                Area of Expertise <span className="text-red-500">*</span>
-              </label>
-              <input
-                name="domain"
-                placeholder="e.g., Mathematics, Sports, Music"
-                value={form.domain}
-                onChange={handleChange}
-                className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
-              />
-              {domainError && (
-                <div className="flex items-center mt-1 text-red-500 text-xs">
-                  <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
-                  {domainError}
-                </div>
-              )}            </div>
           </div>
 
 
             <div>
             <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
-              Address <span className="text-red-500">*</span>
+              Street Address <span className="text-red-500">*</span>
               </label>
-            <textarea
-              name="address"
-              placeholder="Enter your full address"
-              value={form.address}
+            <input
+              type="text"
+              name="street"
+              placeholder="Enter your street address"
+              value={form.street}
               onChange={handleChange}
-              rows={3}
-              className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md resize-none"
+              className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
             />
-            {addressError && (
+            {streetError && (
               <div className="flex items-center mt-1 text-red-500 text-xs">
                 <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
-                {addressError}
+                {streetError}
               </div>
-            )}          </div>
+            )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                  City <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="city"
+                  placeholder="Enter your city"
+                  value={form.city}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+                {cityError && (
+                  <div className="flex items-center mt-1 text-red-500 text-xs">
+                    <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
+                    {cityError}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                  State <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="state"
+                  placeholder="Enter your state"
+                  value={form.state}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+                {stateError && (
+                  <div className="flex items-center mt-1 text-red-500 text-xs">
+                    <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
+                    {stateError}
+                  </div>
+                )}
+              </div>
+            </div>
 
 
             <div>
@@ -1124,70 +1234,182 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
             </div>
               </div>
 
+            {/* Social Links - Optional */}
+            {/* <div className="col-span-full">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm">6</span>
+                Social Links (Optional)
+              </h3>
+            </div> */}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                  LinkedIn Profile (optional)
+                </label>
+                <input
+                  type="url"
+                  name="linkedIn"
+                  placeholder="https://linkedin.com/in/yourprofile"
+                  value={form.linkedIn}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+                {linkedInError && (
+                  <div className="flex items-center mt-1 text-red-500 text-xs">
+                    <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
+                    {linkedInError}
+                  </div>
+                )}
+                {/* <p className="text-xs text-gray-500 mt-1">Optional: Share your LinkedIn profile</p> */}
+              </div>
+
+              <div>
+                <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                  Instagram Profile (optional)
+                </label>
+                <input
+                  type="url"
+                  name="instagram"
+                  placeholder="https://instagram.com/yourprofile"
+                  value={form.instagram}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 border-gray-200 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:border-purple-500 focus:bg-white focus:shadow-md"
+                />
+                {instagramError && (
+                  <div className="flex items-center mt-1 text-red-500 text-xs">
+                    <div className="w-1 h-1 bg-red-500 rounded-full mr-2"></div>
+                    {instagramError}
+                  </div>
+                )}
+                {/* <p className="text-xs text-gray-500 mt-1">Optional: Share your Instagram profile</p> */}
+              </div>
+            </div>
+
 
           {/* File Uploads */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              <div>
+            <div>
               <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
                 Resume/CV 
               </label>
-                <div className="relative">
-                  {!uploadedFiles.resume ? (
+              <div className="relative">
+                {!uploadedFiles.resume ? (
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
-              <input
-                type="file"
-                name="resume"
-                id="resume-upload"
+                    <input
+                      type="file"
+                      name="resume"
+                      id="resume-upload"
                       accept=".pdf,.doc,.docx"
-                title="Upload your resume"
-                onChange={handleResumeChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        multiple={false}
-                      />
+                      title="Upload your resume"
+                      onChange={handleResumeChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      multiple={false}
+                    />
                     <div className="space-y-2 sm:space-y-3">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
                         <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div>
+                        </svg>
+                      </div>
+                      <div>
                         <p className="text-xs sm:text-sm font-medium text-gray-700">Upload Resume/CV</p>
                         <p className="text-xs text-gray-500">PDF, DOC, DOCX up to 10MB</p>
-                        </div>
                       </div>
                     </div>
-                  ) : (
+                  </div>
+                ) : (
                   <div className="relative">
                     <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
                       <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
                         <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
+                        </svg>
+                      </div>
                       <span className="text-xs sm:text-sm text-gray-700 flex-1 truncate">{uploadedFiles.resume.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeFile('resume')}
-                         className="text-red-500 hover:text-red-700 transition-colors duration-200"
-                         title="Remove resume"
-                         aria-label="Remove resume file"
-                        >
-                         <FaTimes className="text-xs sm:text-sm" />
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() => removeFile('resume')}
+                        className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                        title="Remove resume"
+                        aria-label="Remove resume file"
+                      >
+                        <FaTimes className="text-xs sm:text-sm" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {resumeError && (
+                  <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
+                    <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                    {resumeError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
+                ID Photo Verification 
+              </label>
+              <div className="relative">
+                {!uploadedFiles.idVerification ? (
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center hover:border-purple-400 hover:bg-purple-50 transition-all duration-300 cursor-pointer group">
+                    <input
+                      type="file"
+                      name="idVerification"
+                      id="id-verification-upload"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      title="Upload your ID verification"
+                      onChange={handleIdVerificationChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      multiple={false}
+                    />
+                    <div className="space-y-2 sm:space-y-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto group-hover:bg-purple-200 transition-colors duration-300">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Upload ID Verification</p>
+                        <p className="text-xs text-gray-500">PDF, JPG, PNG, WEBP up to 5MB</p>
                       </div>
                     </div>
-                  )}
-              {resumeError && (
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                        </svg>
+                      </div>
+                      <span className="text-xs sm:text-sm text-gray-700 flex-1 truncate">{uploadedFiles.idVerification.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile('idVerification')}
+                        className="text-red-500 hover:text-red-700 transition-colors duration-200"
+                        title="Remove ID verification"
+                        aria-label="Remove ID verification file"
+                      >
+                        <FaTimes className="text-xs sm:text-sm" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {idVerificationError && (
                   <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
-                  <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                  {resumeError}
-                </div>
-              )}
+                    <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                    {idVerificationError}
+                  </div>
+                )}
               </div>
+            </div>
           </div>
 
 
-            <div>
+            {/* <div>
               <label className="block mb-2 sm:mb-3 font-medium text-gray-700 text-xs sm:text-sm">
                 Introduction Video 
               </label>
@@ -1244,8 +1466,8 @@ const RegisterCoach = ({ onBack }: { onBack: () => void }) => {
                 </div>
               )}
               </div>
-            </div>
-          </div>
+            </div> */}
+          
 
 
                            <button

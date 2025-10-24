@@ -12,9 +12,6 @@ import {
   FaCheck,
   FaPlay,
   FaClock,
-  FaMapMarkerAlt,
-  FaEnvelope,
-  FaPhone,
   FaStar,
   FaUsers,
   FaLanguage,
@@ -31,6 +28,7 @@ import {
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
 import { getCoachDetails, getCoachDetailsByCourse } from '../../api/coach';
 import childrenApi from '../../api/children';
+import { paymentAPI } from '../../api/payment';
 import ChildDetailsModal from '../../components/ChildDetailsModal';
 import creditsApi from '../../api/credits';
 import EnrollmentFlow from '../enrollment/EnrollmentFlow';
@@ -147,11 +145,10 @@ export interface PaymentStep {
 
 const priceRanges = [
   { value: 'all', label: 'All Prices' },
-  { value: 'free', label: 'Free ($0)' },
-  { value: 'low', label: 'Low ($1-50)' },
-  { value: 'medium', label: 'Medium ($51-150)' },
-  { value: 'high', label: 'High ($151-300)' },
-  { value: 'premium', label: 'Premium ($300+)' }
+  { value: 'free', label: '> 5' },
+  { value: 'low', label: '6-10' },
+  { value: 'medium', label: '11-15' },
+  { value: 'high', label: '16+' }
 ];
 
 const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false }) => {
@@ -644,8 +641,73 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
     return v;
   };
 
-  const processPayment = async () => {
-    // Payment disabled for now; kept for future enablement
+  const processPayment = async (paymentFormData?: any) => {
+    if (!enrollCourse || !enrollmentData.selectedChildren.length) {
+      console.error('❌ Missing course or children data');
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    console.log('🚀 Starting payment process...');
+    console.log('📚 Course:', enrollCourse);
+    console.log('👶 Selected children:', enrollmentData.selectedChildren);
+    console.log('💳 Payment form data:', paymentFormData);
+
+    try {
+      // Create payment with backend
+      console.log('📡 Calling paymentAPI.createPayment...');
+      const paymentResponse = await paymentAPI.createPayment({
+        courseId: Number(enrollCourse.id),
+        sessionId: null, // Will be set when session is created
+        amount: enrollmentData.totalPrice,
+        currency: "USD",
+        paymentMethodId: paymentFormData?.paymentMethodId, // Stripe payment method ID
+        description: paymentFormData?.description || `Payment for ${enrollCourse.title}`,
+        metadata: {
+          selectedChildren: enrollmentData.selectedChildren,
+          courseTitle: enrollCourse.title,
+          cardholderName: paymentFormData?.cardholderName,
+        },
+      });
+
+      console.log('✅ Payment response:', paymentResponse);
+
+      if (paymentResponse.success) {
+        console.log('📡 Calling paymentAPI.confirmPayment...');
+        // Confirm payment with Stripe
+        const confirmResponse = await paymentAPI.confirmPayment(
+          paymentResponse.data.paymentId,
+          paymentResponse.data.paymentIntentId
+        );
+
+        console.log('✅ Confirm response:', confirmResponse);
+
+        if (confirmResponse.success) {
+          console.log('🎉 Payment successful!');
+          // Show success message
+          showSuccessToast(`Payment successful! Enrolled ${enrollmentData.selectedChildren.length} child(ren) in ${enrollCourse.title}`);
+          
+          // Reset enrollment flow
+          resetEnrollmentFlow();
+        } else {
+          throw new Error(confirmResponse.message || "Payment confirmation failed");
+        }
+      } else {
+        throw new Error(paymentResponse.message || "Payment creation failed");
+      }
+    } catch (err: any) {
+      console.error('❌ Payment error:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+      });
+      
+      showErrorToast(err.message || "Payment failed. Please try again.");
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
   const resetEnrollmentFlow = () => {
 
@@ -877,7 +939,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
 
               {/* Price Range Filter */}
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Credit Range</label>
                 <select
                   value={selectedPriceRange}
                   onChange={(e) => setSelectedPriceRange(e.target.value)}
@@ -1002,7 +1064,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                     <FaUser className="text-white text-lg sm:text-xl" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Coach Profile</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Instructor Profile</h2>
                     <p className="text-xs sm:text-sm text-gray-600">Complete information about this coach</p>
                   </div>
                 </div>
@@ -1045,37 +1107,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                   </div>
 
                   {/* Info Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                    {/* Contact */}
-                    <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
-                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <FaEnvelope className="text-blue-600" /> Contact
-                      </h3>
-                      <div className="space-y-3 text-sm sm:text-base">
-                        <div className="flex items-start gap-3">
-                          <FaEnvelope className="text-blue-600 mt-0.5" />
-                          <div>
-                            <p className="text-gray-600 text-xs sm:text-sm">Email</p>
-                            <p className="font-medium text-gray-900 break-all">{selectedCoach.email || 'N/A'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <FaPhone className="text-blue-600 mt-0.5" />
-                          <div>
-                            <p className="text-gray-600 text-xs sm:text-sm">Phone</p>
-                            <p className="font-medium text-gray-900 break-words">{selectedCoach.phone || 'N/A'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <FaMapMarkerAlt className="text-blue-600 mt-0.5" />
-                          <div>
-                            <p className="text-gray-600 text-xs sm:text-sm">Address</p>
-                            <p className="font-medium text-gray-900 break-words">{selectedCoach.address || 'N/A'}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6">
                     {/* Professional */}
                     <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200">
                       <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">

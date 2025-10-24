@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Avatar from '../../components/Avatar';
 import { 
   FaUser, 
@@ -49,9 +50,13 @@ interface ParentUser {
 
 interface ProfileProps {
   parentData: ParentUser;
+  onChildrenChange?: () => void;
+  onTabChange?: (tab: string) => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ parentData }) => {
+const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabChange }) => {
+  const navigate = useNavigate();
+  
   // Helper to normalize any date-like value to YYYY-MM-DD for <input type="date">
   const toDateInput = (value: any): string => {
     if (!value) return '';
@@ -355,6 +360,10 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
         };
         setChildren(prev => prev.map(c => (c.id === editingChild.id ? updatedChild : c)));
         showSuccessToast('Child updated successfully!');
+        // Notify parent dashboard to refresh children data
+        if (onChildrenChange) {
+          onChildrenChange();
+        }
       } else {
         const res = await childrenApi.createChild(payload);
         const created = (res?.data?.data ?? res?.data ?? payload) as any;
@@ -369,6 +378,10 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
         };
         setChildren(prev => [...prev, newChild]);
         showSuccessToast('Child added successfully!');
+        // Notify parent dashboard to refresh children data
+        if (onChildrenChange) {
+          onChildrenChange();
+        }
       }
       closeChildModal();
     } catch (err: any) {
@@ -392,6 +405,10 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
       await childrenApi.deleteChild(childId);
       setChildren(prev => prev.filter(c => c.id !== childId));
       showSuccessToast(`${childToRemove.firstName} ${childToRemove.lastName} removed successfully!`);
+      // Notify parent dashboard to refresh children data
+      if (onChildrenChange) {
+        onChildrenChange();
+      }
     } catch (err: any) {
       showErrorToast(err?.response?.data?.message || 'Failed to remove child');
     }
@@ -441,6 +458,23 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
   setChildren(mockChildren);
   // Not persisted to backend
     showSuccessToast('4 mock children added successfully!');
+  };
+
+  // Quick Actions handlers
+  const handleViewSchedule = () => {
+    // Switch to schedule tab in parent dashboard
+    if (onTabChange) {
+      onTabChange('schedule');
+    }
+  };
+
+  const handleSignOut = () => {
+    const confirmSignOut = window.confirm('Are you sure you want to sign out?');
+    if (confirmSignOut) {
+      // Clear local storage and redirect to login
+      localStorage.clear();
+      navigate('/loginParent');
+    }
   };
 
   // Calculate age from date of birth
@@ -770,7 +804,7 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
 
           {/* Quick Actions */}
           <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Quick Actions</h3>
+            {/* <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Quick Actions</h3> */}
             
             <div className="space-y-2 sm:space-y-3">
               <button 
@@ -780,7 +814,10 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
                 <FaUserGraduate className="text-indigo-500 text-sm" />
                 <span>Add Child</span>
               </button>
-              <button className="w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 text-sm">
+              <button 
+                onClick={handleViewSchedule}
+                className="w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 text-sm"
+              >
                 <FaCalendarAlt className="text-green-500 text-sm" />
                 <span>View Schedule</span>
               </button>
@@ -792,7 +829,10 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
                 <span>Change Password</span>
               </button>
              
-              <button className="w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 text-sm">
+              <button 
+                onClick={handleSignOut}
+                className="w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 text-sm"
+              >
                 <FaSignOutAlt className="text-red-500 text-sm" />
                 <span>Sign Out</span>
               </button>
@@ -1030,7 +1070,6 @@ const Profile: React.FC<ProfileProps> = ({ parentData }) => {
                     <option value="">Select Gender</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
-                    <option value="other">Other</option>
                   </select>
                 </div>
 

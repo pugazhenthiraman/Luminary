@@ -142,7 +142,7 @@ const Overview: React.FC<OverviewProps> = ({ parentData, enrollments, upcomingSe
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <p className="text-green-100 text-xs sm:text-sm font-medium">Total Children</p>
-              <p className="text-2xl sm:text-3xl font-bold mt-1">{parentData.children.length}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">{parentData?.children?.length || 0}</p>
               <p className="text-green-200 text-xs sm:text-sm mt-1">Registered students</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center group-hover:bg-opacity-30 transition-all duration-300">

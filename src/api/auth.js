@@ -122,3 +122,20 @@ export const getMyRoles = () => axiosInstance.get("/auth/me/roles");
 
 // Secure role switch (requires password), returns new tokens and user
 export const switchRole = (payload) => axiosInstance.post("/auth/switch-role", payload);
+
+// Reapplication workflow
+export const fetchReapplicationData = (token) =>
+  axiosInstance.get(`/auth/reapply/${encodeURIComponent(token)}`);
+
+export const resubmitApplication = (token, data) => {
+  // If data is FormData (with files), send as multipart
+  if (data instanceof FormData) {
+    return axiosInstance.post(`/auth/reapply/${encodeURIComponent(token)}`, data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  }
+  // Otherwise send as JSON
+  return axiosInstance.post(`/auth/reapply/${encodeURIComponent(token)}`, data);
+};

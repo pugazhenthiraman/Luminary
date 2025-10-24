@@ -43,9 +43,12 @@ interface DaySchedule {
    description: string;
    benefits: string;
    category: string;
-   program: 'morning' | 'afternoon' | 'evening';
+   ageRanges: string[];
+   location: string;
+   locationType: 'online' | 'in-person' | 'hybrid';
    credits: number;
    timezone: string;
+   program?: string;
    introVideo?: File;
    weeklySchedule: DaySchedule[];
    thumbnail?: File;
@@ -59,9 +62,12 @@ interface DaySchedule {
      description: initialData?.description || '',
      benefits: initialData?.benefits || '',
      category: initialData?.category || '',
-     program: initialData?.program || 'morning',
+     ageRanges: initialData?.ageRanges || [],
+     location: initialData?.location || '',
+     locationType: initialData?.locationType || 'online',
      credits: initialData?.credits || 0,
      timezone: initialData?.timezone || '',
+     program: initialData?.program || '',
      courseDuration: initialData?.courseDuration || '',
      courseDurationNumber: initialData?.courseDurationNumber || 12,
      weeklySchedule: initialData?.weeklySchedule || [
@@ -85,6 +91,11 @@ interface DaySchedule {
   const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const [openTimeDropdown, setOpenTimeDropdown] = useState<{dayIndex: number, slotId: string, type: 'start' | 'end'} | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number, width: number} | null>(null);
+  const [customCategories, setCustomCategories] = useState<Array<{ value: string; label: string }>>([]);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isAgeRangeDropdownOpen, setIsAgeRangeDropdownOpen] = useState(false);
+  const [ageRangeSearchTerm, setAgeRangeSearchTerm] = useState('');
 
   const videoRef = useRef<HTMLInputElement>(null);
   const thumbnailRef = useRef<HTMLInputElement>(null);
@@ -93,10 +104,24 @@ interface DaySchedule {
   const timeDropdownContainerRef = useRef<HTMLDivElement>(null);
   const timezoneButtonRef = useRef<HTMLButtonElement>(null);
   const categoryButtonRef = useRef<HTMLButtonElement>(null);
+  const ageRangeDropdownRef = useRef<HTMLDivElement>(null);
+  const ageRangeButtonRef = useRef<HTMLButtonElement>(null);
   const modalContainerRef = useRef<HTMLDivElement>(null);
 
-  // Category data
-  const categories = [
+  // Load custom categories from localStorage on mount
+  React.useEffect(() => {
+    const saved = localStorage.getItem('luminary_custom_categories');
+    if (saved) {
+      try {
+        setCustomCategories(JSON.parse(saved));
+      } catch (error) {
+        console.error('Failed to load custom categories:', error);
+      }
+    }
+  }, []);
+
+  // Category data - combining default and custom categories
+  const defaultCategories = [
     { value: 'academic-enrichment', label: 'Academic Enrichment' },
     { value: 'creative-arts', label: 'Creative Arts' },
     { value: 'life-skills', label: 'Life Skills' },
@@ -106,6 +131,8 @@ interface DaySchedule {
     { value: 'mindfulness-wellbeing', label: 'Mindfulness & Wellbeing' },
     { value: 'languages-communication', label: 'Languages & Communication' }
   ];
+
+  const categories = [...defaultCategories, ...customCategories];
 
   // Timezone data
   const timezones = [
@@ -133,9 +160,24 @@ interface DaySchedule {
     { value: 'BRT', label: 'Brazil Time (BRT/BRST)', region: 'Other', flag: '🇧🇷' }
   ];
 
+  // Age range data
+  const ageRanges = [
+    { value: '0-3', label: '0-3 years' },
+    { value: '4-6', label: '4-6 years' },
+    { value: '7-9', label: '7-9 years' },
+    { value: '10-12', label: '10-12 years' },
+    { value: '13-15', label: '13-15 years' },
+    { value: '16+', label: '16+ years' }
+  ];
+
   // Filter categories based on search term
   const filteredCategories = categories.filter(cat => 
     cat.label.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
+
+  // Filter age ranges based on search term
+  const filteredAgeRanges = ageRanges.filter(range => 
+    range.label.toLowerCase().includes(ageRangeSearchTerm.toLowerCase())
   );
 
   // Filter timezones based on search term
@@ -197,6 +239,16 @@ interface DaySchedule {
         }
       }
       
+      // Check if click is outside age range dropdown
+      if (isAgeRangeDropdownOpen && ageRangeButtonRef.current && !ageRangeButtonRef.current.contains(target)) {
+        // Check if click is on the portal dropdown
+        const portalDropdown = document.querySelector('[data-portal-dropdown="ageRange"]');
+        if (!portalDropdown?.contains(target)) {
+          setIsAgeRangeDropdownOpen(false);
+          setAgeRangeSearchTerm('');
+        }
+      }
+      
       // Check if click is outside time dropdowns
       if (timeDropdownContainerRef.current && !timeDropdownContainerRef.current.contains(target)) {
         setOpenTimeDropdown(null);
@@ -207,9 +259,11 @@ interface DaySchedule {
       if (event.key === 'Escape') {
         setIsCategoryDropdownOpen(false);
         setIsTimezoneDropdownOpen(false);
+        setIsAgeRangeDropdownOpen(false);
         setOpenTimeDropdown(null);
         setCategorySearchTerm('');
         setTimezoneSearchTerm('');
+        setAgeRangeSearchTerm('');
         setDropdownPosition(null);
       }
     };
@@ -235,17 +289,90 @@ interface DaySchedule {
         modalContainerRef.current.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [isTimezoneDropdownOpen, handleScroll]);
+  }, [isTimezoneDropdownOpen, isCategoryDropdownOpen, isAgeRangeDropdownOpen, handleScroll]);
 
   const handleCategorySelect = (categoryValue: string) => {
     setFormData(prev => ({ ...prev, category: categoryValue }));
     setIsCategoryDropdownOpen(false);
     setCategorySearchTerm('');
+    setIsAddingCategory(false);
+    setNewCategoryName('');
     
     if (errors.category) {
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors.category;
+        return newErrors;
+      });
+    }
+  };
+
+  const handleAddCustomCategory = () => {
+    if (!newCategoryName.trim()) {
+      toast.error('Please enter a category name');
+      return;
+    }
+
+    // Create a value from the label (lowercase, replace spaces with hyphens)
+    const categoryValue = newCategoryName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
+    // Check if category already exists
+    const exists = categories.some(cat => 
+      cat.value === categoryValue || cat.label.toLowerCase() === newCategoryName.toLowerCase()
+    );
+
+    if (exists) {
+      toast.error('This category already exists');
+      return;
+    }
+
+    const newCategory = {
+      value: categoryValue,
+      label: newCategoryName.trim()
+    };
+
+    const updatedCustomCategories = [...customCategories, newCategory];
+    setCustomCategories(updatedCustomCategories);
+    
+    // Save to localStorage
+    localStorage.setItem('luminary_custom_categories', JSON.stringify(updatedCustomCategories));
+    
+    // Select the newly added category
+    handleCategorySelect(categoryValue);
+    
+    toast.success(
+      <div className="flex items-center space-x-2">
+        <FaCheck className="text-green-500" />
+        <span>Category "{newCategoryName}" added successfully!</span>
+      </div>,
+      {
+        position: "top-right",
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      }
+    );
+  };
+
+  const handleAgeRangeToggle = (ageRange: string) => {
+    setFormData(prev => {
+      const currentRanges = prev.ageRanges || [];
+      const isSelected = currentRanges.includes(ageRange);
+      
+      const newRanges = isSelected 
+        ? currentRanges.filter(range => range !== ageRange)
+        : [...currentRanges, ageRange];
+      
+      return { ...prev, ageRanges: newRanges };
+    });
+    
+    // Clear age range error if any
+    if (errors.ageRanges) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.ageRanges;
         return newErrors;
       });
     }
@@ -307,6 +434,21 @@ interface DaySchedule {
     if (!formData.category.trim()) {
       newErrors.category = 'Course category is required';
       missingFields.push('Course Category');
+    }
+
+    if (!formData.ageRanges || formData.ageRanges.length === 0) {
+      newErrors.ageRanges = 'Please select at least one age range';
+      missingFields.push('Age Range');
+    }
+
+    if (!formData.location.trim()) {
+      newErrors.location = 'Course location is required';
+      missingFields.push('Course Location');
+    }
+
+    if (!formData.locationType) {
+      newErrors.locationType = 'Location type is required';
+      missingFields.push('Location Type');
     }
 
     if (!formData.timezone.trim()) {
@@ -819,25 +961,81 @@ interface DaySchedule {
                           </div>
 
                           {/* Category Options */}
-                          <div className="overflow-y-auto" style={{ maxHeight: '200px' }}>
+                          <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
                             {filteredCategories.map((category) => (
-                                                             <button
-                                 key={category.value}
-                                 type="button"
-                                 onClick={() => handleCategorySelect(category.value)}
-                                 className={`w-full p-3 text-left hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0 flex items-center justify-between ${
-                                   formData.category === category.value ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
-                                 }`}
-                               >
-                                 <span className="font-medium">{category.label}</span>
-                                 {formData.category === category.value && (
-                                   <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                   </svg>
-                                 )}
-                               </button>
+                              <button
+                                key={category.value}
+                                type="button"
+                                onClick={() => handleCategorySelect(category.value)}
+                                className={`w-full p-3 text-left hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 flex items-center justify-between ${
+                                  formData.category === category.value ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
+                                }`}
+                              >
+                                <span className="font-medium">{category.label}</span>
+                                {formData.category === category.value && (
+                                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </button>
                             ))}
-                            {filteredCategories.length === 0 && (
+                            
+                            {/* Add New Category Option - Integrated into dropdown */}
+                            {!isAddingCategory ? (
+                              <button
+                                type="button"
+                                onClick={() => setIsAddingCategory(true)}
+                                className="w-full p-3 text-left flex items-center space-x-3 text-blue-600 hover:bg-blue-50 transition-colors duration-150 font-medium border-b border-gray-100"
+                              >
+                                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                                  <FaPlus className="text-white text-xs" />
+                                </div>
+                                <span>Add New Category</span>
+                              </button>
+                            ) : (
+                              <div className="p-3 bg-blue-50 border-b border-gray-100">
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="text"
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleAddCustomCategory();
+                                      } else if (e.key === 'Escape') {
+                                        setIsAddingCategory(false);
+                                        setNewCategoryName('');
+                                      }
+                                    }}
+                                    placeholder="Enter category name..."
+                                    className="flex-1 px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                    autoFocus
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={handleAddCustomCategory}
+                                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    title="Add category"
+                                  >
+                                    <FaCheck className="text-xs" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsAddingCategory(false);
+                                      setNewCategoryName('');
+                                    }}
+                                    className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                                    title="Cancel"
+                                  >
+                                    <FaTimes className="text-xs" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {filteredCategories.length === 0 && !isAddingCategory && (
                               <div className="px-4 py-8 text-center text-gray-500">
                                 <p>No categories found matching "{categorySearchTerm}"</p>
                               </div>
@@ -857,29 +1055,119 @@ interface DaySchedule {
                     )}
                   </div>
 
-                  {/* Program Schedule */}
+                  {/* Age Range */}
                   <div className="group">
                     <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
-                      <span>Program Schedule</span>
+                      <span>Age Range</span>
                       <span className="text-red-500 text-lg font-bold">*</span>
                     </label>
-                    <div className="relative">
-                      <select
-                        value={formData.program}
-                        onChange={(e) => handleInputChange('program', e.target.value)}
-                        className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 text-base bg-white group-hover:border-gray-300 appearance-none"
-                        aria-label="Select program schedule"
-                      >
-                        <option value="morning">Morning Session</option>
-                        <option value="afternoon">Afternoon Session </option>
-                        <option value="evening">Evening Session </option>
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                    <div className="relative" ref={ageRangeDropdownRef}>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-4">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        </div>
+                        <button
+                          ref={ageRangeButtonRef}
+                          type="button"
+                          onClick={() => setIsAgeRangeDropdownOpen(!isAgeRangeDropdownOpen)}
+                          className={`w-full pl-8 pr-12 py-4 bg-gradient-to-r from-white to-gray-50 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-100 transition-all duration-300 text-left text-base font-medium shadow-sm ${
+                            isAgeRangeDropdownOpen 
+                              ? 'border-green-500 ring-green-100' 
+                              : 'border-gray-200 group-hover:border-gray-300 group-hover:from-white group-hover:to-green-50'
+                          } ${errors.ageRanges ? 'border-red-300 focus:ring-red-100 focus:border-red-500' : ''}`}
+                          aria-label="Select age ranges"
+                        >
+                          {formData.ageRanges && formData.ageRanges.length > 0 ? (
+                            <span className="text-gray-700 font-semibold">
+                              {formData.ageRanges.length === 1 
+                                ? ageRanges.find(range => range.value === formData.ageRanges[0])?.label
+                                : `${formData.ageRanges.length} age ranges selected`
+                              }
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">Select age ranges for your course</span>
+                          )}
+                        </button>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center shadow-sm transition-all duration-200 ${
+                            isAgeRangeDropdownOpen 
+                              ? 'bg-gradient-to-br from-green-600 to-green-700 rotate-180' 
+                              : 'bg-gradient-to-br from-green-500 to-green-600'
+                          }`}>
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Age Range Dropdown */}
+                      {isAgeRangeDropdownOpen && createPortal(
+                        <div 
+                          data-portal-dropdown="ageRange"
+                          className="fixed bg-white border-2 border-green-200 rounded-xl shadow-xl z-[99999] min-w-[400px]"
+                          style={{
+                            top: ageRangeButtonRef.current ? Math.min(ageRangeButtonRef.current.getBoundingClientRect().bottom + 8, window.innerHeight - 300) : 0,
+                            left: ageRangeButtonRef.current ? ageRangeButtonRef.current.getBoundingClientRect().left : 0,
+                            width: ageRangeButtonRef.current ? ageRangeButtonRef.current.getBoundingClientRect().width : 'auto',
+                            maxHeight: '300px'
+                          }}
+                        >
+                          {/* Search Input */}
+                          <div className="p-4 border-b border-gray-100">
+                            <div className="relative">
+                              <input
+                                type="text"
+                                placeholder="Search age ranges..."
+                                value={ageRangeSearchTerm}
+                                onChange={(e) => setAgeRangeSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                                autoFocus
+                              />
+                              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
+                            </div>
+                          </div>
+
+                          {/* Age Range Options */}
+                          <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
+                            {filteredAgeRanges.map((range) => (
+                              <button
+                                key={range.value}
+                                type="button"
+                                onClick={() => handleAgeRangeToggle(range.value)}
+                                className={`w-full p-3 text-left hover:bg-green-50 transition-colors duration-150 border-b border-gray-100 flex items-center justify-between ${
+                                  formData.ageRanges?.includes(range.value) ? 'bg-green-100 text-green-700' : 'text-gray-700'
+                                }`}
+                              >
+                                <span className="font-medium">{range.label}</span>
+                                {formData.ageRanges?.includes(range.value) && (
+                                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </button>
+                            ))}
+                            
+                            {filteredAgeRanges.length === 0 && (
+                              <div className="px-4 py-8 text-center text-gray-500">
+                                <p>No age ranges found matching "{ageRangeSearchTerm}"</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>,
+                        document.body
+                      )}
                     </div>
+                    {errors.ageRanges && (
+                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-600 text-sm flex items-center space-x-2">
+                          <FaExclamationTriangle className="text-red-500" />
+                          <span>{errors.ageRanges}</span>
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Course Credits */}
@@ -1246,6 +1534,112 @@ interface DaySchedule {
                       <p className="text-red-600 text-sm flex items-center space-x-2">
                         <FaExclamationTriangle className="text-red-500" />
                         <span>{errors.timezone}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Location Type */}
+                <div className="mb-8 p-6 bg-white/90 backdrop-blur-sm rounded-xl border border-purple-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <FaCalendarAlt className="text-white text-lg" />
+                      </div>
+                      <div>
+                        <h5 className="font-semibold text-gray-800">Location Type</h5>
+                        <p className="text-sm text-gray-600">Select how your course will be delivered</p>
+                      </div>
+                    </div>
+                    <span className="text-red-500 text-lg font-bold">*</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    {[
+                      { value: 'online', label: 'Online', icon: '🌐', desc: 'Virtual' },
+                      { value: 'in-person', label: 'In-Person', icon: '🏫', desc: 'Physical' },
+                      { value: 'hybrid', label: 'Hybrid', icon: '🔄', desc: 'Both' }
+                    ].map((type) => (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => handleInputChange('locationType', type.value)}
+                        className={`px-4 py-4 border-2 rounded-xl transition-all duration-300 flex flex-col items-center space-y-2 hover:scale-105 ${
+                          formData.locationType === type.value
+                            ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-md ring-2 ring-purple-200'
+                            : 'border-purple-200 hover:border-purple-300 text-gray-700 bg-white'
+                        }`}
+                      >
+                        <span className="text-3xl">{type.icon}</span>
+                        <span className="text-sm font-bold">{type.label}</span>
+                        <span className="text-xs text-gray-500">{type.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {errors.locationType && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-red-600 text-sm flex items-center space-x-2">
+                        <FaExclamationTriangle className="text-red-500" />
+                        <span>{errors.locationType}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Course Location */}
+                <div className="mb-8 p-6 bg-white/90 backdrop-blur-sm rounded-xl border border-purple-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h5 className="font-semibold text-gray-800">
+                          {formData.locationType === 'online' 
+                            ? 'Meeting Link / Platform' 
+                            : formData.locationType === 'in-person' 
+                            ? 'Physical Address' 
+                            : 'Primary Location'}
+                        </h5>
+                        <p className="text-sm text-gray-600">
+                          {formData.locationType === 'online' 
+                            ? 'Provide the virtual meeting link or platform' 
+                            : formData.locationType === 'in-person' 
+                            ? 'Enter the full physical address' 
+                            : 'Specify the main location or meeting link'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-red-500 text-lg font-bold">*</span>
+                  </div>
+                  
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      className={`w-full px-5 py-4 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-300 text-base bg-white ${
+                        errors.location ? 'border-red-300 focus:ring-red-100 focus:border-red-500' : 'border-purple-200'
+                      }`}
+                      placeholder={
+                        formData.locationType === 'online' 
+                          ? 'e.g., https://zoom.us/j/123456789 or Google Meet' 
+                          : formData.locationType === 'in-person' 
+                          ? 'e.g., 123 Main St, New York, NY 10001' 
+                          : 'Primary meeting location or link'
+                      }
+                    />
+                  </div>
+                  
+                  {errors.location && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-red-600 text-sm flex items-center space-x-2">
+                        <FaExclamationTriangle className="text-red-500" />
+                        <span>{errors.location}</span>
                       </p>
                     </div>
                   )}

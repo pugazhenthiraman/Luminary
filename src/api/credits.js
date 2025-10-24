@@ -30,6 +30,14 @@ const creditsApi = {
     );
     return res?.data; // { success, data: { enrollments, creditBalance, transaction, totalCreditCost } }
   },
+
+  getPurchases: async (userId) => {
+    const res = await api.get(`/credits/purchases/${userId}`, {
+      _noLogoutOn401: true,
+      _noBlockOn403: true,
+    });
+    return res?.data?.data || res?.data;
+  },
 };
 
 export default creditsApi;

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FaCoins, FaHistory, FaArrowRight, FaCheckCircle, FaTimes, FaCalendarAlt } from 'react-icons/fa';
+import { FaCoins, FaHistory, FaArrowRight, FaCheckCircle, FaTimes, FaCalendarAlt, FaBook, FaShoppingCart, FaPlus, FaQuestionCircle } from 'react-icons/fa';
 import WalletPaymentModal from '../../components/WalletPaymentModal';
 
 interface WalletProps {
@@ -10,9 +10,9 @@ interface WalletProps {
 // Frontend-only mock data per request
 const INITIAL_BALANCE = 42; // credits
 const PLANS = [
-  { id: 'basic', name: 'Basic', price: 15, credits: 15, popular: false },
-  { id: 'medium', name: 'Medium', price: 25, credits: 30, popular: true },
-  { id: 'family', name: 'Family', price: 50, credits: 70, popular: false },
+  { id: 'basic', name: 'Basic', price: 120, credits: 10, popular: false },
+  { id: 'medium', name: 'Medium', price: 300, credits: 30, popular: true },
+  { id: 'family', name: 'Family', price: 500, credits: 70, popular: false },
 ];
 const HISTORY = [
   // August
@@ -137,9 +137,9 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <p className="text-white/90 text-sm">Credits Wallet</p>
-              <h2 className="text-xl sm:text-3xl font-extrabold mt-1">Get a Plan – Enroll with Credits</h2>
+              <h2 className="text-xl sm:text-3xl font-extrabold mt-1">Flexible Payment Options</h2>
               <p className="mt-2 text-white/90 max-w-xl text-sm">
-                Purchase a plan to add credits to your wallet. Use credits to enroll in any course.
+                Choose between credit plans or purchase individual classes directly.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -147,19 +147,6 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
                 <FaCoins />
                 <span className="font-semibold">{balance} Credits</span>
               </div>
-              <button
-                onClick={() => {
-                  setSelectedPlanId('medium');
-                  setOpenPlanId('medium');
-                  // Fallback: re-open shortly in case of StrictMode double-render race
-                  setTimeout(() => {
-                    if (!activePlan) { setOpenPlanId('medium'); }
-                  }, 0);
-                }}
-                className="px-3 sm:px-4 py-2 rounded-xl bg-white text-violet-700 font-semibold hover:bg-violet-50 transition"
-              >
-                Choose Plan
-              </button>
             </div>
           </div>
         </div>
@@ -167,19 +154,125 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
           <circle cx="100" cy="100" r="100" />
         </svg>
       </div>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Wallet</h2>
-        <button
-          onClick={() => onTabChange('courses')}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
-        >
-          Enroll in Classes
-          <FaArrowRight />
-        </button>
+
+      {/* Payment Options Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Choose Your Payment Method</h2>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+            <FaQuestionCircle />
+            <span>Not sure? Try individual classes first</span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Option 1: Credit Plans */}
+          <div className="group rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-fuchsia-50 p-6 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <FaCoins className="text-white text-xl" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Credit Plans</h3>
+                  <p className="text-sm text-gray-600">Best value for multiple courses</p>
+                </div>
+              </div>
+              <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">Save 20%</span>
+            </div>
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <FaCheckCircle className="text-violet-600 flex-shrink-0" />
+                <span>Save up to 20% with bulk credits</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <FaCheckCircle className="text-violet-600 flex-shrink-0" />
+                <span>Use across any course anytime</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <FaCheckCircle className="text-violet-600 flex-shrink-0" />
+                <span>Credits never expire</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <FaCheckCircle className="text-violet-600 flex-shrink-0" />
+                <span>Flexible enrollment for all children</span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedPlanId('medium');
+                setOpenPlanId('medium');
+                setTimeout(() => {
+                  if (!activePlan) { setOpenPlanId('medium'); }
+                }, 0);
+              }}
+              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold hover:from-violet-700 hover:to-fuchsia-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              <FaPlus />
+              Add Credits / Get Plan
+            </button>
+          </div>
+
+          {/* Option 2: Individual Classes */}
+          <div className="group rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-6 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <FaBook className="text-white text-xl" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Individual Classes</h3>
+                  <p className="text-sm text-gray-600">Pay per class as you go</p>
+                </div>
+              </div>
+              <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">No commitment</span>
+            </div>
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <FaCheckCircle className="text-blue-600 flex-shrink-0" />
+                <span>No upfront commitment needed</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <FaCheckCircle className="text-blue-600 flex-shrink-0" />
+                <span>Pay only for what you use</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <FaCheckCircle className="text-blue-600 flex-shrink-0" />
+                <span>Instant enrollment & access</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <FaCheckCircle className="text-blue-600 flex-shrink-0" />
+                <span>Perfect for trying new courses</span>
+              </div>
+            </div>
+            <button
+              onClick={() => onTabChange('courses')}
+              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              <FaShoppingCart />
+              Browse & Purchase Classes
+            </button>
+          </div>
+        </div>
+
+        {/* Comparison Helper */}
+        {/* <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <FaQuestionCircle className="text-amber-600 text-lg" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900 mb-1">💡 Which option should I choose?</p>
+              <p className="text-sm text-gray-600">
+                <strong className="text-violet-700">Credit Plans</strong> save money if enrolling in 2+ courses. 
+                <strong className="text-blue-700 ml-1">Individual Classes</strong> work best for single courses or trying before committing.
+              </p>
+            </div>
+          </div>
+        </div> */}
       </div>
 
-      {/* Balance + Month selector */}
+      {/* Balance Summary & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="col-span-1 lg:col-span-1">
           <div className="rounded-2xl p-6 bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow-lg">
@@ -194,26 +287,17 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div className="bg-white/15 rounded-lg p-3">
-                <p className="text-white/80">This month added</p>
+                <p className="text-white/80">Added</p>
                 <p className="text-white font-bold">+{monthInflow} cr</p>
               </div>
               <div className="bg-white/15 rounded-lg p-3">
-                <p className="text-white/80">This month used</p>
+                <p className="text-white/80">Used</p>
                 <p className="text-white font-bold">-{monthOutflow} cr</p>
               </div>
             </div>
-            <p className="mt-3 text-white/90 text-xs sm:text-sm">Use credits to enroll in classes. Credits are applied at checkout.</p>
-          </div>
-        </div>
-
-        {/* CTA to add credits (plans moved to modal) */}
-        <div className="col-span-1 lg:col-span-2 flex items-center">
-          <div className="w-full rounded-2xl border border-dashed border-violet-300 bg-violet-50/60 p-4 sm:p-6 text-violet-800">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-semibold">Need more credits?</h3>
-                <p className="text-sm">Click below to choose a plan and top-up instantly.</p>
-              </div>
+            
+            {/* Quick Action Buttons */}
+            <div className="mt-4 pt-4 border-t border-white/20 space-y-2">
               <button
                 onClick={() => {
                   setSelectedPlanId('medium');
@@ -222,22 +306,39 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
                     if (!activePlan) { setOpenPlanId('medium'); }
                   }, 0);
                 }}
-                className="inline-flex justify-center px-4 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition"
+                className="w-full px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2"
               >
-                Add Credits / Get Plan
+                <FaPlus className="text-xs" />
+                Add Credits
+              </button>
+              <button
+                onClick={() => onTabChange('courses')}
+                className="w-full px-3 py-2 rounded-lg bg-white text-violet-700 hover:bg-violet-50 text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <FaBook className="text-xs" />
+                Use Credits
               </button>
             </div>
-            <div className="mt-4 flex items-center gap-3">
+          </div>
+        </div>
+
+        {/* Quick Filter Controls */}
+        <div className="col-span-1 lg:col-span-2 flex items-center">
+          <div className="w-full rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Activity Filters</h3>
+                <p className="text-sm text-gray-600">View and filter your credit transactions</p>
+              </div>
               <button
                 onClick={() => setMonthModalOpen(true)}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-violet-200 bg-white text-violet-900 hover:bg-violet-50 transition text-sm"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-violet-200 bg-violet-50 text-violet-900 hover:bg-violet-100 hover:border-violet-300 transition text-sm font-medium shadow-sm"
                 aria-haspopup="dialog"
               >
                 <FaCalendarAlt />
                 <span>Select Month</span>
-                <span className="px-2 py-0.5 rounded bg-violet-100 text-violet-700 text-xs">{displayMonth(selectedMonth)}</span>
+                <span className="px-2 py-0.5 rounded-full bg-violet-600 text-white text-xs font-semibold">{displayMonth(selectedMonth)}</span>
               </button>
-              <span className="text-xs sm:text-sm text-violet-700">Filter your credit activity by month</span>
             </div>
           </div>
         </div>
@@ -406,7 +507,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
               </button>
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-center text-white">
-                  <h3 className="text-2xl sm:text-3xl font-extrabold">Top‑up your Wallet</h3>
+                  <h3 className="text-2xl sm:text-3xl font-extrabold">Pick your plan</h3>
                   <p className="text-white/90 text-sm mt-1">Pick a plan. Pay securely. Credits appear instantly.</p>
                 </div>
               </div>
@@ -426,11 +527,12 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
                     <div className="-mt-8 pb-6 px-5">
                       <div className="w-24 h-24 mx-auto rounded-full bg-white shadow-lg border flex items-center justify-center text-2xl font-extrabold text-gray-900">${p.price}</div>
                       <h4 className="mt-3 text-xl font-bold text-center">{p.name}</h4>
-                      <p className="text-xs text-gray-500 text-center">One-time purchase</p>
+                      {/* <p className="text-xs text-gray-500 text-center">One-time purchase</p> */}
                       <ul className="mt-4 space-y-2 text-sm">
                         <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> {p.credits} credits included</li>
                         <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> Use across any course</li>
                         <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> Instant wallet top-up</li>
+                        <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> {p.id === 'basic' ? 'One-time access' : p.id === 'medium' ? '2-3 classes' : '5-6+ classes'}</li>
                       </ul>
                       <button
                         onClick={() => { setOpenPlanId(null); handleBuyNow(p.id); }}

@@ -59,7 +59,7 @@ interface Props {
   onPaymentChange: (field: keyof PaymentMethod, value: string) => void;
   canProceedPayment?: boolean;
   isProcessing?: boolean;
-  onProcessPayment: () => void;
+  onProcessPayment: (paymentFormData?: any) => void;
   onViewChild?: (child: ChildItem) => void;
 }
 
@@ -228,7 +228,7 @@ const EnrollmentFlow: React.FC<Props> = ({
                     amount={Number(totalAmount) || 0}
                     currency="USD"
                     courseTitle={course.title}
-                    onSuccess={() => onProcessPayment()}
+                    onSuccess={(paymentFormData) => onProcessPayment(paymentFormData)}
                     onError={() => { /* handled inside form */ }}
                   />
                 </Elements>

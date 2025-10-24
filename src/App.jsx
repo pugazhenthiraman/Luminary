@@ -15,10 +15,12 @@ import EmailVerifyLink from "./components/EmailVerifyLink";
 import ResetPassword from "./components/ResetPassword";
 import SessionBlockOverlay from "./components/SessionBlockOverlay";
 import ProfileOverview from "./components/ProfileOverview";
+import ReapplyCoach from "./Login/ReapplyCoach";
+import ReapplySuccess from "./Login/ReapplySuccess";
 
 function App() {
   const location = useLocation();
-  const hideHeader = /^\/reset-password\//.test(location.pathname);
+  const hideHeader = /^\/reset-password\//.test(location.pathname) || /^\/reapply\//.test(location.pathname) || location.pathname === '/reapply-success';
   return (
     <>
       {!hideHeader && <Header />}
@@ -37,6 +39,8 @@ function App() {
         />
         <Route path="/verify-email/:token" element={<EmailVerifyLink />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/reapply/:token" element={<ReapplyCoach />} />
+        <Route path="/reapply-success" element={<ReapplySuccess />} />
         <Route path="/profile" element={<ProfileOverview />} />
         <Route
           path="/admin/dashboard"

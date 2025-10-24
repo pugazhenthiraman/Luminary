@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import CoachDetailsModal from '../../components/CoachDetailsModal';
-import { FaCheck, FaTimes, FaEye, FaEnvelope, FaPhone, FaGraduationCap, FaClock, FaSpinner, FaPauseCircle, FaPlayCircle } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaEye, FaEnvelope, FaPhone, FaGraduationCap, FaClock, FaSpinner, FaPauseCircle, FaPlayCircle, FaRedo } from 'react-icons/fa';
 import Avatar from '../../components/Avatar';
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
-import { getCoaches, approveCoach, rejectCoach, activateRejectedCoach, suspendCoach, reactivateCoach } from '../../api/admin';
+import { getCoaches, approveCoach, rejectCoach, activateRejectedCoach, suspendCoach, reactivateCoach, requestCoachReapplication } from '../../api/admin';
 
 export interface CoachData {
   id: string;
@@ -43,6 +43,13 @@ const CoachApproval: React.FC = () => {
   // Freeze is no longer used in coach approval
   const [isSuspending, setIsSuspending] = useState(false);
   const [isReactivating, setIsReactivating] = useState(false);
+  
+  // Reapplication workflow states
+  const [showReapplicationModal, setShowReapplicationModal] = useState(false);
+  const [coachToReapply, setCoachToReapply] = useState<string | null>(null);
+  const [reapplicationReason, setReapplicationReason] = useState('');
+  const [reapplicationNotes, setReapplicationNotes] = useState('');
+  const [isRequestingReapplication, setIsRequestingReapplication] = useState(false);
 
   // Optimistically update a coach in local state (list + selected modal)
   const patchCoach = (coachId: string, patch: Partial<CoachData>) => {
@@ -129,9 +136,36 @@ const CoachApproval: React.FC = () => {
     }
   };
 
+  const handleRequestReapplication = async (coachId: string) => {
+    setIsRequestingReapplication(true);
+    try {
+      await requestCoachReapplication(
+        coachId,
+        reapplicationReason || 'Please update your application',
+        reapplicationNotes
+      );
+      showSuccessToast('Reapplication email sent to coach with unique link!');
+      setShowReapplicationModal(false);
+      setCoachToReapply(null);
+      setReapplicationReason('');
+      setReapplicationNotes('');
+      patchCoach(coachId, { status: 'rejected' });
+      loadCoaches(); // Reload to get updated data
+    } catch {
+      showErrorToast('Failed to send reapplication request');
+    } finally {
+      setIsRequestingReapplication(false);
+    }
+  };
+
   const confirmReject = (coachId: string) => {
     setCoachToReject(coachId);
     setShowRejectConfirm(true);
+  };
+
+  const confirmReapplication = (coachId: string) => {
+    setCoachToReapply(coachId);
+    setShowReapplicationModal(true);
   };
 
   const confirmApprove = (coachId: string) => {
@@ -241,6 +275,7 @@ const CoachApproval: React.FC = () => {
                       <>
                         <button onClick={() => confirmApprove(coach.id)} disabled={isApproving || isRejecting} className="p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 text-green-600 hover:text-green-900 hover:bg-green-50" title="Approve">{isApproving ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}</button>
                         <button onClick={() => confirmReject(coach.id)} disabled={isApproving || isRejecting} className="p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 text-red-600 hover:text-red-900 hover:bg-red-50" title="Reject">{isRejecting ? <FaSpinner className="animate-spin text-sm" /> : <FaTimes className="text-sm" />}</button>
+                        <button onClick={() => confirmReapplication(coach.id)} disabled={isRequestingReapplication} className="p-2 rounded-lg transition-colors duration-200 disabled:opacity-50 text-blue-600 hover:text-blue-900 hover:bg-blue-50" title="Request Reapplication"><FaRedo className="text-sm" /></button>
                       </>
                     )}
                   </div>
@@ -322,6 +357,7 @@ const CoachApproval: React.FC = () => {
                           <>
                             <button onClick={() => confirmApprove(coach.id)} disabled={isApproving || isRejecting} className="text-green-600 hover:text-green-900 p-1 disabled:opacity-50" title="Approve">{isApproving ? <FaSpinner className="animate-spin" /> : <FaCheck />}</button>
                             <button onClick={() => confirmReject(coach.id)} disabled={isApproving || isRejecting} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" title="Reject">{isRejecting ? <FaSpinner className="animate-spin" /> : <FaTimes />}</button>
+                            <button onClick={() => confirmReapplication(coach.id)} disabled={isRequestingReapplication} className="text-blue-600 hover:text-blue-900 p-1 disabled:opacity-50" title="Request Reapplication (Send Link)"><FaRedo /></button>
                           </>
                         )}
       {coach.status === 'approved' && (
@@ -482,6 +518,101 @@ const CoachApproval: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button onClick={() => { setShowApproveConfirm(false); setCoachToApprove(null); }} className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm">Cancel</button>
               <button onClick={() => coachToApprove && handleApprove(coachToApprove)} disabled={isApproving} className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">{isApproving ? <FaSpinner className="animate-spin" /> : 'Confirm Approve'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request Reapplication Modal */}
+      {showReapplicationModal && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => { 
+            setShowReapplicationModal(false); 
+            setCoachToReapply(null); 
+            setReapplicationReason('');
+            setReapplicationNotes('');
+          }}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-4 sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaRedo className="text-blue-600 text-xl sm:text-2xl" />
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Request Reapplication</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Send this coach a unique link to update and resubmit their application
+              </p>
+              
+              <div className="mb-4 space-y-4">
+                <div className="text-left">
+                  <label htmlFor="reapplicationReason" className="block text-sm font-medium text-gray-700 mb-2">
+                    Feedback for Coach <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    id="reapplicationReason"
+                    value={reapplicationReason}
+                    onChange={(e) => setReapplicationReason(e.target.value)}
+                    placeholder="Explain what needs to be updated (e.g., 'Please provide more details about your teaching experience')"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                    rows={4}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    This will be shown to the coach in the email and on the reapplication page
+                  </p>
+                </div>
+                
+                <div className="text-left">
+                  <label htmlFor="reapplicationNotes" className="block text-sm font-medium text-gray-700 mb-2">
+                    Internal Admin Notes (Optional)
+                  </label>
+                  <textarea
+                    id="reapplicationNotes"
+                    value={reapplicationNotes}
+                    onChange={(e) => setReapplicationNotes(e.target.value)}
+                    placeholder="Internal notes for your reference..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                    rows={2}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    This is for internal use only and won't be sent to the coach
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button 
+                onClick={() => { 
+                  setShowReapplicationModal(false); 
+                  setCoachToReapply(null); 
+                  setReapplicationReason('');
+                  setReapplicationNotes('');
+                }} 
+                className="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => coachToReapply && handleRequestReapplication(coachToReapply)}
+                disabled={isRequestingReapplication || !reapplicationReason.trim()}
+                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isRequestingReapplication ? (
+                  <>
+                    <FaSpinner className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <FaRedo />
+                    Send Reapplication Link
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

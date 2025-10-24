@@ -14,6 +14,7 @@ import WalletPaymentModal from '../components/WalletPaymentModal';
 import { getCourses as getPublicCourses } from '../api/courses';
 import { testAllThumbnails } from '../utils/thumbnailUtils';
 import { getChildren, getEnrollments, getUpcomingSessions, getSchedule } from '../api/parent';
+import creditsApi from '../api/credits';
 
 interface ParentUser {
   id: string;
@@ -63,6 +64,26 @@ const ParentDashboard: React.FC = () => {
   // Use Zustand auth store
   const { user, isAuthenticated, logout: logoutFromStore } = useAuthStore();
 
+  // Function to refresh children data
+  const refreshChildrenData = async () => {
+    if (!isAuthenticated || !user || user.role !== 'PARENT') return;
+    
+    try {
+      const childrenResponse = await getChildren();
+      const childrenData = childrenResponse.data?.data || [];
+      
+      // Update parentData with new children
+      setParentData(prev => prev ? {
+        ...prev,
+        children: childrenData
+      } : null);
+      
+      setChildren(childrenData);
+    } catch (error) {
+      console.error('[ParentDashboard] Error refreshing children data:', error);
+    }
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
       // Avoid duplicate run in StrictMode; wait until auth is ready
@@ -80,6 +101,7 @@ const ParentDashboard: React.FC = () => {
         // Get children data from API
         const childrenResponse = await getChildren();
         const childrenData = childrenResponse.data?.data || [];
+        
 
         // Set parent data from authenticated user
         setParentData({
@@ -112,21 +134,55 @@ const ParentDashboard: React.FC = () => {
     checkAuth();
   }, [isAuthenticated, user, navigate]);
 
-  // On first dashboard view per user, show plans popup without routing to Wallet
+  // On first dashboard view per user, show plans popup ONLY if no plan selected/purchased
   useEffect(() => {
     if (!isAuthenticated || !user || user.role !== 'PARENT') return;
-    // Key scoped per user
-    const key = `walletPlansShown:${user.id}`;
-    const shown = localStorage.getItem(key);
-    const afterLoginFlag = localStorage.getItem('showWalletPlansAfterLogin');
-    if (!shown || afterLoginFlag === 'true') {
-      // Show plans modal over the current dashboard tab
-      setShowPlansModal(true);
-      localStorage.setItem(key, 'true');
-      if (afterLoginFlag === 'true') {
-        localStorage.removeItem('showWalletPlansAfterLogin');
+    
+    const checkAndShowPlansModal = async () => {
+      try {
+        // Check if user has any credit balance or purchases
+        const [balanceResponse, purchasesResponse] = await Promise.allSettled([
+          creditsApi.getBalance(user.id),
+          creditsApi.getPurchases(user.id)
+        ]);
+
+        let hasCredits = false;
+        let hasPurchases = false;
+
+        // Check credit balance
+        if (balanceResponse.status === 'fulfilled') {
+          const balance = balanceResponse.value?.balance || 0;
+          hasCredits = balance > 0;
+        }
+
+        // Check purchase history
+        if (purchasesResponse.status === 'fulfilled') {
+          const purchases = purchasesResponse.value?.purchases || [];
+          hasPurchases = purchases.length > 0;
+        }
+
+        // Only show popup if user has NO credits AND NO purchase history
+        if (!hasCredits && !hasPurchases) {
+          const key = `walletPlansShown:${user.id}`;
+          const shown = localStorage.getItem(key);
+          const afterLoginFlag = localStorage.getItem('showWalletPlansAfterLogin');
+          
+          if (!shown || afterLoginFlag === 'true') {
+            // Show plans modal over the current dashboard tab
+            setShowPlansModal(true);
+            localStorage.setItem(key, 'true');
+            if (afterLoginFlag === 'true') {
+              localStorage.removeItem('showWalletPlansAfterLogin');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[ParentDashboard] Error checking credit status:', error);
+        // If API fails, don't show popup to avoid annoyance
       }
-    }
+    };
+
+    checkAndShowPlansModal();
   }, [isAuthenticated, user]);
 
   // Load parent-specific data (enrollments, sessions, schedule)
@@ -326,7 +382,7 @@ const ParentDashboard: React.FC = () => {
           />
         );
       case 'profile':
-        return <Profile parentData={parentData as any} />;
+        return <Profile parentData={parentData as any} onChildrenChange={refreshChildrenData} onTabChange={handleTabChange} />;
       default:
         return (
           <Overview

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaTimes, FaPlay, FaBook, FaUser, FaGraduationCap, FaStar, FaEnvelope, FaPhone, FaCalendarAlt, FaCartPlus } from 'react-icons/fa';
+import { FaTimes, FaBook, FaCartPlus } from 'react-icons/fa';
 
 export interface IntroCourseInfo {
   id: string;
@@ -90,16 +90,6 @@ const EnrollmentIntroModal: React.FC<Props> = ({ open, onClose, course, onContin
             )}
           </div>
 
-          {/* Preview button (separate row like screenshot) */}
-          <div className="flex items-center justify-center">
-            <button
-              onClick={() => { if (onPreview) { onPreview(); } else if (course.introVideo) { window.open(course.introVideo, '_blank'); } }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-gray-800 bg-white hover:bg-gray-50 shadow-sm text-sm"
-            >
-              <FaPlay /> Preview
-            </button>
-          </div>
-
           {/* Details */}
           <div className="space-y-4">
             <h1 className="text-lg sm:text-xl font-extrabold text-gray-900 leading-snug text-center">{course.title}</h1>
@@ -107,21 +97,12 @@ const EnrollmentIntroModal: React.FC<Props> = ({ open, onClose, course, onContin
               <p className="text-gray-700 text-sm line-clamp-2 text-center">{course.description}</p>
             )}
 
-            {/* Meta row: format + length + rating */}
-            <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-700">
-              {course.lengthText && <span>{course.lengthText}</span>}
-              {course.rating && (
-                <span className="flex items-center gap-1">
-                  {/* Stars */}
-                  {Array.from({ length: 5 }).map((_, i) => {
-                    const filled = i < Math.round(course.rating!.value);
-                    return <FaStar key={i} className={filled ? 'text-yellow-400' : 'text-gray-300'} />;
-                  })}
-                  <span className="font-semibold ml-1">{course.rating.value.toFixed(1)}</span>
-                  <span className="text-gray-500">({course.rating.count.toLocaleString()})</span>
-                </span>
-              )}
-            </div>
+            {/* Meta row: format + length */}
+            {course.lengthText && (
+              <div className="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-gray-700">
+                <span>{course.lengthText}</span>
+              </div>
+            )}
 
             {/* removed big credit pill */}
 
@@ -132,29 +113,6 @@ const EnrollmentIntroModal: React.FC<Props> = ({ open, onClose, course, onContin
                 <button className="text-blue-600 font-medium text-sm hover:underline">{course.coach?.name || 'Coach'}</button>
               </div>
             </div>
-
-            {/* Divider */}
-            <div className="h-px bg-gray-200" />
-
-            {/* Coach Email + Phone */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 flex items-center gap-2">
-                <FaEnvelope className="text-blue-600" />
-                <div>
-                  <div className="text-xs text-gray-500">Email</div>
-                  <div className="text-sm font-medium text-gray-900 break-all">{course.coach?.email || '—'}</div>
-                </div>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 flex items-center gap-2">
-                <FaPhone className="text-green-600" />
-                <div>
-                  <div className="text-xs text-gray-500">Phone</div>
-                  <div className="text-sm font-medium text-gray-900">{course.coach?.phone || '—'}</div>
-                </div>
-              </div>
-            </div>
-
-            
 
             {/* Price/discount row (optional) */}
             {(course.price != null || course.originalPrice != null) && (

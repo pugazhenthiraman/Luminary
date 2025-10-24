@@ -39,16 +39,16 @@ const HomePage = () => {
               to="/loginParent" 
                 className="group inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl text-base md:text-lg font-semibold transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:shadow-2xl hover:-translate-y-1 transform w-full sm:w-auto"
             >
-                Find a Coach
+                Find a Class
                 <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link 
+            {/* <Link 
               to="/loginCoach" 
                 className="group inline-flex items-center justify-center bg-white text-gray-900 px-6 py-3 md:px-8 md:py-4 rounded-2xl text-base md:text-lg font-semibold border-2 border-gray-200 transition-all duration-300 hover:bg-gray-50 hover:shadow-xl hover:-translate-y-1 transform w-full sm:w-auto"
             >
-                Become a Coach
+                Become a Instructor
                 <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            </Link> */}
             </div>
 
             {/* Stats */}
@@ -287,7 +287,7 @@ const HomePage = () => {
             to="/loginParent" 
             className="inline-flex items-center justify-center bg-white text-blue-600 px-6 py-3 md:px-8 md:py-4 rounded-2xl text-base md:text-lg font-semibold transition-all duration-300 hover:bg-gray-100 hover:shadow-2xl hover:-translate-y-1 transform w-full sm:w-auto"
           >
-            Find Your Perfect Coach
+            Find Your Perfect Instructor
             <FaArrowRight className="ml-2" />
           </Link>
         </div>
@@ -297,7 +297,7 @@ const HomePage = () => {
       <section className="py-12 md:py-20 bg-gradient-to-br from-emerald-50 to-teal-50">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6 px-2">
-            Are You a Coach?
+            Are You an Instructor?
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-8 md:mb-10 max-w-3xl mx-auto px-4">
             Join our platform and reach more families while doing what you love. 
@@ -323,7 +323,7 @@ const HomePage = () => {
             to="/loginCoach" 
             className="inline-flex items-center justify-center bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl text-base md:text-lg font-semibold transition-all duration-300 hover:from-emerald-700 hover:to-teal-700 hover:shadow-2xl hover:-translate-y-1 transform w-full sm:w-auto"
           >
-            Apply to Join as Coach
+            Apply to Join as an Instructor
             <FaArrowRight className="ml-2" />
           </Link>
         </div>

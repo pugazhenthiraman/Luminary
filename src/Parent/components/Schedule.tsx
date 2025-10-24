@@ -303,60 +303,7 @@ const Attendance: React.FC<AttendanceProps> = ({ schedule, parentData }) => {
         </div>
       </div>
 
-      {/* Attendance Statistics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-3 sm:p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-xs sm:text-sm font-medium">Present</p>
-              <p className="text-xl sm:text-3xl font-bold mt-1">{stats.present}</p>
-              <p className="text-green-200 text-xs sm:text-sm mt-1">Sessions attended</p>
-            </div>
-            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <FaCheckCircle className="text-white text-sm sm:text-xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-3 sm:p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-red-100 text-xs sm:text-sm font-medium">Absent</p>
-              <p className="text-xl sm:text-3xl font-bold mt-1">{stats.absent}</p>
-              <p className="text-red-200 text-xs sm:text-sm mt-1">Sessions missed</p>
-            </div>
-            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <FaTimes className="text-white text-sm sm:text-xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-3 sm:p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-yellow-100 text-xs sm:text-sm font-medium">Late</p>
-              <p className="text-xl sm:text-3xl font-bold mt-1">{stats.late}</p>
-              <p className="text-yellow-200 text-xs sm:text-sm mt-1">Late arrivals</p>
-            </div>
-            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <FaExclamationTriangle className="text-white text-sm sm:text-xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 sm:p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-xs sm:text-sm font-medium">Attendance Rate</p>
-              <p className="text-xl sm:text-3xl font-bold mt-1">{stats.attendanceRate}%</p>
-              <p className="text-blue-200 text-xs sm:text-sm mt-1">Overall performance</p>
-            </div>
-            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <FaPercentage className="text-white text-sm sm:text-xl" />
-            </div>
-          </div>
-        </div>
-      </div>
+     
 
       {/* Filters */}
       <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
@@ -593,6 +540,61 @@ const Attendance: React.FC<AttendanceProps> = ({ schedule, parentData }) => {
         </div>
       )}
 
+      {/* Attendance Statistics */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-3 sm:p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-xs sm:text-sm font-medium">Present</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1">{stats.present}</p>
+              <p className="text-green-200 text-xs sm:text-sm mt-1">Sessions attended</p>
+            </div>
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+              <FaCheckCircle className="text-white text-sm sm:text-xl" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-3 sm:p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-red-100 text-xs sm:text-sm font-medium">Absent</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1">{stats.absent}</p>
+              <p className="text-red-200 text-xs sm:text-sm mt-1">Sessions missed</p>
+            </div>
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+              <FaTimes className="text-white text-sm sm:text-xl" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-3 sm:p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-yellow-100 text-xs sm:text-sm font-medium">Late</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1">{stats.late}</p>
+              <p className="text-yellow-200 text-xs sm:text-sm mt-1">Late arrivals</p>
+            </div>
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+              <FaExclamationTriangle className="text-white text-sm sm:text-xl" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 sm:p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-xs sm:text-sm font-medium">Attendance Rate</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1">{stats.attendanceRate}%</p>
+              <p className="text-blue-200 text-xs sm:text-sm mt-1">Overall performance</p>
+            </div>
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+              <FaPercentage className="text-white text-sm sm:text-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Attendance Detail Modal */}
       {selectedAttendance && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">

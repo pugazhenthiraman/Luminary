@@ -55,6 +55,9 @@ interface Course {
   videoUrl?: string;
   level?: string;
   currency?: string;
+  location?: string;
+  locationType?: string;
+  ageRanges?: string[];
 }
 
 interface CoursesProps {
@@ -307,9 +310,12 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
     formData.append('description', courseData.description);
     formData.append('benefits', courseData.benefits);
     formData.append('category', courseData.category);
-    formData.append('program', courseData.program);
+    formData.append('program', courseData.program || '');
     formData.append('credits', courseData.credits); // send as number
     formData.append('timezone', courseData.timezone);
+    formData.append('location', courseData.location || '');
+    formData.append('locationType', courseData.locationType || 'online');
+    formData.append('ageRanges', JSON.stringify(courseData.ageRanges || []));
     // Optional fields
     if (courseData.duration) {
       formData.append('duration', courseData.duration);
@@ -433,26 +439,35 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       console.log(`[Coach] Updating course: ${editingCourse.id}`);
       console.log('[Coach] Form data received:', courseData);
       
-      // Prepare the data for API call - match the backend validation schema
-      const updateData = {
-        title: courseData.title,
-        description: courseData.description || '',
-        benefits: courseData.benefits || '',
-        category: courseData.category,
-        program: courseData.program,
-        price: String(courseData.credits) || '0',  // Backend expects price as string
-        courseDuration: courseData.duration || courseData.courseDuration || '',
-        timezone: courseData.timezone || '',
-        weeklySchedule: courseData.weeklySchedule || [],
-        // Handle file uploads
-        ...(courseData.thumbnail && { thumbnail: courseData.thumbnail }),
-        ...(courseData.videoUrl && { videoUrl: courseData.videoUrl })
-      };
+      // Prepare FormData for API call - match the backend validation schema
+      const formData = new FormData();
+      formData.append('title', courseData.title);
+      formData.append('description', courseData.description || '');
+      formData.append('benefits', courseData.benefits || '');
+      formData.append('category', courseData.category);
+      formData.append('program', courseData.program || '');
+      formData.append('credits', String(courseData.credits) || '0');
+      formData.append('courseDuration', courseData.duration || courseData.courseDuration || '');
+      formData.append('timezone', courseData.timezone || '');
+      formData.append('location', courseData.location || '');
+      formData.append('locationType', courseData.locationType || 'online');
+      formData.append('ageRanges', JSON.stringify(courseData.ageRanges || []));
+      formData.append('weeklySchedule', JSON.stringify(courseData.weeklySchedule || []));
+      
+      // Handle file uploads
+      if (courseData.thumbnail instanceof File) {
+        formData.append('thumbnail', courseData.thumbnail);
+      }
+      if (courseData.introVideo instanceof File) {
+        formData.append('introVideo', courseData.introVideo);
+      }
 
-      console.log('[Coach] Sending update data:', updateData);
+      console.log('[Coach] Sending update FormData:', formData);
 
-      // Call the PUT API
-      const response = await updateCourse(editingCourse.id, updateData);
+      // Call the PUT API with FormData
+      const response = await axiosInstance.put(`/courses/${editingCourse.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       console.log('[Coach] Update response:', response);
       
       // Handle the response
@@ -1107,19 +1122,22 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       )}
 
       {/* Edit Course Form Modal */}
-      {showEditForm && editingCourse && (
-        <>
-          {console.log('[Coach] Rendering edit form with data:', {
-            title: editingCourse.title || '',
-            description: editingCourse.description || '',
-            benefits: editingCourse.benefits || '',
-            category: editingCourse.category || '',
-            program: editingCourse.program || 'morning',
-            credits: Number(editingCourse.price) || 0,
-            timezone: editingCourse.timezone || '',
-            duration: editingCourse.courseDuration || editingCourse.duration || ''
-          })}
-      <CreateCourseForm
+      {showEditForm && editingCourse && (() => {
+        console.log('[Coach] Rendering edit form with data:', {
+          title: editingCourse.title || '',
+          description: editingCourse.description || '',
+          benefits: editingCourse.benefits || '',
+          category: editingCourse.category || '',
+          program: editingCourse.program || 'morning',
+          credits: Number(editingCourse.price) || 0,
+          timezone: editingCourse.timezone || '',
+          location: editingCourse.location || '',
+          locationType: (editingCourse.locationType as 'online' | 'in-person' | 'hybrid') || 'online',
+          ageRanges: editingCourse.ageRanges || [],
+          duration: editingCourse.courseDuration || editingCourse.duration || ''
+        });
+        return (
+          <CreateCourseForm
             onClose={() => {
               setShowEditForm(false);
               setEditingCourse(null);
@@ -1133,8 +1151,11 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
               program: (['morning','afternoon','evening'].includes(String(editingCourse.program)) ? (editingCourse.program as 'morning'|'afternoon'|'evening') : 'morning'),
               credits: Number(editingCourse.price) || 0,  // API returns price as string
               timezone: editingCourse.timezone || '',
-        courseDuration: String(editingCourse.courseDuration || editingCourse.duration || ''),
-        courseDurationNumber: typeof editingCourse.duration === 'number' ? editingCourse.duration : undefined,
+              location: editingCourse.location || '',
+              locationType: (editingCourse.locationType as 'online' | 'in-person' | 'hybrid') || 'online',
+              ageRanges: editingCourse.ageRanges || [],
+              courseDuration: String(editingCourse.courseDuration || editingCourse.duration || ''),
+              courseDurationNumber: typeof editingCourse.duration === 'number' ? editingCourse.duration : undefined,
               weeklySchedule: editingCourse.weeklySchedule || [
                 { day: 'SUNDAYS', isActive: false, timeSlots: [] },
                 { day: 'MONDAYS', isActive: false, timeSlots: [] },
@@ -1147,8 +1168,8 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
             }}
             isEditing={true}
           />
-        </>
-      )}
+        );
+      })()}
 
       {/* Coach Course Details Modal */}
       <CoachCourseDetailsModal

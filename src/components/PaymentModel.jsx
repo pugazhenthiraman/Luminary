@@ -25,7 +25,13 @@ const PaymentModal = ({
     setError(null);
 
     try {
+      console.log("🚀 Starting payment process...");
+      console.log("📝 Payment form data:", paymentFormData);
+      console.log("📚 Course data:", course);
+      console.log("💰 Total amount:", totalAmount);
+
       // Create payment with backend
+      console.log("📡 Calling paymentAPI.createPayment...");
       const paymentResponse = await paymentAPI.createPayment({
         courseId: Number(course.id),
         sessionId: null, // Will be set when session is created
@@ -40,12 +46,17 @@ const PaymentModal = ({
         },
       });
 
+      console.log("✅ Payment response:", paymentResponse);
+
       if (paymentResponse.success) {
+        console.log("📡 Calling paymentAPI.confirmPayment...");
         // Confirm payment with Stripe
         const confirmResponse = await paymentAPI.confirmPayment(
           paymentResponse.data.paymentId,
           paymentResponse.data.paymentIntentId
         );
+
+        console.log("✅ Confirm response:", confirmResponse);
 
         if (confirmResponse.success) {
           setPaymentData({
@@ -75,7 +86,13 @@ const PaymentModal = ({
         throw new Error(paymentResponse.message || "Payment creation failed");
       }
     } catch (err) {
-      console.error("Payment error:", err);
+      console.error("❌ Payment error:", err);
+      console.error("❌ Error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+      });
       setError(err.message || "Payment failed. Please try again.");
       setPaymentStep("error");
 

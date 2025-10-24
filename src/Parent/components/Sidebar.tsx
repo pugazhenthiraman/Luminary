@@ -38,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, showSidebar }
     },
     { 
       id: 'schedule', 
-      label: 'Attendance', 
+      label: 'Schedule', 
       icon: FaCalendarAlt
     },
     { 

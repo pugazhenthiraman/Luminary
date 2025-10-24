@@ -61,6 +61,13 @@ export const freezePendingCoach = (coachId, config = {}) =>
 export const unfreezePendingCoach = (coachId, config = {}) =>
   axiosInstance.post(`/admin/coaches/${coachId}/unfreeze`, undefined, config);
 
+// Request coach reapplication with unique link
+export const requestCoachReapplication = (coachId, rejectionReason, adminNotes, config = {}) =>
+  axiosInstance.post(`/admin/coaches/${coachId}/request-reapplication`, {
+    rejectionReason,
+    adminNotes
+  }, config);
+
 // Courses
 export const getCourses = (params = {}, config = {}) =>
   axiosInstance.get("/admin/courses", { params, ...config });

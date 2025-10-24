@@ -16,7 +16,6 @@ const CARD_ELEMENT_OPTIONS = {
       "::placeholder": {
         color: "#aab7c4",
       },
-      padding: "12px",
     },
     invalid: {
       color: "#9e2146",
@@ -60,6 +59,7 @@ const StripePaymentForm = ({
     }
 
     try {
+      console.log("💳 Creating payment method with Stripe...");
       // Create payment method
       const { error: paymentMethodError, paymentMethod } =
         await stripe.createPaymentMethod({
@@ -70,11 +70,17 @@ const StripePaymentForm = ({
           },
         });
 
+      console.log("💳 Payment method result:", { paymentMethodError, paymentMethod });
+
       if (paymentMethodError) {
+        console.error("❌ Payment method error:", paymentMethodError);
         setErrors({ payment: paymentMethodError.message });
         setIsProcessing(false);
         return;
       }
+
+      console.log("✅ Payment method created successfully:", paymentMethod.id);
+      console.log("📞 Calling onSuccess callback...");
 
       // Call success callback with payment method
       await onSuccess({
@@ -92,8 +98,10 @@ const StripePaymentForm = ({
           ? `Payment for ${courseTitle}`
           : "Course payment",
       });
+
+      console.log("✅ onSuccess callback completed");
     } catch (error) {
-      console.error("Payment error:", error);
+      console.error("❌ Payment error:", error);
       setErrors({
         payment: error.message || "Payment failed. Please try again.",
       });
