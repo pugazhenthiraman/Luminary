@@ -35,6 +35,11 @@ import EnrollmentFlow from '../enrollment/EnrollmentFlow';
 import EnrollmentIntroModal from '../enrollment/EnrollmentIntroModal';
 import { getCourseById } from '../../api/courses';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { getCourseReviews, createCourseReview, updateCourseReview, deleteCourseReview, checkCanReview } from '../../api/reviews';
+import ReviewDisplay from '../../components/ReviewDisplay';
+import ReviewForm from '../../components/ReviewForm';
+import WalletPlansModal, { type WalletPlan } from '../../components/WalletPlansModal';
+import WalletPaymentModal from '../../components/WalletPaymentModal';
 
 // Course interface
 export interface Course {
@@ -43,9 +48,13 @@ export interface Course {
   description: string;
   benefits: string;
   category: string;
-  program: 'morning' | 'afternoon' | 'evening';
+  program?: 'morning' | 'afternoon' | 'evening';
   credits: number;
   timezone: string;
+  // Additional fields for course details
+  ageRanges?: string[];
+  location?: string;
+  locationType?: string;
   weeklySchedule: {
     day: string;
     isActive: boolean;
@@ -83,6 +92,11 @@ export interface CoursesProps {
   courses: Course[];
   parentData: any;
   loading?: boolean;
+  onEnroll?: (course: Course) => void;
+  onTabChange?: (tab: string) => void;
+  onBalanceChange?: () => void;
+  onEnrollmentSuccess?: () => void;
+  enrollments?: any[];
 }
 
 export interface CoachData {
@@ -151,7 +165,8 @@ const priceRanges = [
   { value: 'high', label: '16+' }
 ];
 
-const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false }) => {
+const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false, onEnroll: externalOnEnroll, onTabChange, onBalanceChange, onEnrollmentSuccess, enrollments = [] }) => {
+  const { user } = useAuthStore();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -164,15 +179,16 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   const [enrollCourse, setEnrollCourse] = useState<Course | null>(null);
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [showIntroModal, setShowIntroModal] = useState(false);
-  const [parentCredits, setParentCredits] = useState<number | undefined>(undefined);
+  const [parentCredits, setParentCredits] = useState<number>(0);
   const [showCoachModal, setShowCoachModal] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<CoachData | null>(null);
-  const [currentStep, setCurrentStep] = useState<'children' | 'payment' | 'confirmation'>('children');
+  const [currentStep] = useState<'children'>('children');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   // Restored state for enrollment flow and coach modal
   const [availableChildren, setAvailableChildren] = useState<ChildItem[]>([]);
   const [childrenLoading, setChildrenLoading] = useState<boolean>(false);
   const [searchChild, setSearchChild] = useState<string>('');
+  const [enrolledChildIds, setEnrolledChildIds] = useState<string[]>([]);
   const [detailsChild, setDetailsChild] = useState<ChildItem | null>(null);
   const [showChildModal, setShowChildModal] = useState<boolean>(false);
   const [isCoachLoading, setIsCoachLoading] = useState<boolean>(false);
@@ -182,6 +198,34 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
     selectedChildren: [],
     totalPrice: 0
   });
+  // Credit-related states
+  const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
+  const [creditBalanceLoading, setCreditBalanceLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<WalletPlan | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  // Review states
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  // Enrollment success state
+  const [enrollmentSuccess, setEnrollmentSuccess] = useState<{
+    show: boolean;
+    courseTitle: string;
+    childrenCount: number;
+    creditsUsed: number;
+    newBalance: number;
+  }>({
+    show: false,
+    courseTitle: '',
+    childrenCount: 0,
+    creditsUsed: 0,
+    newBalance: 0
+  });
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [editingReview, setEditingReview] = useState<any>(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [canReview, setCanReview] = useState<boolean | null>(null);
+  const [reviewErrorMessage, setReviewErrorMessage] = useState<string>('');
   
   // Payment steps configuration
   // For now, only enable children selection; payment & confirmation kept for later
@@ -310,7 +354,8 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const formatProgram = (program: string) => {
+  const formatProgram = (program: string | undefined) => {
+    if (!program) return 'All Day';
     return program.charAt(0).toUpperCase() + program.slice(1);
   };
 
@@ -410,6 +455,17 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
             currentGrade: c.currentGrade ?? c.grade ?? '',
             schoolName: c.schoolName ?? c.school ?? ''
           }));
+          
+          // Track which children are already enrolled in the current course
+          let enrolledIds: string[] = [];
+          if (enrollCourse?.id && enrollments.length > 0) {
+            const courseId = enrollCourse.id;
+            enrolledIds = enrollments
+              .filter(e => e.courseId === courseId || e.courseId === String(courseId))
+              .map(e => e.childId);
+          }
+          
+          setEnrolledChildIds(enrolledIds);
           setAvailableChildren(normalized);
           return;
         }
@@ -422,9 +478,33 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
     };
     loadChildren();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showEnrollmentModal]);
+  }, [showEnrollmentModal, enrollCourse?.id, enrollments]);
+
+  // Load credit balance on component mount
+  useEffect(() => {
+    const loadCreditBalance = async () => {
+      if (!user?.id) return;
+      setCreditBalanceLoading(true);
+      try {
+        const balance = await creditsApi.getBalance(user.id);
+        setParentCredits(balance?.creditBalance?.balance || 0);
+      } catch (error) {
+        console.error('Failed to load credit balance:', error);
+        setParentCredits(0);
+      } finally {
+        setCreditBalanceLoading(false);
+      }
+    };
+    loadCreditBalance();
+  }, [user?.id]);
 
   const handleEnroll = (course: Course) => {
+    // If external onEnroll is provided (for public browsing), use it
+    if (externalOnEnroll) {
+      externalOnEnroll(course);
+      return;
+    }
+    
     // First show the new image/preview intro modal
     setEnrollCourse(course);
     setEnrollmentData({
@@ -436,6 +516,17 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   };
 
   const proceedFromIntro = () => {
+    // Calculate required credits
+    const requiredCredits = enrollCourse ? enrollCourse.credits : 0;
+    
+    // Check if user has enough credits
+    if (parentCredits < requiredCredits) {
+      showErrorToast(`Insufficient credits. You need ${requiredCredits} credits but only have ${parentCredits}. Please purchase a credit package.`);
+      setShowBuyCreditsModal(true);
+      setShowIntroModal(false);
+      return;
+    }
+    
     // Close intro and open the children selection modal
     setShowIntroModal(false);
     setShowEnrollmentModal(true);
@@ -448,19 +539,16 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
         ? prev.selectedChildren.filter(id => id !== childId)
         : [...prev.selectedChildren, childId];
       
-      // Compute total based on course credits (or price if provided)
-      const unit = (() => {
-        const p = (enrollCourse as any)?.price;
-        if (typeof p === 'number' && isFinite(p)) return p;
-        const c = enrollCourse?.credits;
-        return typeof c === 'number' && isFinite(c) ? c : 0;
-      })();
-      const totalPrice = newSelectedChildren.length * unit;
+      // Calculate total credits required (not dollar price)
+      const unitCredits = (enrollCourse?.credits || 0);
+      const totalCreditsNeeded = newSelectedChildren.length * unitCredits;
       
+      // Store as totalPrice for compatibility with existing code
+      // But it actually represents credits
       return {
         ...prev,
         selectedChildren: newSelectedChildren,
-        totalPrice
+        totalPrice: totalCreditsNeeded
       };
     });
   };
@@ -586,17 +674,27 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   };
 
   const handleNextStep = () => {
-  if (enrollmentData.selectedChildren.length === 0) {
+    if (enrollmentData.selectedChildren.length === 0) {
       showErrorToast('Please select at least one child to enroll');
       return;
     }
-  // Move to payment step
-  setCurrentStep('payment');
+    
+    // Check credits before proceeding
+    const totalCreditsNeeded = (enrollCourse?.credits || 0) * enrollmentData.selectedChildren.length;
+    if (parentCredits < totalCreditsNeeded) {
+      showErrorToast(`Insufficient credits. Required: ${totalCreditsNeeded}, Available: ${parentCredits}. Please purchase more credits.`);
+      setShowBuyCreditsModal(true);
+      return;
+    }
+    
+    // Proceed directly to enrollment (no payment step needed for credit-based)
+    processPayment();
   };
 
   const handlePreviousStep = () => {
-  // Go back to children selection
-  setCurrentStep('children');
+    // Go back to children selection (not needed with credit-based flow)
+    // This is kept for compatibility with EnrollmentFlow component
+    // setCurrentStep removed - we only have 'children' step
   };
 
   const handlePaymentMethodChange = (field: string, value: string) => {
@@ -642,86 +740,204 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
   };
 
   const processPayment = async (paymentFormData?: any) => {
-    if (!enrollCourse || !enrollmentData.selectedChildren.length) {
-      console.error('❌ Missing course or children data');
+    if (!enrollCourse || !enrollmentData.selectedChildren.length || !user?.id) {
+      console.error('❌ Missing course, children data, or user ID');
       return;
     }
 
     setIsProcessingPayment(true);
-    console.log('🚀 Starting payment process...');
+    console.log('🚀 Starting credit-based enrollment...');
     console.log('📚 Course:', enrollCourse);
     console.log('👶 Selected children:', enrollmentData.selectedChildren);
-    console.log('💳 Payment form data:', paymentFormData);
+    console.log('💳 Credit balance:', parentCredits);
 
     try {
-      // Create payment with backend
-      console.log('📡 Calling paymentAPI.createPayment...');
-      const paymentResponse = await paymentAPI.createPayment({
+      // Calculate total credit cost
+      const creditCostPerChild = enrollCourse.credits;
+      const totalCreditCost = creditCostPerChild * enrollmentData.selectedChildren.length;
+      
+      // Verify sufficient credits again
+      if (parentCredits < totalCreditCost) {
+        throw new Error(`Insufficient credits. Required: ${totalCreditCost}, Available: ${parentCredits}`);
+      }
+
+      // Enroll using credits API
+      console.log('📡 Calling creditsApi.enrollWithCredits...');
+      const enrollmentResponse = await creditsApi.enrollWithCredits(user.id, {
         courseId: Number(enrollCourse.id),
-        sessionId: null, // Will be set when session is created
-        amount: enrollmentData.totalPrice,
-        currency: "USD",
-        paymentMethodId: paymentFormData?.paymentMethodId, // Stripe payment method ID
-        description: paymentFormData?.description || `Payment for ${enrollCourse.title}`,
-        metadata: {
-          selectedChildren: enrollmentData.selectedChildren,
-          courseTitle: enrollCourse.title,
-          cardholderName: paymentFormData?.cardholderName,
-        },
+        childrenIds: enrollmentData.selectedChildren
       });
 
-      console.log('✅ Payment response:', paymentResponse);
+      console.log('✅ Enrollment response:', enrollmentResponse);
 
-      if (paymentResponse.success) {
-        console.log('📡 Calling paymentAPI.confirmPayment...');
-        // Confirm payment with Stripe
-        const confirmResponse = await paymentAPI.confirmPayment(
-          paymentResponse.data.paymentId,
-          paymentResponse.data.paymentIntentId
-        );
-
-        console.log('✅ Confirm response:', confirmResponse);
-
-        if (confirmResponse.success) {
-          console.log('🎉 Payment successful!');
-          // Show success message
-          showSuccessToast(`Payment successful! Enrolled ${enrollmentData.selectedChildren.length} child(ren) in ${enrollCourse.title}`);
-          
-          // Reset enrollment flow
-          resetEnrollmentFlow();
-        } else {
-          throw new Error(confirmResponse.message || "Payment confirmation failed");
+      if (enrollmentResponse.success) {
+        console.log('🎉 Enrollment successful!');
+        
+        // Update credit balance in state
+        const newBalance = enrollmentResponse.data?.creditBalance?.balance || 
+                          (parentCredits - totalCreditCost);
+        setParentCredits(newBalance);
+        
+        // Refresh the credit balance in the header
+        if (onBalanceChange) {
+          onBalanceChange();
         }
+        
+        // Refresh the enrollments list
+        if (onEnrollmentSuccess) {
+          onEnrollmentSuccess();
+        }
+        
+        // Show success modal instead of toast
+        setEnrollmentSuccess({
+          show: true,
+          courseTitle: enrollCourse.title,
+          childrenCount: enrollmentData.selectedChildren.length,
+          creditsUsed: totalCreditCost,
+          newBalance: newBalance
+        });
+        
+        // Reset enrollment flow
+        resetEnrollmentFlow();
       } else {
-        throw new Error(paymentResponse.message || "Payment creation failed");
+        throw new Error(enrollmentResponse.message || "Enrollment failed");
       }
     } catch (err: any) {
-      console.error('❌ Payment error:', err);
+      console.error('❌ Enrollment error:', err);
       console.error('❌ Error details:', {
         message: err.message,
         response: err.response?.data,
         status: err.response?.status,
-        statusText: err.response?.statusText,
       });
       
-      showErrorToast(err.message || "Payment failed. Please try again.");
+      // Extract error message from response
+      let errorMessage = err.response?.data?.message || err.message || "Enrollment failed. Please try again.";
+      
+      // If insufficient credits, show a user-friendly message with buy credits option
+      if (errorMessage.includes('Insufficient credits')) {
+        // Parse the credit requirements from the error message
+        const match = errorMessage.match(/Required: (\d+), Available: (\d+)/);
+        if (match) {
+          const required = parseInt(match[1]);
+          const available = parseInt(match[2]);
+          const needed = required - available;
+          // Format message for toast (newline characters won't work in toast, use HTML line breaks)
+          errorMessage = `Insufficient Credits - You need ${needed} more credits (Required: ${required}, You have: ${available})`;
+        } else {
+          errorMessage = `Insufficient Credits - ${errorMessage}`;
+        }
+        showErrorToast(errorMessage);
+        setShowBuyCreditsModal(true);
+      } else if (errorMessage.includes('Already enrolled')) {
+        // Extract child names from error message
+        const match = errorMessage.match(/Already enrolled: (.+) is\/are already enrolled/);
+        if (match) {
+          errorMessage = `${match[1]} ${match[1].includes('are') ? 'are' : 'is'} already enrolled in this course`;
+        }
+        showErrorToast(errorMessage);
+      } else {
+        showErrorToast(errorMessage);
+      }
     } finally {
       setIsProcessingPayment(false);
     }
   };
   const resetEnrollmentFlow = () => {
-
-
     setShowEnrollmentModal(false);
-  setShowIntroModal(false);
-  setEnrollCourse(null);
-    setCurrentStep('children');
-  // Do not touch selectedCourse here; it's for the detail modal
+    setShowIntroModal(false);
+    setEnrollCourse(null);
+    // Do not touch selectedCourse here; it's for the detail modal
     setEnrollmentData({
       courseId: '',
       selectedChildren: [],
       totalPrice: 0
     });
+    
+    // After enrollment, if viewing course details, refresh can-review check
+    if (selectedCourse) {
+      checkUserCanReview(selectedCourse.id);
+    }
+  };
+
+  // Load reviews when course detail opens
+  useEffect(() => {
+    if (selectedCourse) {
+      loadCourseReviews(selectedCourse.id);
+      checkUserCanReview(selectedCourse.id);
+    }
+  }, [selectedCourse]);
+
+  const loadCourseReviews = async (courseId: string) => {
+    setLoadingReviews(true);
+    try {
+      const response = await getCourseReviews(courseId, { page: 1, limit: 20 });
+      setReviews(response.data.data.reviews);
+      setAverageRating(response.data.data.rating.average);
+      setTotalReviews(response.data.data.rating.total);
+    } catch (error) {
+      console.error('Failed to load reviews:', error);
+      setReviews([]);
+      setAverageRating(0);
+      setTotalReviews(0);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  // Check if user can review this course (must be enrolled)
+  const checkUserCanReview = async (courseId: string) => {
+    try {
+      const response = await checkCanReview(courseId);
+      const data = response.data?.data || response.data;
+      setCanReview(data.canReview || false);
+      setReviewErrorMessage(data.reason || '');
+    } catch (error) {
+      console.error('Failed to check review eligibility:', error);
+      setCanReview(false);
+      setReviewErrorMessage('Unable to check review eligibility. Please log in and enroll in the course.');
+    }
+  };
+
+  const handleSubmitReview = async (data: { rating: number; comment: string; childId?: string }) => {
+    if (!selectedCourse) return;
+    
+    try {
+      if (editingReview) {
+        await updateCourseReview(editingReview.id, data);
+        setEditingReview(null);
+      } else {
+        await createCourseReview(selectedCourse.id, data);
+      }
+      
+      setShowReviewForm(false);
+      loadCourseReviews(selectedCourse.id);
+    } catch (error: any) {
+      console.error('Review submission error:', error);
+      const message = error.response?.data?.message || error.message || 'Failed to submit review';
+      
+      // If enrollment is required, show the message and don't close the form
+      if (message.includes('enroll') || message.includes('Enrollment')) {
+        showErrorToast(message);
+        setShowReviewForm(true); // Keep form open
+      } else {
+        showErrorToast(message);
+        setShowReviewForm(false);
+      }
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: number) => {
+    if (!selectedCourse) return;
+    
+    if (window.confirm('Are you sure you want to delete this review?')) {
+      await deleteCourseReview(reviewId);
+      loadCourseReviews(selectedCourse.id);
+    }
+  };
+
+  const handleEditReview = (review: any) => {
+    setEditingReview(review);
+    setShowReviewForm(true);
   };
 
   // Checkout actions are triggered from the Next button after children selection
@@ -1006,7 +1222,6 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
               onViewDetails={() => setSelectedCourse(course)}
               onEnroll={() => handleEnroll(course)}
               onViewCoachDetails={handleViewCoachDetails}
-              formatProgram={formatProgram}
               formatTime={formatTime}
             />
           </div>
@@ -1257,7 +1472,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                   </div>
                 </div>
 
-                {/* Course Info */}
+                  {/* Course Info */}
                 <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                   <div>
                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
@@ -1334,10 +1549,6 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                         <div className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCourse.category}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
-                        <div className="text-xs sm:text-sm text-green-600 font-medium mb-1">Program</div>
-                        <div className="font-semibold text-gray-900 text-sm sm:text-base">{formatProgram(selectedCourse.program)}</div>
-                      </div>
-                      <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
                         <div className="text-xs sm:text-sm text-purple-600 font-medium mb-1">Credits</div>
                         <div className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCourse.credits}</div>
                       </div>
@@ -1345,6 +1556,30 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                         <div className="text-xs sm:text-sm text-orange-600 font-medium mb-1">Timezone</div>
                         <div className="font-semibold text-gray-900 text-sm sm:text-base">{selectedCourse.timezone}</div>
                       </div>
+                      {(selectedCourse as any).ageRanges && (selectedCourse as any).ageRanges.length > 0 && (
+                        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm xl:col-span-2">
+                          <div className="text-xs sm:text-sm text-pink-600 font-medium mb-2">Age Ranges</div>
+                          <div className="flex flex-wrap gap-2">
+                            {(selectedCourse as any).ageRanges.map((range: string, idx: number) => (
+                              <span key={idx} className="inline-block bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
+                                {range}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {(selectedCourse as any).location && (
+                        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm xl:col-span-2">
+                          <div className="text-xs sm:text-sm text-teal-600 font-medium mb-1">
+                            {(selectedCourse as any).locationType ? (
+                              (selectedCourse as any).locationType.charAt(0).toUpperCase() + (selectedCourse as any).locationType.slice(1).replace('-', ' ')
+                            ) : 'Location'}
+                          </div>
+                          <div className="font-semibold text-gray-900 text-sm sm:text-base truncate" title={(selectedCourse as any).location}>
+                            {(selectedCourse as any).location}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1388,6 +1623,50 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
                 <p className="text-gray-700 leading-relaxed text-sm sm:text-base lg:text-lg">
                   {selectedCourse.description}
                 </p>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="mt-8 border-t border-gray-200 pt-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Reviews</h2>
+                  {useAuthStore.getState().user && (
+                    <div className="flex items-center gap-3">
+                      {canReview === false && reviewErrorMessage && (
+                        <div className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-200">
+                          <span className="flex items-center gap-1">
+                            <FaClock className="mr-1" />
+                            {reviewErrorMessage}
+                          </span>
+                        </div>
+                      )}
+                      {canReview === true && (
+                        <button
+                          onClick={() => setShowReviewForm(true)}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
+                        >
+                          Write a Review
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {loadingReviews ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading reviews...</p>
+                  </div>
+                ) : (
+                  <ReviewDisplay
+                    reviews={reviews}
+                    averageRating={averageRating}
+                    totalReviews={totalReviews}
+                    currentUserId={useAuthStore.getState().user?.id}
+                    onEdit={handleEditReview}
+                    onDelete={handleDeleteReview}
+                    showEditDelete={true}
+                  />
+                )}
               </div>
 
               {/* Enrollment CTA */}
@@ -1443,6 +1722,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
         isProcessing={isProcessingPayment}
         onProcessPayment={processPayment}
         onViewChild={(child) => { setDetailsChild(child as any); setShowChildModal(true); }}
+        enrolledChildIds={enrolledChildIds}
       />
       {/* New: Intro modal shown before children selection */}
       <EnrollmentIntroModal
@@ -1461,8 +1741,8 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
           lengthText: (enrollCourse.weeklySchedule?.[0]?.timeSlots?.[0]?.sessionDuration ? `${enrollCourse.weeklySchedule[0].timeSlots[0].sessionDuration} min/session` : undefined),
           rating: enrollCourse.coach?.totalReviews ? { value: Math.min(5, (enrollCourse.credits * 0.8)), count: enrollCourse.coach.totalReviews } : undefined,
           createdAt: new Date().toISOString(),
-          // Map price: prefer course.price if backend provides, else fall back to credits
-          price: Number.isFinite((enrollCourse as any).price) ? (enrollCourse as any).price : (Number.isFinite(enrollCourse.credits) ? enrollCourse.credits : undefined),
+          // Don't map price - courses use credits only, not USD
+          price: undefined,
         } : null}
         creditsAvailable={typeof parentCredits === 'number' ? parentCredits : undefined}
         onBuyWithCredit={proceedFromIntro}
@@ -1478,6 +1758,154 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false 
         onClose={() => setShowChildModal(false)}
         child={detailsChild}
       />
+
+      {/* Review Form Modal */}
+      {showReviewForm && selectedCourse && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  {editingReview ? 'Edit Your Review' : 'Write a Review'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowReviewForm(false);
+                    setEditingReview(null);
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <FaTimes className="text-xl" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 sm:p-6">
+              <ReviewForm
+                courseId={selectedCourse.id}
+                children={availableChildren}
+                onSubmit={handleSubmitReview}
+                onCancel={() => {
+                  setShowReviewForm(false);
+                  setEditingReview(null);
+                }}
+                initialData={editingReview ? {
+                  rating: editingReview.rating,
+                  comment: editingReview.comment,
+                  childId: editingReview.child?.id
+                } : undefined}
+                existingReview={!!editingReview}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Buy Credits Modal */}
+      <WalletPlansModal
+        isOpen={showBuyCreditsModal}
+        onClose={() => setShowBuyCreditsModal(false)}
+        onBuy={(plan) => {
+          setShowBuyCreditsModal(false);
+          setSelectedPlan(plan);
+          setPaymentOpen(true);
+        }}
+      />
+
+      {/* Payment Modal for Selected Plan */}
+      <WalletPaymentModal
+        isOpen={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        plan={selectedPlan as any}
+        onSuccess={async ({ creditsAdded }) => {
+          // Reload credit balance
+          if (user?.id) {
+            try {
+              const balance = await creditsApi.getBalance(user.id);
+              setParentCredits(balance?.creditBalance?.balance || 0);
+              showSuccessToast(`Successfully added ${creditsAdded} credits to your wallet!`);
+            } catch (error) {
+              console.error('Failed to reload balance:', error);
+            }
+          }
+          setPaymentOpen(false);
+        }}
+      />
+
+      {/* Enrollment Success Modal */}
+      {enrollmentSuccess.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            {/* Success Header */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-t-2xl">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
+                  <FaCheck className="text-green-600 text-3xl" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-white text-center">
+                Enrollment Successful!
+              </h2>
+            </div>
+
+            {/* Success Content */}
+            <div className="p-6">
+              <p className="text-gray-700 text-center mb-6">
+                Your child{enrollmentSuccess.childrenCount > 1 ? 'ren have' : ' has'} been successfully enrolled in:
+              </p>
+
+              {/* Course Info */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FaBook className="text-white text-xl" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-lg truncate">
+                      {enrollmentSuccess.courseTitle}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {enrollmentSuccess.childrenCount} child{enrollmentSuccess.childrenCount > 1 ? 'ren' : ''} enrolled
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Credits Info */}
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">Credits Used</span>
+                  <span className="text-red-600 font-bold text-lg">-{enrollmentSuccess.creditsUsed}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                  <span className="text-gray-700 font-semibold">Available Credits</span>
+                  <span className="text-green-700 font-bold text-xl">{enrollmentSuccess.newBalance}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setEnrollmentSuccess({ ...enrollmentSuccess, show: false });
+                    onTabChange?.('enrollments');
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <FaGraduationCap className="inline mr-2" />
+                  View My Enrollments
+                </button>
+                <button
+                  onClick={() => setEnrollmentSuccess({ ...enrollmentSuccess, show: false })}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  <FaTimes className="inline mr-2" />
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     
   );

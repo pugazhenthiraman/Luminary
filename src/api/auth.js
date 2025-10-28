@@ -19,7 +19,7 @@ export const register = (data, userType = "parent") => {
 
     // Add non-file fields only
     Object.keys(data).forEach((key) => {
-      if (key === "license" || key === "resume" || key === "video") {
+      if (key === "license" || key === "resume" || key === "video" || key === "idVerification") {
         return; // skip file fields here; append them explicitly below
       }
       if (data[key] === undefined || data[key] === null) {
@@ -41,6 +41,9 @@ export const register = (data, userType = "parent") => {
     }
     if (data.video instanceof File) {
       formData.append("video", data.video);
+    }
+    if (data.idVerification instanceof File) {
+      formData.append("idVerification", data.idVerification);
     }
 
     console.log("Calling /auth/register/coach endpoint");

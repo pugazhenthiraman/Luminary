@@ -66,9 +66,8 @@ const PaymentModal = ({
             course: course,
             children: selectedChildren,
           });
-          setPaymentStep("success");
-
-          // Call success callback
+          
+          // Call success callback BEFORE setting step
           if (onSuccess) {
             onSuccess({
               paymentId: paymentResponse.data.paymentId,
@@ -77,6 +76,9 @@ const PaymentModal = ({
               amount: totalAmount,
             });
           }
+          
+          // Set step to success AFTER callback
+          setPaymentStep("success");
         } else {
           throw new Error(
             confirmResponse.message || "Payment confirmation failed"

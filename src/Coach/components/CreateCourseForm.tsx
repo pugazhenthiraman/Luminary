@@ -49,9 +49,9 @@ interface DaySchedule {
    credits: number;
    timezone: string;
    program?: string;
-   introVideo?: File;
+   introVideo?: File | string;
    weeklySchedule: DaySchedule[];
-   thumbnail?: File;
+   thumbnail?: File | string;
    courseDuration?: string;
    courseDurationNumber?: number;
  }
@@ -696,6 +696,16 @@ interface DaySchedule {
     return Math.floor(totalMinutes / sessionWithBuffer);
   };
 
+  // Convert File to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -706,11 +716,59 @@ interface DaySchedule {
     setIsSubmitting(true);
     // Default to 1 week if empty
     const durationValue = formData.courseDurationNumber === undefined || formData.courseDurationNumber < 1 ? 1 : formData.courseDurationNumber;
+    
+    // Convert thumbnail and video files to base64
+    let thumbnailBase64: string | undefined = undefined;
+    let introVideoBase64: string | undefined = undefined;
+    
+    try {
+      if (formData.thumbnail) {
+        // If it's already a string (base64), use it as is
+        if (typeof formData.thumbnail === 'string') {
+          thumbnailBase64 = formData.thumbnail;
+        } else {
+          // Convert File to base64
+          thumbnailBase64 = await fileToBase64(formData.thumbnail);
+        }
+      }
+      
+      if (formData.introVideo) {
+        // If it's already a string (base64), use it as is
+        if (typeof formData.introVideo === 'string') {
+          introVideoBase64 = formData.introVideo;
+        } else {
+          // Convert File to base64
+          introVideoBase64 = await fileToBase64(formData.introVideo);
+        }
+      }
+    } catch (error) {
+      console.error('Error converting files to base64:', error);
+      toast.error(
+        <div className="flex items-center space-x-2">
+          <FaExclamationTriangle className="text-red-500" />
+          <span>Failed to process files. Please try again.</span>
+        </div>,
+        {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        }
+      );
+      setIsSubmitting(false);
+      return;
+    }
+    
     const payload = {
       ...formData,
+      thumbnail: thumbnailBase64,
+      introVideo: introVideoBase64,
       courseDuration: `${durationValue} weeks`,
       courseDurationNumber: durationValue
     };
+    
     try {
       await onSubmit(payload);
       toast.success(
@@ -935,16 +993,16 @@ interface DaySchedule {
                       {isCategoryDropdownOpen && createPortal(
                         <div 
                           data-portal-dropdown="category"
-                          className="fixed bg-white border-2 border-blue-200 rounded-xl shadow-xl z-[99999] min-w-[400px]"
+                          className="fixed bg-white border-2 border-blue-200 rounded-xl shadow-xl z-[99999] min-w-[400px] overflow-hidden"
                           style={{
-                            top: categoryButtonRef.current ? Math.min(categoryButtonRef.current.getBoundingClientRect().bottom + 8, window.innerHeight - 300) : 0,
+                            top: categoryButtonRef.current ? Math.min(categoryButtonRef.current.getBoundingClientRect().bottom + 8, window.innerHeight - 320) : 0,
                             left: categoryButtonRef.current ? categoryButtonRef.current.getBoundingClientRect().left : 0,
                             width: categoryButtonRef.current ? categoryButtonRef.current.getBoundingClientRect().width : 'auto',
                             maxHeight: '300px'
                           }}
                         >
                           {/* Search Input */}
-                          <div className="p-4 border-b border-gray-100">
+                          <div className="p-4 border-b border-gray-100 bg-white flex-shrink-0">
                             <div className="relative">
                                                              <input
                                  type="text"
@@ -961,7 +1019,7 @@ interface DaySchedule {
                           </div>
 
                           {/* Category Options */}
-                          <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
+                          <div className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: '222px' }}>
                             {filteredCategories.map((category) => (
                               <button
                                 key={category.value}
@@ -1105,16 +1163,16 @@ interface DaySchedule {
                       {isAgeRangeDropdownOpen && createPortal(
                         <div 
                           data-portal-dropdown="ageRange"
-                          className="fixed bg-white border-2 border-green-200 rounded-xl shadow-xl z-[99999] min-w-[400px]"
+                          className="fixed bg-white border-2 border-green-200 rounded-xl shadow-xl z-[99999] min-w-[400px] overflow-hidden"
                           style={{
-                            top: ageRangeButtonRef.current ? Math.min(ageRangeButtonRef.current.getBoundingClientRect().bottom + 8, window.innerHeight - 300) : 0,
+                            top: ageRangeButtonRef.current ? Math.min(ageRangeButtonRef.current.getBoundingClientRect().bottom + 8, window.innerHeight - 320) : 0,
                             left: ageRangeButtonRef.current ? ageRangeButtonRef.current.getBoundingClientRect().left : 0,
                             width: ageRangeButtonRef.current ? ageRangeButtonRef.current.getBoundingClientRect().width : 'auto',
                             maxHeight: '300px'
                           }}
                         >
                           {/* Search Input */}
-                          <div className="p-4 border-b border-gray-100">
+                          <div className="p-4 border-b border-gray-100 bg-white flex-shrink-0">
                             <div className="relative">
                               <input
                                 type="text"
@@ -1131,7 +1189,7 @@ interface DaySchedule {
                           </div>
 
                           {/* Age Range Options */}
-                          <div className="overflow-y-auto" style={{ maxHeight: '240px' }}>
+                          <div className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: '222px' }}>
                             {filteredAgeRanges.map((range) => (
                               <button
                                 key={range.value}

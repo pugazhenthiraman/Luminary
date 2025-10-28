@@ -30,13 +30,13 @@ const HomePage = () => {
           </h1>
             
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 mb-8 md:mb-12 max-w-4xl mx-auto leading-relaxed px-4">
-              Connect with certified coaches and experts who specialize in personalized learning. 
+              Connect with certified instructors and experts who specialize in personalized learning. 
               From academics to sports, arts to life skills - we've got your child covered.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center mb-12 md:mb-16 px-4">
             <Link 
-              to="/loginParent" 
+              to="/browse-courses" 
                 className="group inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl text-base md:text-lg font-semibold transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:shadow-2xl hover:-translate-y-1 transform w-full sm:w-auto"
             >
                 Find a Class
@@ -55,7 +55,7 @@ const HomePage = () => {
             <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto px-4">
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 mb-1 md:mb-2">500+</div>
-                <div className="text-xs sm:text-sm md:text-base text-gray-600">Certified Coaches</div>
+                <div className="text-xs sm:text-sm md:text-base text-gray-600">Certified instructors</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-purple-600 mb-1 md:mb-2">10K+</div>
@@ -87,9 +87,9 @@ const HomePage = () => {
               <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform">
                 <FaGraduationCap className="text-xl md:text-2xl text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Expert Coaches</h3>
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Expert instructors</h3>
               <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                All coaches are verified professionals with proven track records, certifications, and specialized expertise. We maintain high standards to ensure quality education.
+                All instructors are verified professionals with proven track records, certifications, and specialized expertise. We maintain high standards to ensure quality education.
               </p>
             </div>
 
@@ -99,7 +99,7 @@ const HomePage = () => {
               </div>
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Personalized Learning</h3>
               <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                Every session is customized to your child's learning style, pace, and goals. Our coaches adapt their teaching methods for maximum engagement and results.
+                Every session is customized to your child's learning style, pace, and goals. Our instructors adapt their teaching methods for maximum engagement and results.
               </p>
             </div>
 
@@ -109,7 +109,7 @@ const HomePage = () => {
               </div>
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Safe & Secure</h3>
               <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                Your child's safety is our top priority. All coaches undergo thorough background checks, and sessions are monitored with enterprise-grade security.
+                Your child's safety is our top priority. All instructors undergo thorough background checks, and sessions are monitored with enterprise-grade security.
               </p>
             </div>
 
@@ -139,7 +139,7 @@ const HomePage = () => {
               </div>
               <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Global Network</h3>
               <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                Access coaches from around the world, bringing diverse perspectives and expertise. Learn from the best regardless of geographical location.
+                Access instructors from around the world, bringing diverse perspectives and expertise. Learn from the best regardless of geographical location.
               </p>
             </div>
           </div>
@@ -154,7 +154,7 @@ const HomePage = () => {
               How It Works
           </h2>
             <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto px-4">
-              Getting started is simple. Follow these three easy steps to find the perfect coach for your child.
+              Getting started is simple. Follow these three easy steps to find the perfect instructor for your child.
             </p>
           </div>
 
@@ -173,9 +173,9 @@ const HomePage = () => {
               <div className="w-16 h-16 md:w-20 md:h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 text-2xl md:text-3xl font-bold text-white">
                 2
               </div>
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Browse & Connect</h3>
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">Browse Classes</h3>
               <p className="text-sm md:text-base text-gray-600 leading-relaxed px-4">
-                Explore our verified coaches, read reviews, and schedule a free consultation call.
+                Explore our verified instructors, read reviews, and schedule a free consultation call.
               </p>
             </div>
 
@@ -212,7 +212,7 @@ const HomePage = () => {
                 ))}
               </div>
               <p className="text-sm md:text-base text-gray-700 mb-4 md:mb-6 leading-relaxed">
-                "Luminary has been a game-changer for my daughter. Her math coach helped her go from struggling to excelling in just 3 months!"
+                "Luminary has been a game-changer for my daughter. Her math instructor helped her go from struggling to excelling in just 3 months!"
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-3 md:mr-4 text-sm md:text-base">
@@ -232,7 +232,7 @@ const HomePage = () => {
                 ))}
               </div>
               <p className="text-sm md:text-base text-gray-700 mb-4 md:mb-6 leading-relaxed">
-                "The flexibility and quality of coaches here is unmatched. My son's confidence has soared since starting with his coding mentor."
+                "The flexibility and quality of instructors here is unmatched. My son's confidence has soared since starting with his coding mentor."
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold mr-3 md:mr-4 text-sm md:text-base">
@@ -252,7 +252,7 @@ const HomePage = () => {
                 ))}
               </div>
               <p className="text-sm md:text-base text-gray-700 mb-4 md:mb-6 leading-relaxed">
-                "Finding the right piano teacher was so easy. The platform made it simple to compare coaches and find the perfect match."
+                "Finding the right piano teacher was so easy. The platform made it simple to compare instructors and find the perfect match."
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-green-600 rounded-full flex items-center justify-center text-white font-bold mr-3 md:mr-4 text-sm md:text-base">
@@ -284,7 +284,7 @@ const HomePage = () => {
             Start your child's success story today.
           </p>
           <Link 
-            to="/loginParent" 
+            to="/browse-courses" 
             className="inline-flex items-center justify-center bg-white text-blue-600 px-6 py-3 md:px-8 md:py-4 rounded-2xl text-base md:text-lg font-semibold transition-all duration-300 hover:bg-gray-100 hover:shadow-2xl hover:-translate-y-1 transform w-full sm:w-auto"
           >
             Find Your Perfect Instructor
@@ -293,7 +293,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* CTA Section for Coaches */}
+      {/* CTA Section for instructors */}
       <section className="py-12 md:py-20 bg-gradient-to-br from-emerald-50 to-teal-50">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6 px-2">
@@ -361,7 +361,7 @@ const HomePage = () => {
             <div>
               <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">For Parents</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link to="/loginParent" className="hover:text-white transition-colors text-sm md:text-base">Find a Coach</Link></li>
+                <li><Link to="/loginParent" className="hover:text-white transition-colors text-sm md:text-base">Find a Instructor</Link></li>
                 <li><Link to="/" className="hover:text-white transition-colors text-sm md:text-base">How It Works</Link></li>
                 <li><Link to="/" className="hover:text-white transition-colors text-sm md:text-base">Safety & Trust</Link></li>
                 <li><Link to="/" className="hover:text-white transition-colors text-sm md:text-base">Success Stories</Link></li>
@@ -369,12 +369,12 @@ const HomePage = () => {
             </div>
 
             <div>
-              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">For Coaches</h3>
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">For instructors</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link to="/loginCoach" className="hover:text-white transition-colors text-sm md:text-base">Join as Coach</Link></li>
-                <li><Link to="/" className="hover:text-white transition-colors text-sm md:text-base">Coach Benefits</Link></li>
+                <li><Link to="/loginCoach" className="hover:text-white transition-colors text-sm md:text-base">Join as Instructor</Link></li>
+                <li><Link to="/" className="hover:text-white transition-colors text-sm md:text-base">Instructor Benefits</Link></li>
                 <li><Link to="/" className="hover:text-white transition-colors text-sm md:text-base">Application Process</Link></li>
-                <li><Link to="/" className="hover:text-white transition-colors text-sm md:text-base">Coach Resources</Link></li>
+                <li><Link to="/" className="hover:text-white transition-colors text-sm md:text-base">Instructor Resources</Link></li>
               </ul>
             </div>
           </div>

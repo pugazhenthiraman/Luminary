@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import Header from './components/Header';
@@ -59,13 +59,16 @@ const ParentDashboard: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<WalletPlan | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   
+  // Credit balance state
+  const [creditsBalance, setCreditsBalance] = useState<number>(0);
+  
   const navigate = useNavigate();
   
   // Use Zustand auth store
   const { user, isAuthenticated, logout: logoutFromStore } = useAuthStore();
 
   // Function to refresh children data
-  const refreshChildrenData = async () => {
+  const refreshChildrenData = useCallback(async () => {
     if (!isAuthenticated || !user || user.role !== 'PARENT') return;
     
     try {
@@ -82,7 +85,36 @@ const ParentDashboard: React.FC = () => {
     } catch (error) {
       console.error('[ParentDashboard] Error refreshing children data:', error);
     }
-  };
+  }, [isAuthenticated, user]);
+
+  // Function to fetch and update credit balance
+  const refreshCreditBalance = useCallback(async () => {
+    if (!isAuthenticated || !user || user.role !== 'PARENT') return;
+    
+    try {
+      const balanceResponse = await creditsApi.getBalance(user.id);
+      const balance = balanceResponse?.creditBalance?.balance || balanceResponse?.balance || 0;
+      setCreditsBalance(Number(balance));
+    } catch (error) {
+      console.error('[ParentDashboard] Error fetching credit balance:', error);
+      setCreditsBalance(0);
+    }
+  }, [isAuthenticated, user]);
+
+  // Function to refresh enrollments list
+  const refreshEnrollments = useCallback(async () => {
+    if (!isAuthenticated || !user || user.role !== 'PARENT') return;
+    
+    try {
+      const enrollmentsRes = await getEnrollments();
+      const enrollmentsData = enrollmentsRes.data?.data || [];
+      setEnrollments(enrollmentsData);
+      console.log('[ParentDashboard] Refreshed enrollments:', enrollmentsData.length);
+    } catch (error) {
+      console.error('[ParentDashboard] Error refreshing enrollments:', error);
+      setEnrollments([]);
+    }
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -114,6 +146,9 @@ const ParentDashboard: React.FC = () => {
         });
 
         setChildren(childrenData);
+        
+        // Also fetch credit balance
+        await refreshCreditBalance();
       } catch (error) {
         console.error('Error loading children data:', error);
         // Set parent data without children if API fails
@@ -284,8 +319,8 @@ const ParentDashboard: React.FC = () => {
             description: c.description || '',
             benefits: c.benefits || '',
             category: c.category,
-            program: c.program || 'morning',
-            credits: Number(c.price || 0),
+            program: c.program || undefined, // Optional field
+            credits: Number(c.creditCost || c.price || 0), // Use creditCost first
             timezone: c.timezone || 'UTC',
             weeklySchedule: Array.isArray(c.weeklySchedule) ? c.weeklySchedule : [],
             thumbnail: c.thumbnail || '',
@@ -293,6 +328,10 @@ const ParentDashboard: React.FC = () => {
             level: c.level || 'BEGINNER',
             duration: c.courseDuration || `${c.duration} weeks`,
             totalSessions: c.totalSessions || 0,
+            // Add missing fields for display
+            ageRanges: Array.isArray(c.ageRanges) ? c.ageRanges : [],
+            location: c.location || '',
+            locationType: c.locationType || '',
             coach: {
               id: String(coach.id || ''),
               name: coachName,
@@ -366,7 +405,7 @@ const ParentDashboard: React.FC = () => {
           />
         );
       case 'courses':
-        return <Courses courses={availableCourses as any} parentData={parentData!} loading={coursesLoading} />;
+        return <Courses courses={availableCourses as any} parentData={parentData!} loading={coursesLoading} onTabChange={handleTabChange} onBalanceChange={refreshCreditBalance} onEnrollmentSuccess={refreshEnrollments} enrollments={enrollments} />;
       case 'enrollments':
         return (
           <Enrollments
@@ -404,7 +443,7 @@ const ParentDashboard: React.FC = () => {
         // Clicking wallet should keep user on current tab and just open the plans modal
         onWalletClick={() => setShowPlansModal(true)}
         onOpenPlans={() => setShowPlansModal(true)}
-        creditsBalance={42}
+        creditsBalance={creditsBalance}
       />
 
       <div className="flex h-[calc(100vh-64px)] lg:h-[calc(100vh-80px)]">
@@ -429,11 +468,15 @@ const ParentDashboard: React.FC = () => {
                 {/* Payment modal for selected plan */}
                 <WalletPaymentModal
                   isOpen={paymentOpen}
-                  onClose={() => setPaymentOpen(false)}
                   plan={selectedPlan as any}
                   onSuccess={({ creditsAdded }) => {
-                    // Optionally, refresh wallet balance in state/store later
+                    // Refresh the credit balance after successful payment
+                    refreshCreditBalance();
+                    // Note: Don't close modal here, let the success message show first
+                  }}
+                  onClose={() => {
                     setPaymentOpen(false);
+                    setSelectedPlan(null);
                   }}
                 />
               </div>

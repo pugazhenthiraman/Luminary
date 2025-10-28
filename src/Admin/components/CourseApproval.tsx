@@ -39,13 +39,20 @@ interface CourseSubmission {
   coachPhone?: string;
   courseTitle: string;
   courseDescription: string;
+  benefits?: string; // Add benefits field
   category: string;
-  price: string; // align with CourseDetailsModal
+  price: string; // Kept for backward compatibility
+  creditCost?: string | number; // New credit cost field
   duration: number; // minutes
   courseDuration?: string; // human-readable label from backend (e.g., "12 weeks")
   lessons: number;
   thumbnail: string;
   videoUrl?: string;
+  location?: string; // Add location field
+  locationType?: string; // Add locationType field
+  timezone?: string; // Add timezone field
+  ageRanges?: string[]; // Add ageRanges field
+  program?: string; // Add program field (optional)
   weeklySchedule: Array<{
     day: string;
     isActive: boolean;
@@ -202,13 +209,20 @@ const CourseApproval: React.FC = () => {
           coachPhone: phoneNumber, // This should now be coach.phone
           courseTitle: c.courseTitle || c.title,
           courseDescription: c.courseDescription || c.description,
+          benefits: c.benefits || "",
           category: c.category,
-          price: String(c.price ?? c.creditCost ?? '0'),
+          price: String(c.creditCost ?? c.price ?? '0'), // Prefer creditCost over price
+          creditCost: c.creditCost ?? c.price ?? '0', // Add creditCost field
           duration: Number(c.duration ?? 0),
           courseDuration: c.courseDuration || c.course_duration,
           lessons: c.lessons || 0,
           thumbnail: c.thumbnail || c.image || c.coverImage,
           videoUrl: c.videoUrl || c.previewVideo,
+          location: c.location || "",
+          locationType: c.locationType || "",
+          timezone: c.timezone || "",
+          ageRanges: c.ageRanges || [],
+          program: c.program || "",
           weeklySchedule: (c.weeklySchedule || []).map((d: any, idx: number) => ({
             day: d.day,
             isActive: d.isActive,
@@ -261,7 +275,7 @@ const CourseApproval: React.FC = () => {
     const matchesSearch = course.courseTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        course.coachName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        course.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       course.price.toString().includes(searchTerm);
+                       (course.price || course.creditCost || '').toString().includes(searchTerm);
     const matchesCategory = selectedCategory === 'All Categories' || course.category === selectedCategory;
     const matchesPrice = true; // To be implemented
     
@@ -306,9 +320,17 @@ const CourseApproval: React.FC = () => {
 
   let sortedCourses = [...filteredCourses];
   if (priceSort === 'asc') {
-    sortedCourses.sort((a, b) => Number(a.price) - Number(b.price));
+    sortedCourses.sort((a, b) => {
+      const aCost = Number(a.creditCost ?? a.price ?? 0);
+      const bCost = Number(b.creditCost ?? b.price ?? 0);
+      return aCost - bCost;
+    });
   } else if (priceSort === 'desc') {
-    sortedCourses.sort((a, b) => Number(b.price) - Number(a.price));
+    sortedCourses.sort((a, b) => {
+      const aCost = Number(a.creditCost ?? a.price ?? 0);
+      const bCost = Number(b.creditCost ?? b.price ?? 0);
+      return bCost - aCost;
+    });
   }
 
   const confirmApprove = (courseId: number) => {
@@ -867,7 +889,7 @@ const CourseApproval: React.FC = () => {
               )}
               <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
                 <span className="bg-black/70 text-white px-2 py-1 rounded text-xs">
-                  ${course.price}
+                  {course.creditCost ?? course.price} Credits
                 </span>
               </div>
               {course.videoUrl && (

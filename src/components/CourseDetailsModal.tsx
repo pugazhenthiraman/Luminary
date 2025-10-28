@@ -29,12 +29,19 @@ interface CourseSubmission {
   coachLanguages?: string[];
   courseTitle: string;
   courseDescription: string;
+  benefits?: string; // Add benefits field
   category: string;
-  price: string;
+  price: string; // Kept for backward compatibility
+  creditCost?: string | number; // New credit cost field
   duration: number;
   courseDuration?: string;
   thumbnail: string;
   videoUrl?: string;
+  location?: string; // Add location field
+  locationType?: string; // Add locationType field
+  timezone?: string; // Add timezone field
+  ageRanges?: string[]; // Add ageRanges field
+  program?: string; // Add program field (optional)
   weeklySchedule: Array<{
     day: string;
     isActive: boolean;
@@ -177,59 +184,61 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
   }, [showModal, onClose]);
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
-      {/* Fixed Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white p-4 shadow-lg flex-shrink-0">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <FaBook className="text-2xl" />
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {/* Modal Container */}
+      <div className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[95vh] flex flex-col overflow-hidden border border-gray-100">
+        {/* Fixed Header */}
+        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white p-6 shadow-lg flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg">
+                <FaBook className="text-2xl" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Course Review</h2>
+                <p className="text-blue-100 text-sm mt-1">Detailed course information and approval</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold">Course Review</h2>
-              <p className="text-blue-100 text-sm">Detailed course information and approval</p>
-            </div>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
+              title="Close modal"
+            >
+              <FaTimes className="text-xl" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all duration-200"
-            title="Close modal"
-          >
-            <FaTimes className="text-xl" />
-          </button>
         </div>
-      </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-32">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-blue-50/30">
+          <div className="max-w-7xl mx-auto p-6 pb-32">
           
       {/* Status Banner */}
-      <div className={`p-4 rounded-xl border-l-4 bg-white shadow-sm mb-6 ${
-        displayStatus === 'pending' ? 'border-yellow-400' :
-        displayStatus === 'approved' ? 'border-green-400' :
-        displayStatus === 'deactivated' ? 'border-gray-400' :
-        displayStatus === 'frozen' ? 'border-sky-400' :
-        'border-red-400'
+      <div className={`p-6 rounded-2xl border-2 bg-gradient-to-r mb-8 shadow-lg ${
+        displayStatus === 'pending' ? 'border-yellow-300 from-yellow-50 to-amber-50' :
+        displayStatus === 'approved' ? 'border-green-300 from-green-50 to-emerald-50' :
+        displayStatus === 'deactivated' ? 'border-gray-300 from-gray-50 to-slate-50' :
+        displayStatus === 'frozen' ? 'border-sky-300 from-sky-50 to-cyan-50' :
+        'border-red-300 from-red-50 to-rose-50'
           }`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              <div className="flex items-center space-x-4">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-md ${
           displayStatus === 'pending' ? 'bg-yellow-100' :
           displayStatus === 'approved' ? 'bg-green-100' :
           displayStatus === 'deactivated' ? 'bg-gray-100' :
           displayStatus === 'frozen' ? 'bg-sky-100' :
           'bg-red-100'
                 }`}>
-          {displayStatus === 'pending' && <FaClock className="text-yellow-600" />}
-          {displayStatus === 'approved' && <FaCheck className="text-green-600" />}
-          {displayStatus === 'rejected' && <FaTimes className="text-red-600" />}
-                  {displayStatus === 'deactivated' && <FaPauseCircle className="text-gray-600" />}
-                  {displayStatus === 'frozen' && <FaSnowflake className="text-sky-600" />}
+          {displayStatus === 'pending' && <FaClock className="text-yellow-600 text-xl" />}
+          {displayStatus === 'approved' && <FaCheck className="text-green-600 text-xl" />}
+          {displayStatus === 'rejected' && <FaTimes className="text-red-600 text-xl" />}
+                  {displayStatus === 'deactivated' && <FaPauseCircle className="text-gray-600 text-xl" />}
+                  {displayStatus === 'frozen' && <FaSnowflake className="text-sky-600 text-xl" />}
                 </div>
                 <div>
-          <h3 className="font-semibold text-gray-900 capitalize">{displayStatus} Course</h3>
-                  <p className="text-sm text-gray-600">
+          <h3 className="font-bold text-gray-900 capitalize text-xl">{displayStatus} Course</h3>
+                  <p className="text-sm text-gray-600 mt-1">
                     Submitted on {new Date(selectedCourse.submittedAt).toLocaleDateString('en-US', {
                       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
                     })}
@@ -246,7 +255,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
             {/* Left Column - Course Visual & Pricing (1/4) */}
             <div className="lg:col-span-1 xl:col-span-1 space-y-6">
               {/* Course Thumbnail */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 overflow-hidden">
                 <div className="relative">
                   {selectedCourse.thumbnail ? (
                     <img
@@ -273,26 +282,28 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
               </div>
 
               {/* Pricing Section - Below Thumbnail */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-6">
                 <div className="text-center">
-                  <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">${selectedCourse.price}</h3>
-                  <p className="text-gray-600 text-sm">Course Price</p>
+                  <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                    {selectedCourse.creditCost ?? selectedCourse.price} Credits
+                  </h3>
+                  <p className="text-gray-600 text-sm font-semibold uppercase tracking-wide">Credit Cost</p>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100 text-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                      <FaBook className="text-blue-600 text-sm" />
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-100 text-center shadow-sm">
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-md">
+                      <FaBook className="text-blue-600 text-lg" />
                     </div>
-                    <p className="text-xs text-gray-600 uppercase tracking-wide">Category</p>
-                    <p className="font-semibold text-gray-900 text-sm capitalize">{selectedCourse.category.replace('-', ' ')}</p>
+                    <p className="text-xs text-gray-600 uppercase tracking-wide font-semibold mb-1">Category</p>
+                    <p className="font-bold text-gray-900 text-sm capitalize">{selectedCourse.category.replace('-', ' ')}</p>
                   </div>
                   
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-3 rounded-lg border border-green-100 text-center">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                      <FaClock className="text-green-600 text-sm" />
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-100 text-center shadow-sm">
+                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-md">
+                      <FaClock className="text-green-600 text-lg" />
                     </div>
-                    <p className="text-xs text-gray-600 uppercase tracking-wide">Duration</p>
-                    <p className="font-semibold text-gray-900 text-sm">{selectedCourse.courseDuration || `${selectedCourse.duration} weeks`}</p>
+                    <p className="text-xs text-gray-600 uppercase tracking-wide font-semibold mb-1">Duration</p>
+                    <p className="font-bold text-gray-900 text-sm">{selectedCourse.courseDuration || `${selectedCourse.duration} weeks`}</p>
                   </div>
                 </div>
               </div>
@@ -301,27 +312,91 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
             {/* Middle Column - Course & Coach Details (2/4) */}
             <div className="lg:col-span-2 xl:col-span-2 space-y-6">
               {/* Course Information */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center text-lg">
-                  <FaGraduationCap className="text-indigo-600 mr-3" />
+              <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-6">
+                <h4 className="font-bold text-gray-900 mb-6 flex items-center text-xl">
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md mr-4">
+                    <FaGraduationCap className="text-white text-xl" />
+                  </div>
                   Course Information
                 </h4>
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">{selectedCourse.courseTitle}</h3>
-                    <p className="text-gray-600 leading-relaxed">{selectedCourse.courseDescription}</p>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">{selectedCourse.courseTitle}</h3>
+                    <p className="text-gray-600 leading-relaxed mb-4">{selectedCourse.courseDescription}</p>
+                    
+                    {/* Benefits */}
+                    {selectedCourse.benefits && (
+                      <div className="mt-4 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-100 shadow-sm">
+                        <h5 className="font-bold text-gray-900 mb-2 flex items-center">
+                          <FaCheck className="text-blue-600 mr-2" />
+                          Benefits
+                        </h5>
+                        <p className="text-gray-700 leading-relaxed">{selectedCourse.benefits}</p>
+                      </div>
+                    )}
+                    
+                    {/* Additional Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
+                      {selectedCourse.location && (
+                        <div className="p-4 bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl border-2 border-teal-100 shadow-sm">
+                          <div className="flex items-center mb-2">
+                            <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center mr-3">
+                              <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </div>
+                            <p className="text-xs text-gray-600 uppercase tracking-wide font-semibold">Location</p>
+                          </div>
+                          <p className="font-bold text-gray-900 text-sm">{selectedCourse.location}</p>
+                          {selectedCourse.locationType && (
+                            <p className="text-xs text-teal-600 mt-1 font-medium">{selectedCourse.locationType}</p>
+                          )}
+                        </div>
+                      )}
+                      {selectedCourse.timezone && (
+                        <div className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-100 shadow-sm">
+                          <div className="flex items-center mb-2">
+                            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                              <FaClock className="text-purple-600 text-sm" />
+                            </div>
+                            <p className="text-xs text-gray-600 uppercase tracking-wide font-semibold">Timezone</p>
+                          </div>
+                          <p className="font-bold text-gray-900 text-sm">{selectedCourse.timezone}</p>
+                        </div>
+                      )}
+                      {selectedCourse.ageRanges && selectedCourse.ageRanges.length > 0 && (
+                        <div className="p-4 bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl border-2 border-pink-100 shadow-sm">
+                          <div className="flex items-center mb-2">
+                            <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center mr-3">
+                              <FaUser className="text-pink-600 text-sm" />
+                            </div>
+                            <p className="text-xs text-gray-600 uppercase tracking-wide font-semibold">Age Ranges</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedCourse.ageRanges.map((range, idx) => (
+                              <span key={idx} className="inline-block bg-white text-pink-700 px-3 py-1 rounded-full text-sm font-semibold shadow-sm">
+                                {range}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Coach Information */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center text-lg">
-                  <FaUser className="text-green-600 mr-3" />
+              <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-6">
+                <h4 className="font-bold text-gray-900 mb-6 flex items-center text-xl">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-md mr-4">
+                    <FaUser className="text-white text-xl" />
+                  </div>
                   Coach Information
                 </h4>
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-100">
+                <div className="space-y-5">
+                  <div className="flex items-start space-x-4 p-5 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border-2 border-gray-100 shadow-sm">
                     <Avatar
                       name={selectedCourse.coachName}
                       imageUrl={selectedCourse.coachPhoto}
@@ -374,7 +449,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
                   {onViewCoachDetails && (
                     <button
                       onClick={() => onViewCoachDetails(selectedCourse.coachEmail)}
-                      className="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-3"
+                      className="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-bold shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-3"
                     >
                       <FaUser />
                       <span>View Coach Details</span>
@@ -384,15 +459,17 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
               </div>
 
               {/* Submission Details */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center text-lg">
-                  <FaFileAlt className="text-purple-600 mr-3" />
+              <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-6">
+                <h4 className="font-bold text-gray-900 mb-6 flex items-center text-xl">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md mr-4">
+                    <FaFileAlt className="text-white text-xl" />
+                  </div>
                   Submission Details
                 </h4>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <span className="text-gray-600 font-medium">Submitted Date:</span>
-                    <span className="font-semibold text-gray-900 text-right">
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border-2 border-gray-100 shadow-sm">
+                    <span className="text-gray-600 font-semibold">Submitted Date:</span>
+                    <span className="font-bold text-gray-900 text-right">
                       {new Date(selectedCourse.submittedAt).toLocaleDateString('en-US', {
                         year: 'numeric', 
                         month: 'long', 
@@ -402,8 +479,8 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
                       })}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <span className="text-gray-600 font-medium">Current Status:</span>
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border-2 border-gray-100 shadow-sm">
+                    <span className="text-gray-600 font-semibold">Current Status:</span>
                     <div>{getStatusBadge(selectedCourse.status, { isFrozen: selectedCourse.isFrozen, isActive: selectedCourse.isActive })}</div>
                   </div>
                 </div>
@@ -413,9 +490,11 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
             {/* Right Column - Schedule (1/4) */}
             <div className="xl:col-span-1 space-y-6">
               {/* Weekly Schedule */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center text-lg">
-                  <FaCalendarAlt className="text-orange-600 mr-3" />
+              <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 p-6">
+                <h4 className="font-bold text-gray-900 mb-6 flex items-center text-xl">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md mr-4">
+                    <FaCalendarAlt className="text-white text-xl" />
+                  </div>
                   Weekly Schedule
                 </h4>
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
@@ -553,29 +632,29 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
       </div>
 
       {/* Fixed Action Buttons at Bottom */}
-      <div className="bg-white border-t border-gray-200 p-4 sm:p-6 flex-shrink-0 shadow-lg">
+      <div className="bg-gradient-to-r from-white to-gray-50 border-t-2 border-gray-200 p-6 flex-shrink-0 shadow-2xl">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-wrap items-stretch sm:justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-stretch sm:justify-center">
             {selectedCourse.status === 'pending' && !selectedCourse.isFrozen && (
               <>
                 <button
                   onClick={() => onApprove(selectedCourse.id)}
                   disabled={isLoading}
-                  className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 sm:py-3 px-6 sm:px-6 rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 font-semibold text-sm shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-3"
+                  className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-4 px-8 rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 font-bold text-base shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-3"
                 >
                   {isLoading ? <FaSpinner className="animate-spin" /> : (<><FaCheck /> <span>Approve</span></>)}
                 </button>
                 <button
                   onClick={onReject}
                   disabled={isLoading}
-                  className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-rose-500 to-rose-600 text-white py-3 sm:py-3 px-6 sm:px-6 rounded-xl hover:from-rose-600 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 font-semibold text-sm shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-3"
+                  className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-rose-500 to-rose-600 text-white py-4 px-8 rounded-xl hover:from-rose-600 hover:to-rose-700 transition-all duration-300 disabled:opacity-50 font-bold text-base shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-3"
                 >
                   {isLoading ? <FaSpinner className="animate-spin" /> : (<><FaTimes /> <span>Reject</span></>)}
                 </button>
                 <button
                   onClick={() => onFreezePending && onFreezePending(selectedCourse.id)}
                   disabled={!!isFreezing}
-                  className="flex-1 sm:flex-none min-w-[180px] bg-sky-100 text-sky-800 border border-sky-200 py-3 px-6 rounded-xl disabled:opacity-50"
+                  className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-sky-50 to-cyan-50 text-sky-800 border-2 border-sky-200 py-4 px-8 rounded-xl disabled:opacity-50 font-bold hover:from-sky-100 hover:to-cyan-100 transition-all shadow-lg"
                   title="Freeze pending course"
                 >
                   {isFreezing ? 'Freezing…' : 'Freeze'}
@@ -587,7 +666,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
               <button
                 onClick={() => onUnfreezePending && onUnfreezePending(selectedCourse.id)}
                 disabled={!!isUnfreezing}
-                className="flex-1 sm:flex-none min-w-[180px] bg-amber-100 text-amber-800 border border-amber-200 py-3 px-6 rounded-xl disabled:opacity-50"
+                className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 border-2 border-amber-200 py-4 px-8 rounded-xl disabled:opacity-50 font-bold hover:from-amber-100 hover:to-yellow-100 transition-all shadow-lg"
                 title="Unfreeze pending course"
               >
                 {isUnfreezing ? 'Unfreezing…' : 'Unfreeze'}
@@ -598,7 +677,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
               <button
                 onClick={() => onDeactivateApproved && onDeactivateApproved(selectedCourse.id)}
                 disabled={!!isDeactivating}
-                className="flex-1 sm:flex-none min-w-[180px] bg-amber-600 text-white py-3 px-6 rounded-xl disabled:opacity-50"
+                className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-amber-600 to-amber-700 text-white py-4 px-8 rounded-xl disabled:opacity-50 font-bold hover:from-amber-700 hover:to-amber-800 transition-all shadow-xl"
                 title="Deactivate course"
               >
                 {isDeactivating ? 'Deactivating…' : 'Deactivate'}
@@ -609,7 +688,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
               <button
                 onClick={() => onActivateDeactivated && onActivateDeactivated(selectedCourse.id)}
                 disabled={!!isActivating}
-                className="flex-1 sm:flex-none min-w-[180px] bg-emerald-600 text-white py-3 px-6 rounded-xl disabled:opacity-50"
+                className="flex-1 sm:flex-none min-w-[180px] bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-4 px-8 rounded-xl disabled:opacity-50 font-bold hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-xl"
                 title="Activate course"
               >
                 {isActivating ? 'Activating…' : 'Activate'}
@@ -617,6 +696,7 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

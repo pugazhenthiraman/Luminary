@@ -29,17 +29,31 @@ export const getChildren = () => {
 };
 
 // Get parent's enrollments
-// TODO: This endpoint needs to be implemented in the backend
-// For now, returning empty array as placeholder
 export const getEnrollments = () => {
-  console.log('[Parent API] getEnrollments called - endpoint not yet implemented');
-  return Promise.resolve({
-    data: {
-      success: true,
-      data: [],
-      message: 'Enrollments feature coming soon'
-    }
-  });
+  return axiosInstance.get('/children/enrollments/all')
+    .then(response => {
+      console.log('[Parent API] Enrollments response:', response.data);
+      // Map backend response to frontend format
+      const enrollments = response.data?.data?.enrollments || [];
+      return {
+        data: {
+          success: true,
+          data: enrollments,
+          message: 'Enrollments retrieved successfully'
+        }
+      };
+    })
+    .catch(error => {
+      console.error('[Parent API] Error fetching enrollments:', error);
+      // Return empty array as fallback
+      return {
+        data: {
+          success: true,
+          data: [],
+          message: 'No enrollments found'
+        }
+      };
+    });
 };
 
 // Get parent's upcoming sessions

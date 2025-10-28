@@ -521,13 +521,13 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
             <span className="bg-indigo-100 text-indigo-800 text-sm font-medium px-3 py-1 rounded-full">
               Parent Account
             </span>
-            <button 
+            {/* <button 
               onClick={addMockChildren}
               className="flex items-center space-x-2 px-3 py-1 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors duration-200 text-xs sm:text-sm"
             >
               <FaChild className="text-xs" />
               <span className="hidden sm:inline">Add Mock Data</span>
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

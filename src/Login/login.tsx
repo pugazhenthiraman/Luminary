@@ -508,7 +508,7 @@ const Login = () => {
       };
     } else if (location.pathname === '/loginCoach') {
       return {
-        title: 'Coach Login',
+        title: 'Instructor Login',
         subtitle: 'Access your coaching dashboard',
         icon: <FaGraduationCap className="text-2xl" />,
         iconBg: 'bg-emerald-100',

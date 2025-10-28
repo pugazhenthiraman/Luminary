@@ -1,7 +1,7 @@
 import { getGradient } from "../utils/getGradient";
 import { validateThumbnailUrl } from "../utils/thumbnailUtils";
 import React, { useState, useEffect } from "react";
-import { FaEye, FaGraduationCap, FaCalendarAlt, FaCreditCard } from "react-icons/fa";
+import { FaEye, FaGraduationCap, FaCalendarAlt, FaCreditCard, FaStar } from "react-icons/fa";
 import Avatar from "./Avatar";
 
 interface Coach {
@@ -26,11 +26,14 @@ interface Course {
   coach: Coach;
   description: string;
   category: string;
-  program: string;
+  program?: string;
   credits: number;
+  creditCost?: number; // Add creditCost field
   weeklySchedule: WeeklyDay[];
   thumbnail?: string;
   price?: number; // Optional USD price if available
+  rating?: number; // Average rating (1-5)
+  totalReviews?: number; // Total number of reviews
 }
 
 interface CourseCardProps {
@@ -38,7 +41,6 @@ interface CourseCardProps {
   onViewDetails: (course: Course) => void;
   onEnroll: (course: Course) => void;
   onViewCoachDetails: (courseId: string) => void;
-  formatProgram: (program: string) => string;
   formatTime: (time: string) => string;
 }
 
@@ -47,7 +49,6 @@ const CourseCard: React.FC<CourseCardProps> = ({
   onViewDetails,
   onEnroll,
   onViewCoachDetails,
-  formatProgram,
   formatTime,
 }) => {
   const [thumbnailError, setThumbnailError] = useState(false);
@@ -113,7 +114,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
           <div className="backdrop-blur-sm bg-white/90 text-gray-900 rounded-full px-2.5 py-1 shadow-sm border border-white/70 flex items-center gap-1">
             <FaCreditCard className="text-blue-600 text-xs" />
             <span className="text-[11px] font-semibold">
-              {typeof course.price === 'number' ? `$${course.price}` : `${course.credits} Credits`}
+              {course.creditCost ?? course.credits ?? course.price} Credits
             </span>
           </div>
         </div>
@@ -124,7 +125,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
       <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 line-clamp-2">
         {course.title}
       </h3>
-      <div className="flex items-center space-x-2 mb-3">
+      <div className="flex items-center space-x-2 mb-2">
         <Avatar
           name={course.coach.name}
           imageUrl={course.coach.avatar}
@@ -140,6 +141,17 @@ const CourseCard: React.FC<CourseCardProps> = ({
         </button>
       </div>
 
+      {/* Rating Display */}
+      {course.rating && course.totalReviews !== undefined && (
+        <div className="flex items-center space-x-2 mb-3">
+          <div className="flex items-center">
+            <FaStar className="text-yellow-400 fill-current text-sm" />
+            <span className="ml-1 text-sm font-semibold text-gray-900">{course.rating.toFixed(1)}</span>
+          </div>
+          <span className="text-xs text-gray-500">({course.totalReviews} {course.totalReviews === 1 ? 'review' : 'reviews'})</span>
+        </div>
+      )}
+
       {/* Course Description */}
       <p className="text-gray-600 text-xs sm:text-sm mb-4 line-clamp-2">
         {course.description}
@@ -151,9 +163,6 @@ const CourseCard: React.FC<CourseCardProps> = ({
           <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
             {course.category}
           </span>
-          <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-            {formatProgram(course.program)}
-          </span>
         </div>
       </div>
 
@@ -161,11 +170,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
       <div className="mb-3">
         <div className="flex items-baseline justify-between">
           <div className="text-gray-900 font-extrabold text-lg sm:text-xl">
-            {typeof course.price === 'number' ? (
-              <span>USD ${course.price}</span>
-            ) : (
-              <span>{course.credits} Credits</span>
-            )}
+            <span>{course.creditCost ?? course.credits ?? course.price} Credits</span>
           </div>
           <div className="hidden sm:flex items-center text-xs text-gray-500">
             <FaCalendarAlt className="text-indigo-600 mr-1" />

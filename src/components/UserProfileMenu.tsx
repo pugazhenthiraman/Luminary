@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import Avatar from './Avatar';
 import { FaChevronDown, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
 import ConfirmModal from './ConfirmModal';
+import { getChildren, getEnrollments } from '../api/parent';
 
 type Profile = {
   id?: string;
@@ -33,6 +34,8 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
   const loadedOnceRef = useRef(false);
+  const [childrenCount, setChildrenCount] = useState<number>(0);
+  const [enrollmentsCount, setEnrollmentsCount] = useState<number>(0);
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     mode: 'logout' | 'switch' | null;
@@ -61,13 +64,50 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
+  const fullName = `${profile?.firstName ?? user?.firstName ?? ''} ${profile?.lastName ?? user?.lastName ?? ''}`.trim() || 'User';
+  const email = profile?.email ?? user?.email ?? '';
+  const role = (profile?.role ?? user?.role) as string | undefined;
+
   const fetchProfile = async () => {
     if (loadedOnceRef.current) return;
     setLoading(true);
     const data = await handleGetProfile();
     setLoading(false);
     if (data) {
-      setProfile(data.user || data);
+      const profileData = data.user || data;
+      setProfile(profileData);
+      
+      // Fetch role-specific data
+      const currentRole = ((data.user || data)?.role || user?.role) as string | undefined;
+      
+      if (currentRole === 'PARENT') {
+        try {
+          const childrenRes = await getChildren();
+          console.log('[UserProfileMenu] Children response:', childrenRes);
+          // The API returns: { data: { success, data: [children array], message } }
+          const children = childrenRes?.data?.data || [];
+          console.log('[UserProfileMenu] Children count:', children.length);
+          setChildrenCount(children.length);
+        } catch (error) {
+          console.error('Error fetching children:', error);
+          setChildrenCount(0);
+        }
+        
+        try {
+          const enrollmentsRes = await getEnrollments();
+          console.log('[UserProfileMenu] Enrollments response:', enrollmentsRes);
+          // The API returns: { data: { success, data: [enrollments array], message } }
+          const enrollments = enrollmentsRes?.data?.data || [];
+          console.log('[UserProfileMenu] Enrollments count:', enrollments.length);
+          setEnrollmentsCount(enrollments.length);
+        } catch (error) {
+          console.error('Error fetching enrollments:', error);
+          setEnrollmentsCount(0);
+        }
+      }
+      // Coach data is already included in profile.coach object from the API
+      // No need for additional fetching
+      
       loadedOnceRef.current = true;
     }
   };
@@ -96,10 +136,6 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
     setOpen(false);
     navigate(target === 'COACH' ? '/loginCoach' : '/loginParent', { replace: true });
   };
-
-  const fullName = `${profile?.firstName ?? user?.firstName ?? ''} ${profile?.lastName ?? user?.lastName ?? ''}`.trim() || 'User';
-  const email = profile?.email ?? user?.email ?? '';
-  const role = (profile?.role ?? user?.role) as string | undefined;
 
   return (
     <div id="user-profile-menu" className="relative">
@@ -171,14 +207,10 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
               ) : (
                 <>
                   {/* Common quick stats */}
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="bg-slate-50 rounded-xl p-3 text-center">
                       <div className="text-[11px] text-slate-500">Role</div>
                       <div className="text-sm font-semibold text-slate-800">{roleLabel(role)}</div>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl p-3 text-center">
-                      <div className="text-[11px] text-slate-500">User ID</div>
-                      <div className="text-sm font-semibold text-slate-800 truncate">{(profile?.id ?? user?.id) || '—'}</div>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3 text-center">
                       <div className="text-[11px] text-slate-500">Status</div>
@@ -207,11 +239,11 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-slate-50 rounded-xl p-3 text-center">
                         <div className="text-[11px] text-slate-500">Children</div>
-                        <div className="text-sm font-semibold text-slate-800">{Array.isArray((profile as any)?.children) ? (profile as any).children.length : '—'}</div>
+                        <div className="text-sm font-semibold text-slate-800">{childrenCount}</div>
                       </div>
                       <div className="bg-slate-50 rounded-xl p-3 text-center">
                         <div className="text-[11px] text-slate-500">Enrollments</div>
-                        <div className="text-sm font-semibold text-slate-800">—</div>
+                        <div className="text-sm font-semibold text-slate-800">{enrollmentsCount}</div>
                       </div>
                     </div>
                   )}
@@ -220,11 +252,15 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-slate-50 rounded-xl p-3 text-center">
                         <div className="text-[11px] text-slate-500">Domain</div>
-                        <div className="text-sm font-semibold text-slate-800">{(profile as any)?.domain || (profile as any)?.coach?.domain || '—'}</div>
+                        <div className="text-sm font-semibold text-slate-800">
+                          {(profile as any)?.coach?.domain || '—'}
+                        </div>
                       </div>
                       <div className="bg-slate-50 rounded-xl p-3 text-center">
                         <div className="text-[11px] text-slate-500">Experience</div>
-                        <div className="text-sm font-semibold text-slate-800">{(profile as any)?.experience || (profile as any)?.coach?.experience || '—'}</div>
+                        <div className="text-sm font-semibold text-slate-800">
+                          {(profile as any)?.coach?.experienceDescription || '—'}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -236,7 +272,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ triggerVariant = 'def
                     </div>
                   )}
 
-                  <div className="text-[11px] text-slate-500 text-center pt-1">Profile powered by /auth/profile</div>
+                  
                 </>
               )}
             </div>

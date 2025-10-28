@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaUsers, 
   FaBook, 
@@ -12,8 +12,10 @@ import {
   FaStar,
   FaDollarSign,
   FaCheck,
-  FaClipboardList
+  FaClipboardList,
+  FaSpinner
 } from 'react-icons/fa';
+import { getDashboard, getAdminActivities } from '../../api/admin';
 
 interface DashboardMetric {
   title: string;
@@ -33,27 +35,112 @@ interface RecentActivity {
   user?: string;
 }
 
+interface DashboardData {
+  totalUsers: number;
+  totalCoaches: number;
+  totalCourses: number;
+  totalSessions: number;
+  totalRevenue: number;
+  pendingCoachApprovals: number;
+  pendingCourseApprovals: number;
+  recentActivity: any[];
+  monthlyStats: {
+    newUsers: number;
+    newCoaches: number;
+    newCourses: number;
+    revenue: number;
+  };
+}
+
 const Overview: React.FC = () => {
-  const metrics: DashboardMetric[] = [
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await getDashboard();
+      const data = response.data?.data?.dashboard || response.data?.dashboard;
+      
+      if (data) {
+        setDashboardData(data);
+        
+        // Process recent activities
+        const activities: RecentActivity[] = (data.recentActivity || []).slice(0, 4).map((activity: any) => ({
+          id: activity.id.toString(),
+          type: activity.status === 'APPROVED' ? 'coach_approved' : 'new_registration',
+          title: activity.status === 'APPROVED' ? 'Coach Approved' : 'New Coach Registration',
+          description: `${activity.user?.firstName || ''} ${activity.user?.lastName || ''}`,
+          timestamp: formatTimestamp(activity.createdAt),
+          user: `${activity.user?.firstName || ''} ${activity.user?.lastName || ''}`
+        }));
+        
+        setRecentActivities(activities);
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatNumber = (num: number): string => {
+    return new Intl.NumberFormat('en-US').format(num);
+  };
+
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const calculatePercentageChange = (current: number, monthly: number): number => {
+    if (!monthly || monthly === 0) return 0;
+    return Number(((monthly / current) * 100).toFixed(1));
+  };
+
+  const formatTimestamp = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    return `${Math.floor(diffInSeconds / 604800)} weeks ago`;
+  };
+
+  const metrics: DashboardMetric[] = dashboardData ? [
     {
       title: 'Total Coaches',
-      value: '1,247',
-      change: 12.5,
+      value: formatNumber(dashboardData.totalCoaches || 0),
+      change: calculatePercentageChange(dashboardData.totalCoaches, dashboardData.monthlyStats?.newCoaches || 0),
       changeType: 'increase',
       icon: FaUsers,
       color: 'bg-blue-500'
     },
     {
-      title: 'Active Courses',
-      value: '892',
-      change: 8.2,
+      title: 'Total Courses',
+      value: formatNumber(dashboardData.totalCourses || 0),
+      change: calculatePercentageChange(dashboardData.totalCourses, dashboardData.monthlyStats?.newCourses || 0),
       changeType: 'increase',
       icon: FaBook,
       color: 'bg-green-500'
     },
     {
       title: 'Pending Approvals',
-      value: '23',
+      value: formatNumber((dashboardData.pendingCoachApprovals || 0) + (dashboardData.pendingCourseApprovals || 0)),
       change: -5.1,
       changeType: 'decrease',
       icon: FaClock,
@@ -61,48 +148,13 @@ const Overview: React.FC = () => {
     },
     {
       title: 'Total Revenue',
-      value: '$45,230',
-      change: 15.3,
+      value: formatCurrency(dashboardData.totalRevenue || 0),
+      change: calculatePercentageChange(dashboardData.totalRevenue, dashboardData.monthlyStats?.revenue || 0),
       changeType: 'increase',
       icon: FaDollarSign,
       color: 'bg-purple-500'
     }
-  ];
-
-  const recentActivities: RecentActivity[] = [
-    {
-      id: '1',
-      type: 'course_approved',
-      title: 'Course Approved',
-      description: 'Advanced JavaScript Programming by Sarah Johnson',
-      timestamp: '2 hours ago',
-      user: 'Sarah Johnson'
-    },
-    {
-      id: '2',
-      type: 'coach_approved',
-      title: 'Coach Approved',
-      description: 'Michael Chen - Creative Writing Workshop',
-      timestamp: '4 hours ago',
-      user: 'Michael Chen'
-    },
-    {
-      id: '3',
-      type: 'course_rejected',
-      title: 'Course Rejected',
-      description: 'Basic Math Fundamentals by David Wilson',
-      timestamp: '6 hours ago',
-      user: 'David Wilson'
-    },
-    {
-      id: '4',
-      type: 'new_registration',
-      title: 'New Coach Registration',
-      description: 'Emily Rodriguez - Music Theory Expert',
-      timestamp: '8 hours ago',
-      user: 'Emily Rodriguez'
-    }
-  ];
+  ] : [];
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -133,6 +185,47 @@ const Overview: React.FC = () => {
         return 'bg-gray-50 border-gray-200';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">Welcome back! Here's what's happening with your platform.</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <FaSpinner className="animate-spin text-blue-600 text-4xl mx-auto mb-4" />
+            <p className="text-gray-600">Loading dashboard data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">Welcome back! Here's what's happening with your platform.</p>
+          </div>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="text-red-800">{error}</p>
+          <button 
+            onClick={fetchDashboardData}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -221,8 +314,10 @@ const Overview: React.FC = () => {
               <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-blue-900">Today's Approvals</p>
-                    <p className="text-2xl font-bold text-blue-600">8</p>
+                    <p className="text-sm font-medium text-blue-900">Approved Coaches</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {dashboardData ? formatNumber(dashboardData.totalCoaches - (dashboardData.pendingCoachApprovals || 0) - (dashboardData.pendingCourseApprovals || 0)) : '0'}
+                    </p>
                   </div>
                   <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
                     <FaCheck className="text-blue-600 text-lg" />
@@ -235,7 +330,9 @@ const Overview: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-yellow-900">Pending Reviews</p>
-                    <p className="text-2xl font-bold text-yellow-600">15</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {dashboardData ? formatNumber((dashboardData.pendingCoachApprovals || 0) + (dashboardData.pendingCourseApprovals || 0)) : '0'}
+                    </p>
                   </div>
                   <div className="p-2 bg-yellow-100 rounded-lg flex-shrink-0">
                     <FaClock className="text-yellow-600 text-lg" />
@@ -243,22 +340,17 @@ const Overview: React.FC = () => {
                 </div>
               </div>
 
-              {/* Average Rating */}
+              {/* Total Sessions */}
               <div className="bg-green-50 rounded-lg p-3 sm:p-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-green-900">Average Rating</p>
-                    <div className="flex items-center mt-1">
-                      <p className="text-2xl font-bold text-green-600 mr-2">4.8</p>
-                      <div className="flex items-center">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <FaStar key={star} className="text-yellow-400 text-sm" />
-                        ))}
-                      </div>
-                    </div>
+                    <p className="text-sm font-medium text-green-900">Total Sessions</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {dashboardData ? formatNumber(dashboardData.totalSessions || 0) : '0'}
+                    </p>
                   </div>
                   <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
-                    <FaStar className="text-green-600 text-lg" />
+                    <FaCalendarAlt className="text-green-600 text-lg" />
                   </div>
                 </div>
               </div>
@@ -268,7 +360,9 @@ const Overview: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-purple-900">Revenue This Month</p>
-                    <p className="text-2xl font-bold text-purple-600">$12,450</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {dashboardData ? formatCurrency(dashboardData.monthlyStats?.revenue || 0) : '$0'}
+                    </p>
                   </div>
                   <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
                     <FaDollarSign className="text-purple-600 text-lg" />
@@ -282,12 +376,14 @@ const Overview: React.FC = () => {
 
       {/* Additional Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        {/* Active Coaches */}
+        {/* Total Users */}
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Active Coaches</p>
-              <p className="text-2xl font-bold text-gray-900">1,156</p>
+              <p className="text-sm font-medium text-gray-600">Total Users</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {dashboardData ? formatNumber(dashboardData.totalUsers || 0) : '0'}
+              </p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
               <FaUsers className="text-green-600 text-xl" />
@@ -300,7 +396,9 @@ const Overview: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-600">Total Courses</p>
-              <p className="text-2xl font-bold text-gray-900">892</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {dashboardData ? formatNumber(dashboardData.totalCourses || 0) : '0'}
+              </p>
             </div>
             <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
               <FaBook className="text-blue-600 text-xl" />
@@ -308,12 +406,14 @@ const Overview: React.FC = () => {
           </div>
         </div>
 
-        {/* Completion Rate */}
+        {/* Monthly New Users */}
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-              <p className="text-2xl font-bold text-gray-900">87%</p>
+              <p className="text-sm font-medium text-gray-600">New Users This Month</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {dashboardData ? formatNumber(dashboardData.monthlyStats?.newUsers || 0) : '0'}
+              </p>
             </div>
             <div className="p-3 bg-purple-100 rounded-lg flex-shrink-0">
               <FaChartLine className="text-purple-600 text-xl" />
@@ -321,15 +421,17 @@ const Overview: React.FC = () => {
           </div>
         </div>
 
-        {/* Support Tickets */}
+        {/* Total Revenue */}
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Support Tickets</p>
-              <p className="text-2xl font-bold text-gray-900">23</p>
+              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {dashboardData ? formatCurrency(dashboardData.totalRevenue || 0) : '$0'}
+              </p>
             </div>
             <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
-              <FaClipboardList className="text-orange-600 text-xl" />
+              <FaDollarSign className="text-orange-600 text-xl" />
             </div>
           </div>
         </div>

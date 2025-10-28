@@ -1,19 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FaCoins, FaHistory, FaArrowRight, FaCheckCircle, FaTimes, FaCalendarAlt, FaBook, FaShoppingCart, FaPlus, FaQuestionCircle } from 'react-icons/fa';
+import { FaCoins, FaHistory, FaArrowRight, FaCheckCircle, FaTimes, FaCalendarAlt, FaBook, FaShoppingCart, FaPlus, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import WalletPaymentModal from '../../components/WalletPaymentModal';
+import creditsApi from '../../api/credits';
+import { useAuthStore } from '../../stores/useAuthStore';
 
 interface WalletProps {
   onTabChange: (tab: string) => void;
   openPlansSignal?: number; // when incremented, open the plans modal
 }
 
-// Frontend-only mock data per request
-const INITIAL_BALANCE = 42; // credits
-const PLANS = [
-  { id: 'basic', name: 'Basic', price: 120, credits: 10, popular: false },
-  { id: 'medium', name: 'Medium', price: 300, credits: 30, popular: true },
-  { id: 'family', name: 'Family', price: 500, credits: 70, popular: false },
-];
+// Mock transaction history - will be replaced with real data from API
 const HISTORY = [
   // August
   { id: 'h1', type: 'enroll', title: 'Art Basics', delta: -5, date: '2025-08-12' },
@@ -63,13 +59,18 @@ const buildLastNMonths = (end: Date, count: number): MonthKey[] => {
 };
 
 const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
+  const { user } = useAuthStore();
+  const [plans, setPlans] = useState<any[]>([]);
   const [openPlanId, setOpenPlanId] = useState<string | null>(null);
-  const activePlan = PLANS.find(p => p.id === openPlanId);
+  const activePlan = plans.find(p => p.id === openPlanId);
   const [selectedPlanId, setSelectedPlanId] = useState<string>('medium');
   const lastSignal = useRef<number | undefined>(undefined);
-  const [balance, setBalance] = useState<number>(INITIAL_BALANCE);
+  const [balance, setBalance] = useState<number>(0);
+  const [balanceLoading, setBalanceLoading] = useState(true);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[number] | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Show a rolling 12 months selector, including months without transactions
   const allMonths = buildLastNMonths(new Date(), 12);
   const [selectedMonth, setSelectedMonth] = useState<SelectedMonth>(allMonths[0] || 'ALL');
@@ -77,14 +78,117 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
   const [monthModalOpen, setMonthModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  const monthItems = HISTORY
-    .filter(h => selectedMonth === 'ALL' || monthKey(h.date) === selectedMonth)
-    .filter(h => historyFilter === 'ALL' ? true : historyFilter === 'PURCHASES' ? h.delta > 0 : h.delta < 0)
-    .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
+  
+  // Build actual transaction data from API
+  const monthItems = transactions
+    .filter(h => {
+      if (selectedMonth === 'ALL') return true;
+      const hMonth = monthKey(h.createdAt || h.date);
+      return hMonth === selectedMonth;
+    })
+    .filter(h => {
+      if (historyFilter === 'ALL') return true;
+      if (historyFilter === 'PURCHASES') return h.delta > 0 || h.amount > 0 || h.type === 'PURCHASE';
+      return h.delta < 0 || h.amount < 0 || h.type === 'SPENT';
+    })
+    .sort((a, b) => new Date((b.createdAt || b.date)).getTime() - new Date((a.createdAt || a.date)).getTime());
+  
   const totalPages = Math.max(1, Math.ceil(monthItems.length / itemsPerPage));
   const paginatedItems = monthItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const monthInflow = monthItems.filter(h => h.delta > 0).reduce((s, x) => s + x.delta, 0);
-  const monthOutflow = Math.abs(monthItems.filter(h => h.delta < 0).reduce((s, x) => s + x.delta, 0));
+  const monthInflow = monthItems.filter(h => h.delta > 0 || (h.amount > 0 && h.type === 'PURCHASE')).reduce((s, x) => s + (x.delta || Math.abs(x.amount || 0)), 0);
+  const monthOutflow = Math.abs(monthItems.filter(h => h.delta < 0 || (h.amount < 0 && h.type === 'SPENT')).reduce((s, x) => s + (x.delta || Math.abs(x.amount || 0)), 0));
+
+  // Load credit balance from backend
+  useEffect(() => {
+    const loadBalance = async () => {
+      if (!user?.id) return;
+      setBalanceLoading(true);
+      try {
+        const balanceResponse = await creditsApi.getBalance(user.id);
+        const balanceValue = balanceResponse?.creditBalance?.balance || balanceResponse?.balance || 0;
+        setBalance(Number(balanceValue));
+      } catch (error) {
+        console.error('Failed to load credit balance:', error);
+        setBalance(0);
+      } finally {
+        setBalanceLoading(false);
+      }
+    };
+    
+    loadBalance();
+  }, [user?.id]);
+
+  // Load credit transactions from backend
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!user?.id) return;
+      setTransactionsLoading(true);
+      try {
+        const response = await creditsApi.getTransactions(user.id, {
+          page: 1,
+          limit: 100 // Get enough transactions for the last 12 months
+        });
+        
+        const transactionsData = response?.transactions || [];
+        
+        // Transform API transactions to display format
+        const transformedTransactions = transactionsData.map((t: any) => ({
+          id: t.id,
+          title: t.description || `Credit ${t.type?.toLowerCase() || 'transaction'}`,
+          delta: t.type === 'PURCHASE' || t.type === 'BONUS' || t.type === 'REFUND' ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount)),
+          amount: Number(t.amount),
+          type: t.type,
+          createdAt: t.createdAt || t.date,
+          date: t.createdAt ? new Date(t.createdAt).toISOString().split('T')[0] : t.date
+        }));
+        
+        setTransactions(transformedTransactions);
+      } catch (error) {
+        console.error('Failed to load credit transactions:', error);
+        setTransactions([]);
+      } finally {
+        setTransactionsLoading(false);
+      }
+    };
+    
+    loadTransactions();
+  }, [user?.id]);
+
+  // Load credit packages from database
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  const loadPlans = async () => {
+    try {
+      setIsLoadingPlans(true);
+      const response = await creditsApi.getPackages(true as any); // Get only active packages
+      const packages = response?.packages || [];
+      
+      const mappedPlans = packages.map((pkg: any) => ({
+        id: pkg.id,
+        name: pkg.name,
+        price: Number(pkg.price),
+        credits: Number(pkg.credits),
+        bonusCredits: Number(pkg.bonusCredits || 0),
+        popular: pkg.isPopular,
+      }));
+      
+      setPlans(mappedPlans);
+      
+      // Set initial selection to popular plan or first plan
+      if (mappedPlans.length > 0) {
+        const popularPlan = mappedPlans.find(p => p.popular) || mappedPlans[0];
+        setSelectedPlanId(popularPlan.id);
+      }
+    } catch (error) {
+      console.error('Failed to load credit packages:', error);
+    } finally {
+      setIsLoadingPlans(false);
+    }
+  };
 
   useEffect(() => {
     // Reset pagination on filter/month change
@@ -94,26 +198,79 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
   // Open plans modal whenever the signal increments (from header or first-visit)
   useEffect(() => {
     if (typeof openPlansSignal === 'number' && openPlansSignal !== lastSignal.current) {
-      setOpenPlanId('medium');
-      setSelectedPlanId('medium');
+      if (plans.length > 0) {
+        const firstPlan = plans.find(p => p.popular) || plans[0];
+        setOpenPlanId(firstPlan.id);
+        setSelectedPlanId(firstPlan.id);
+      }
       lastSignal.current = openPlansSignal;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openPlansSignal]);
+  }, [openPlansSignal, plans]);
 
   // Sync selected card when modal opens with a specific plan
   useEffect(() => {
     if (openPlanId) setSelectedPlanId(openPlanId);
   }, [openPlanId]);
 
+  // Auto-scroll to selected plan
+  useEffect(() => {
+    if (selectedPlanId && scrollContainerRef.current) {
+      const selectedCard = scrollContainerRef.current.querySelector(`[data-plan-id="${selectedPlanId}"]`);
+      if (selectedCard) {
+        selectedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [selectedPlanId]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const scrollAmount = container.clientWidth * 0.8;
+      container.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
+
   const handleBuyNow = (planId: string) => {
-    const plan = PLANS.find(p => p.id === planId) || null;
+    const plan = plans.find(p => p.id === planId) || null;
     setSelectedPlan(plan);
     setPaymentOpen(true);
   };
 
-  const handlePaymentSuccess = ({ creditsAdded }: { creditsAdded: number }) => {
+  const handlePaymentSuccess = async ({ creditsAdded }: { creditsAdded: number }) => {
+    // Update local balance immediately
     setBalance((b) => b + creditsAdded);
+    
+    // Also refresh from backend to ensure accuracy
+    if (user?.id) {
+      try {
+        const balanceResponse = await creditsApi.getBalance(user.id);
+        const balanceValue = balanceResponse?.creditBalance?.balance || balanceResponse?.balance || 0;
+        setBalance(Number(balanceValue));
+        
+        // Reload transactions to show the new purchase
+        const transactionsResponse = await creditsApi.getTransactions(user.id, {
+          page: 1,
+          limit: 100
+        });
+        const transactionsData = transactionsResponse?.transactions || [];
+        const transformedTransactions = transactionsData.map((t: any) => ({
+          id: t.id,
+          title: t.description || `Credit ${t.type?.toLowerCase() || 'transaction'}`,
+          delta: t.type === 'PURCHASE' || t.type === 'BONUS' || t.type === 'REFUND' ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount)),
+          amount: Number(t.amount),
+          type: t.type,
+          createdAt: t.createdAt || t.date,
+          date: t.createdAt ? new Date(t.createdAt).toISOString().split('T')[0] : t.date
+        }));
+        setTransactions(transformedTransactions);
+      } catch (error) {
+        console.error('Failed to refresh credit balance:', error);
+      }
+    }
   };
 
   // Close plans modal on Escape and lock body scroll while open
@@ -145,7 +302,9 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
             <div className="flex items-center gap-3">
               <div className="px-3 sm:px-4 py-2 rounded-xl bg-white/15 backdrop-blur text-white flex items-center gap-2">
                 <FaCoins />
-                <span className="font-semibold">{balance} Credits</span>
+                <span className="font-semibold">
+                  {balanceLoading ? '...' : `${balance} Credits`}
+                </span>
               </div>
             </div>
           </div>
@@ -153,123 +312,6 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
   <svg className="absolute -right-10 -top-10 w-40 h-40 sm:w-52 sm:h-52 text-white/10 pointer-events-none z-0" viewBox="0 0 200 200" fill="currentColor" aria-hidden>
           <circle cx="100" cy="100" r="100" />
         </svg>
-      </div>
-
-      {/* Payment Options Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Choose Your Payment Method</h2>
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
-            <FaQuestionCircle />
-            <span>Not sure? Try individual classes first</span>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Option 1: Credit Plans */}
-          <div className="group rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-fuchsia-50 p-6 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <FaCoins className="text-white text-xl" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Credit Plans</h3>
-                  <p className="text-sm text-gray-600">Best value for multiple courses</p>
-                </div>
-              </div>
-              <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">Save 20%</span>
-            </div>
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <FaCheckCircle className="text-violet-600 flex-shrink-0" />
-                <span>Save up to 20% with bulk credits</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <FaCheckCircle className="text-violet-600 flex-shrink-0" />
-                <span>Use across any course anytime</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <FaCheckCircle className="text-violet-600 flex-shrink-0" />
-                <span>Credits never expire</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <FaCheckCircle className="text-violet-600 flex-shrink-0" />
-                <span>Flexible enrollment for all children</span>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setSelectedPlanId('medium');
-                setOpenPlanId('medium');
-                setTimeout(() => {
-                  if (!activePlan) { setOpenPlanId('medium'); }
-                }, 0);
-              }}
-              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold hover:from-violet-700 hover:to-fuchsia-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              <FaPlus />
-              Add Credits / Get Plan
-            </button>
-          </div>
-
-          {/* Option 2: Individual Classes */}
-          <div className="group rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-6 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <FaBook className="text-white text-xl" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Individual Classes</h3>
-                  <p className="text-sm text-gray-600">Pay per class as you go</p>
-                </div>
-              </div>
-              <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">No commitment</span>
-            </div>
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <FaCheckCircle className="text-blue-600 flex-shrink-0" />
-                <span>No upfront commitment needed</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <FaCheckCircle className="text-blue-600 flex-shrink-0" />
-                <span>Pay only for what you use</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <FaCheckCircle className="text-blue-600 flex-shrink-0" />
-                <span>Instant enrollment & access</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <FaCheckCircle className="text-blue-600 flex-shrink-0" />
-                <span>Perfect for trying new courses</span>
-              </div>
-            </div>
-            <button
-              onClick={() => onTabChange('courses')}
-              className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              <FaShoppingCart />
-              Browse & Purchase Classes
-            </button>
-          </div>
-        </div>
-
-        {/* Comparison Helper */}
-        {/* <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <FaQuestionCircle className="text-amber-600 text-lg" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900 mb-1">💡 Which option should I choose?</p>
-              <p className="text-sm text-gray-600">
-                <strong className="text-violet-700">Credit Plans</strong> save money if enrolling in 2+ courses. 
-                <strong className="text-blue-700 ml-1">Individual Classes</strong> work best for single courses or trying before committing.
-              </p>
-            </div>
-          </div>
-        </div> */}
       </div>
 
       {/* Balance Summary & Quick Actions */}
@@ -282,7 +324,9 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
               </div>
               <div>
                 <p className="text-sm opacity-90">Current Balance</p>
-                <p className="text-3xl font-extrabold">{balance} Credits</p>
+                <p className="text-3xl font-extrabold">
+                  {balanceLoading ? '...' : `${balance}`} Credits
+                </p>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -300,11 +344,11 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
             <div className="mt-4 pt-4 border-t border-white/20 space-y-2">
               <button
                 onClick={() => {
-                  setSelectedPlanId('medium');
-                  setOpenPlanId('medium');
-                  setTimeout(() => {
-                    if (!activePlan) { setOpenPlanId('medium'); }
-                  }, 0);
+                  if (plans.length > 0) {
+                    const firstPlan = plans.find(p => p.popular) || plans[0];
+                    setSelectedPlanId(firstPlan.id);
+                    setOpenPlanId(firstPlan.id);
+                  }
                 }}
                 className="w-full px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2"
               >
@@ -364,15 +408,28 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
           </div>
         </div>
         <div className="p-5">
-          {monthItems.length === 0 ? (
+          {transactionsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading transaction history...</p>
+              </div>
+            </div>
+          ) : monthItems.length === 0 ? (
             selectedMonth === 'ALL' ? (
       <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 p-6 text-center">
                 <p className="text-gray-700 font-medium">No activity yet</p>
                 <p className="text-sm text-gray-500 mt-1">Make your first purchase to get started.</p>
                 <div className="mt-3">
                   <button
-        onClick={() => setOpenPlanId('medium')}
-        className="inline-flex items-center px-4 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition text-sm"
+                    onClick={() => {
+                      if (plans.length > 0) {
+                        const firstPlan = plans.find(p => p.popular) || plans[0];
+                        setOpenPlanId(firstPlan.id);
+                        setSelectedPlanId(firstPlan.id);
+                      }
+                    }}
+                    className="inline-flex items-center px-4 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition text-sm"
                   >
                     Get a Plan
                   </button>
@@ -402,7 +459,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{h.title}</p>
-                        <p className="text-xs text-gray-500">{new Date(h.date).toLocaleDateString()}</p>
+                        <p className="text-xs text-gray-500">{new Date(h.createdAt || h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                       </div>
                       <div className={`text-sm font-bold ${h.delta > 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {h.delta > 0 ? `+${h.delta}` : h.delta} cr
@@ -513,38 +570,109 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange, openPlansSignal }) => {
               </div>
             </div>
             <div className="p-4 sm:p-6 overflow-y-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                {PLANS.map((p) => (
-                  <div
-                    key={p.id}
-                    onClick={() => setSelectedPlanId(p.id)}
-                    className={`relative cursor-pointer rounded-2xl border shadow-sm hover:shadow-xl transition-all duration-200 overflow-hidden ${selectedPlanId===p.id ? 'ring-2 ring-indigo-500 scale-[1.01]' : ''}`}
-                  >
-                    {p.popular && (
-                      <span className="absolute top-3 right-3 text-xs font-semibold bg-blue-600 text-white px-2 py-1 rounded-full">Popular</span>
-                    )}
-                    <div className={`h-28 bg-gradient-to-br ${p.id==='basic' ? 'from-violet-500 to-fuchsia-600' : p.id==='medium' ? 'from-purple-500 to-violet-600' : 'from-rose-500 to-pink-600'}`}></div>
-                    <div className="-mt-8 pb-6 px-5">
-                      <div className="w-24 h-24 mx-auto rounded-full bg-white shadow-lg border flex items-center justify-center text-2xl font-extrabold text-gray-900">${p.price}</div>
-                      <h4 className="mt-3 text-xl font-bold text-center">{p.name}</h4>
-                      {/* <p className="text-xs text-gray-500 text-center">One-time purchase</p> */}
-                      <ul className="mt-4 space-y-2 text-sm">
-                        <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> {p.credits} credits included</li>
-                        <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> Use across any course</li>
-                        <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> Instant wallet top-up</li>
-                        <li className="flex gap-2 items-start"><FaCheckCircle className="text-emerald-500 mt-0.5" /> {p.id === 'basic' ? 'One-time access' : p.id === 'medium' ? '2-3 classes' : '5-6+ classes'}</li>
-                      </ul>
-                      <button
-                        onClick={() => { setOpenPlanId(null); handleBuyNow(p.id); }}
-                        className={`mt-5 w-full inline-flex justify-center px-4 py-2 rounded-lg text-sm font-semibold transition-all ${p.id==='basic' ? 'bg-violet-600 hover:bg-violet-700 text-white' : p.id==='medium' ? 'bg-violet-600 hover:bg-violet-700 text-white' : 'bg-pink-600 hover:bg-pink-700 text-white'}`}
-                      >
-                        Buy Now
-                      </button>
-                    </div>
+              {isLoadingPlans ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading plans...</p>
                   </div>
-                ))}
-              </div>
-              <div className="mt-6 p-4 rounded-xl bg-gray-50 border text-xs text-gray-600">Payments are processed by Stripe. Your card details never touch our servers.</div>
+                </div>
+              ) : plans.length === 0 ? (
+                <div className="text-center py-20">
+                  <p className="text-gray-600">No credit plans available at the moment.</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  {/* Slider Container with Scroll */}
+                  <div 
+                    ref={scrollContainerRef}
+                    className="flex gap-4 sm:gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide pb-4"
+                  >
+                    {plans.map((p) => {
+                      const planType = p.name.toLowerCase().includes('basic') ? 'basic' : 
+                                      p.name.toLowerCase().includes('family') ? 'family' : 'medium';
+                      const totalCredits = p.credits + p.bonusCredits;
+                      
+                      return (
+                        <div
+                          key={p.id}
+                          data-plan-id={p.id}
+                          onClick={() => setSelectedPlanId(p.id)}
+                          className={`relative cursor-pointer rounded-2xl border shadow-sm hover:shadow-xl transition-all duration-200 overflow-hidden snap-center flex-shrink-0 min-w-[280px] sm:min-w-[320px] ${selectedPlanId===p.id ? 'ring-2 ring-indigo-500 scale-[1.01]' : ''}`}
+                        >
+                          {p.popular && (
+                            <span className="absolute top-3 right-3 z-10 text-xs font-semibold bg-blue-600 text-white px-2 py-1 rounded-full">
+                              Popular
+                            </span>
+                          )}
+                          <div className={`h-28 bg-gradient-to-br ${
+                            planType === 'basic' ? 'from-violet-500 to-fuchsia-600' : 
+                            planType === 'medium' ? 'from-purple-500 to-violet-600' : 
+                            'from-rose-500 to-pink-600'
+                          }`}></div>
+                          <div className="-mt-8 pb-6 px-5">
+                            <div className="w-24 h-24 mx-auto rounded-full bg-white shadow-lg border flex items-center justify-center text-2xl font-extrabold text-gray-900">
+                              ${p.price}
+                            </div>
+                            <h4 className="mt-3 text-xl font-bold text-center">{p.name}</h4>
+                            <ul className="mt-4 space-y-2 text-sm">
+                              <li className="flex gap-2 items-start">
+                                <FaCheckCircle className="text-emerald-500 mt-0.5" /> 
+                                {totalCredits} credits included
+                                {p.bonusCredits > 0 && <span className="text-yellow-600 font-semibold"> +{p.bonusCredits} bonus</span>}
+                              </li>
+                              <li className="flex gap-2 items-start">
+                                <FaCheckCircle className="text-emerald-500 mt-0.5" /> Use across any course
+                              </li>
+                              <li className="flex gap-2 items-start">
+                                <FaCheckCircle className="text-emerald-500 mt-0.5" /> Instant wallet top-up
+                              </li>
+                              <li className="flex gap-2 items-start">
+                                <FaCheckCircle className="text-emerald-500 mt-0.5" /> 
+                                {planType === 'basic' ? 'One-time access' : 
+                                 planType === 'medium' ? '2-3 classes' : 
+                                 '5-6+ classes'}
+                              </li>
+                            </ul>
+                            <button
+                              onClick={() => { setOpenPlanId(null); handleBuyNow(p.id); }}
+                              className={`mt-5 w-full inline-flex justify-center px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                planType === 'family' ? 'bg-pink-600 hover:bg-pink-700 text-white' : 
+                                'bg-violet-600 hover:bg-violet-700 text-white'
+                              }`}
+                            >
+                              Buy Now
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Navigation Buttons (show only if more than 3 plans) */}
+                  {plans.length > 3 && (
+                    <>
+                      <button
+                        onClick={() => scroll('left')}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-lg z-20 transition-all hover:scale-110"
+                        aria-label="Scroll left"
+                      >
+                        <FaChevronLeft className="text-gray-700" />
+                      </button>
+                      <button
+                        onClick={() => scroll('right')}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-lg z-20 transition-all hover:scale-110"
+                        aria-label="Scroll right"
+                      >
+                        <FaChevronRight className="text-gray-700" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+              {plans.length > 0 && (
+                <div className="mt-6 p-4 rounded-xl bg-gray-50 border text-xs text-gray-600">Payments are processed by Stripe. Your card details never touch our servers.</div>
+              )}
             </div>
           </div>
         </div>

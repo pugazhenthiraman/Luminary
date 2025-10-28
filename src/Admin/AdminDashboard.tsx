@@ -9,6 +9,7 @@ import AdminSidebar from './components/Sidebar';
 import Overview from './components/Overview';
 import CourseApproval from './components/CourseApproval';
 import CoachApproval from './components/CoachApproval';
+import CreditPackages from './components/CreditPackages';
 
 import { getCoaches, approveCoach, rejectCoach } from '../api/admin';
 
@@ -208,13 +209,15 @@ console.log('Loaded coaches:', normalized);
         return <CourseApproval />;
       case 'coach-approval':
         return <CoachApproval />;
+      case 'credit-packages':
+        return <CreditPackages />;
       default:
         return (
           <div className="flex items-center justify-center h-64">
-            <div className="text-center">
+            {/* <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Coming Soon</h2>
               <p className="text-gray-600">This feature is under development.</p>
-            </div>
+            </div> */}
           </div>
         );
     }
@@ -243,6 +246,7 @@ console.log('Loaded coaches:', normalized);
                   {activeTab === 'overview' && 'Dashboard Overview'}
                   {activeTab === 'coach-approval' && 'Coach Approval'}
                   {activeTab === 'course-approval' && 'Course Approval'}
+                  {activeTab === 'credit-packages' && 'Credit Packages'}
                   {activeTab === 'analytics' && 'Analytics'}
                   {activeTab === 'users' && 'User Management'}
                   {activeTab === 'reports' && 'Reports'}

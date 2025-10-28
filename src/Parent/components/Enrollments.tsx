@@ -37,14 +37,17 @@ export interface Enrollment {
   childName: string;
   childId: string;
   enrollmentDate: string;
-  status: 'active' | 'completed' | 'cancelled';
+  enrolledAt?: string; // Alternative field name
+  status: 'active' | 'completed' | 'cancelled' | 'active' | 'in_progress' | 'completed' | 'cancelled';
   progress: number;
-  nextSession: string;
+  nextSession: string | null;
   coachName: string;
   totalSessions: number;
   completedSessions: number;
-  grade: string;
-  feedback: string;
+  grade?: string;
+  feedback?: string;
+  creditCost?: number;
+  childGrade?: string;
 }
 
 interface ParentUser {
@@ -104,10 +107,10 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
         enrollment.childName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         enrollment.coachName.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Date filtering
+      // Date filtering - use enrolledAt if available, fallback to enrollmentDate
       let matchesDate = true;
       if (dateFilter !== 'all') {
-        const enrollmentDate = new Date(enrollment.enrollmentDate);
+        const enrollmentDate = new Date(enrollment.enrolledAt || enrollment.enrollmentDate);
         const today = new Date();
         const diffTime = Math.abs(today.getTime() - enrollmentDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -132,26 +135,40 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
     });
 
     // Sort by most recent enrollment date by default
-    filtered.sort((a, b) => new Date(b.enrollmentDate).getTime() - new Date(a.enrollmentDate).getTime());
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.enrolledAt || a.enrollmentDate).getTime();
+      const dateB = new Date(b.enrolledAt || b.enrollmentDate).getTime();
+      return dateB - dateA;
+    });
 
     return filtered;
   }, [enrollments, filterStatus, selectedChild, searchTerm, dateFilter]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'No date';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return 'Invalid Date';
+    }
   };
 
-  const formatTime = (dateTimeString: string) => {
-    const date = new Date(dateTimeString);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+  const formatTime = (dateTimeString: string | null | undefined) => {
+    if (!dateTimeString) return 'No time';
+    try {
+      const date = new Date(dateTimeString);
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (e) {
+      return 'Invalid Time';
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -453,12 +470,12 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                   <div className="text-xs text-gray-600">Sessions</div>
                 </div>
                 <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
-                  <div className="text-base sm:text-lg font-bold text-green-600">{enrollment.grade}</div>
+                  <div className="text-base sm:text-lg font-bold text-green-600">{enrollment.childGrade || 'N/A'}</div>
                   <div className="text-xs text-gray-600">Grade</div>
                 </div>
                 <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-100">
                   <div className="text-base sm:text-lg font-bold text-purple-600">
-                    ${(enrollment.progress * 0.99).toFixed(0)}
+                    ${(enrollment.creditCost || 0).toFixed(0)}
                   </div>
                   <div className="text-xs text-gray-600">Credits</div>
                 </div>
@@ -471,14 +488,14 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                     <FaCalendarCheck className="text-indigo-500 text-sm" />
                     <span className="hidden sm:inline">Enrolled</span>
                   </span>
-                  <span className="font-medium text-xs sm:text-sm">{formatDate(enrollment.enrollmentDate)}</span>
+                  <span className="font-medium text-xs sm:text-sm">{formatDate(enrollment.enrolledAt || enrollment.enrollmentDate)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 flex items-center gap-2">
                     <FaClock className="text-green-500 text-sm" />
                     <span className="hidden sm:inline">Next Session</span>
                   </span>
-                  <span className="font-medium text-xs sm:text-sm">{formatDate(enrollment.nextSession)}</span>
+                  <span className="font-medium text-xs sm:text-sm">{formatDate(enrollment.nextSession || undefined)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500 flex items-center gap-2">
@@ -486,7 +503,7 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                     <span className="hidden sm:inline">Total Amount</span>
                   </span>
                   <span className="font-medium text-sm sm:text-lg font-bold text-purple-600">
-                    ${(enrollment.totalSessions * 99).toFixed(2)}
+                    ${(enrollment.creditCost || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -584,7 +601,7 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                     <div className="flex items-center gap-2">
                       <FaCreditCard className="text-purple-500 text-sm" />
                       <span className="text-gray-600">Credits:</span>
-                      <span className="font-medium">{selectedEnrollment.totalSessions * 99}</span>
+                      <span className="font-medium">{selectedEnrollment.creditCost || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -601,14 +618,14 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                       <div className="text-xs sm:text-sm text-gray-600">Overall Progress</div>
                     </div>
                     <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
-                      <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">{selectedEnrollment.grade}</div>
-                      <div className="text-xs sm:text-sm text-gray-600">Current Grade</div>
+                      <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">{selectedEnrollment.childGrade || 'N/A'}</div>
+                      <div className="text-xs sm:text-sm text-gray-600">Student Grade</div>
                     </div>
                     <div className="text-center p-3 sm:p-4 bg-purple-50 rounded-lg">
                       <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">
-                        ${(selectedEnrollment.progress * 0.99).toFixed(0)}
+                        ${(selectedEnrollment.creditCost || 0).toFixed(0)}
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-600">Credits Earned</div>
+                      <div className="text-xs sm:text-sm text-gray-600">Credits Paid</div>
                     </div>
                   </div>
                   <div className="mt-4 sm:mt-6">
@@ -673,7 +690,7 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600 text-sm">Enrollment Date:</span>
-                      <span className="font-medium text-sm">{formatDate(selectedEnrollment.enrollmentDate)}</span>
+                      <span className="font-medium text-sm">{formatDate(selectedEnrollment.enrolledAt || selectedEnrollment.enrollmentDate)}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <span className="text-gray-600 text-sm">Status:</span>
@@ -859,7 +876,7 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Next Session:</span>
-                      <span className="font-medium">{formatDate(joiningSession.nextSession)}</span>
+                      <span className="font-medium">{formatDate(joiningSession.nextSession || undefined)}</span>
                     </div>
                   </div>
                 </div>

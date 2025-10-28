@@ -40,6 +40,7 @@ interface Course {
   rating: number;
   price: string | number;  // API returns as string
   creditCost?: number;
+  credits?: number;
   status: string;
   isActive?: boolean;
   isFrozen?: boolean;
@@ -304,36 +305,63 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
   };
 
   const handleCreateCourse = async (courseData: any) => {
-    // Build multipart form data per backend contract
-    const formData = new FormData();
-    formData.append('title', courseData.title);
-    formData.append('description', courseData.description);
-    formData.append('benefits', courseData.benefits);
-    formData.append('category', courseData.category);
-    formData.append('program', courseData.program || '');
-    formData.append('credits', courseData.credits); // send as number
-    formData.append('timezone', courseData.timezone);
-    formData.append('location', courseData.location || '');
-    formData.append('locationType', courseData.locationType || 'online');
-    formData.append('ageRanges', JSON.stringify(courseData.ageRanges || []));
-    // Optional fields
-    if (courseData.duration) {
-      formData.append('duration', courseData.duration);
-    }
-    if (courseData.courseDuration) {
-      formData.append('courseDuration', courseData.courseDuration);
-    }
-    formData.append('weeklySchedule', JSON.stringify(courseData.weeklySchedule || []));
-    if (courseData.thumbnail instanceof File) {
-      formData.append('thumbnail', courseData.thumbnail);
-    }
-    if (courseData.introVideo instanceof File) {
-      formData.append('introVideo', courseData.introVideo);
+    // Check if we're sending base64 (new approach) or files (legacy)
+    const isBase64 = typeof courseData.thumbnail === 'string' && courseData.thumbnail.startsWith('data:');
+    
+    let dataToSend;
+    let headers: Record<string, string> = {};
+    
+    if (isBase64 || typeof courseData.introVideo === 'string') {
+      // Send as JSON with base64 strings
+      dataToSend = {
+        title: courseData.title,
+        description: courseData.description,
+        benefits: courseData.benefits,
+        category: courseData.category,
+        program: courseData.program || '',
+        credits: courseData.credits,
+        timezone: courseData.timezone,
+        location: courseData.location || '',
+        locationType: courseData.locationType || 'online',
+        ageRanges: courseData.ageRanges || [],
+        thumbnail: courseData.thumbnail,
+        introVideo: courseData.introVideo,
+        weeklySchedule: courseData.weeklySchedule || [],
+        courseDuration: courseData.courseDuration,
+        duration: courseData.duration
+      };
+      headers['Content-Type'] = 'application/json';
+    } else {
+      // Send as FormData (legacy support)
+      const formData = new FormData();
+      formData.append('title', courseData.title);
+      formData.append('description', courseData.description);
+      formData.append('benefits', courseData.benefits);
+      formData.append('category', courseData.category);
+      formData.append('program', courseData.program || '');
+      formData.append('credits', courseData.credits);
+      formData.append('timezone', courseData.timezone);
+      formData.append('location', courseData.location || '');
+      formData.append('locationType', courseData.locationType || 'online');
+      formData.append('ageRanges', JSON.stringify(courseData.ageRanges || []));
+      if (courseData.duration) {
+        formData.append('duration', courseData.duration);
+      }
+      if (courseData.courseDuration) {
+        formData.append('courseDuration', courseData.courseDuration);
+      }
+      formData.append('weeklySchedule', JSON.stringify(courseData.weeklySchedule || []));
+      if (courseData.thumbnail instanceof File) {
+        formData.append('thumbnail', courseData.thumbnail);
+      }
+      if (courseData.introVideo instanceof File) {
+        formData.append('introVideo', courseData.introVideo);
+      }
+      dataToSend = formData;
+      headers['Content-Type'] = 'multipart/form-data';
     }
 
-    const resp = await axiosInstance.post('/courses', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const resp = await axiosInstance.post('/courses', dataToSend, { headers });
 
     const created = resp.data?.data || resp.data;
     // Update local list with server response
@@ -439,35 +467,62 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       console.log(`[Coach] Updating course: ${editingCourse.id}`);
       console.log('[Coach] Form data received:', courseData);
       
-      // Prepare FormData for API call - match the backend validation schema
-      const formData = new FormData();
-      formData.append('title', courseData.title);
-      formData.append('description', courseData.description || '');
-      formData.append('benefits', courseData.benefits || '');
-      formData.append('category', courseData.category);
-      formData.append('program', courseData.program || '');
-      formData.append('credits', String(courseData.credits) || '0');
-      formData.append('courseDuration', courseData.duration || courseData.courseDuration || '');
-      formData.append('timezone', courseData.timezone || '');
-      formData.append('location', courseData.location || '');
-      formData.append('locationType', courseData.locationType || 'online');
-      formData.append('ageRanges', JSON.stringify(courseData.ageRanges || []));
-      formData.append('weeklySchedule', JSON.stringify(courseData.weeklySchedule || []));
+      // Check if we're sending base64 (new approach) or files (legacy)
+      const isBase64 = typeof courseData.thumbnail === 'string' && courseData.thumbnail.startsWith('data:');
       
-      // Handle file uploads
-      if (courseData.thumbnail instanceof File) {
-        formData.append('thumbnail', courseData.thumbnail);
-      }
-      if (courseData.introVideo instanceof File) {
-        formData.append('introVideo', courseData.introVideo);
+      let dataToSend;
+      let headers: Record<string, string> = {};
+      
+      if (isBase64 || typeof courseData.introVideo === 'string') {
+        // Send as JSON with base64 strings
+        dataToSend = {
+          title: courseData.title,
+          description: courseData.description || '',
+          benefits: courseData.benefits || '',
+          category: courseData.category,
+          program: courseData.program || '',
+          credits: String(courseData.credits) || '0',
+          courseDuration: courseData.duration || courseData.courseDuration || '',
+          timezone: courseData.timezone || '',
+          location: courseData.location || '',
+          locationType: courseData.locationType || 'online',
+          ageRanges: courseData.ageRanges || [],
+          weeklySchedule: courseData.weeklySchedule || [],
+          thumbnail: courseData.thumbnail,
+          introVideo: courseData.introVideo
+        };
+        headers['Content-Type'] = 'application/json';
+      } else {
+        // Send as FormData (legacy support)
+        const formData = new FormData();
+        formData.append('title', courseData.title);
+        formData.append('description', courseData.description || '');
+        formData.append('benefits', courseData.benefits || '');
+        formData.append('category', courseData.category);
+        formData.append('program', courseData.program || '');
+        formData.append('credits', String(courseData.credits) || '0');
+        formData.append('courseDuration', courseData.duration || courseData.courseDuration || '');
+        formData.append('timezone', courseData.timezone || '');
+        formData.append('location', courseData.location || '');
+        formData.append('locationType', courseData.locationType || 'online');
+        formData.append('ageRanges', JSON.stringify(courseData.ageRanges || []));
+        formData.append('weeklySchedule', JSON.stringify(courseData.weeklySchedule || []));
+        
+        // Handle file uploads
+        if (courseData.thumbnail instanceof File) {
+          formData.append('thumbnail', courseData.thumbnail);
+        }
+        if (courseData.introVideo instanceof File) {
+          formData.append('introVideo', courseData.introVideo);
+        }
+        dataToSend = formData;
+        headers['Content-Type'] = 'multipart/form-data';
       }
 
-      console.log('[Coach] Sending update FormData:', formData);
+      console.log('[Coach] Sending update data:', dataToSend);
 
-      // Call the PUT API with FormData
-      const response = await axiosInstance.put(`/courses/${editingCourse.id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // Call the PUT API
+      const response = await axiosInstance.put(`/courses/${editingCourse.id}`, dataToSend, { headers });
       console.log('[Coach] Update response:', response);
       
       // Handle the response
@@ -918,7 +973,7 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
               {/* Price Badge */}
               <div className="absolute bottom-2 left-2">
                 <span className="bg-black/80 text-white px-2 py-1 rounded-md text-xs font-semibold">
-                  ${course.price}
+                  {course.creditCost ?? course.credits ?? course.price} Credits
                 </span>
               </div>
 

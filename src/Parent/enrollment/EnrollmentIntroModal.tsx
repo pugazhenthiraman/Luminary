@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FaTimes, FaBook, FaCartPlus } from 'react-icons/fa';
+import React from 'react';
+import { FaTimes, FaBook } from 'react-icons/fa';
 
 export interface IntroCourseInfo {
   id: string;
@@ -48,13 +48,9 @@ function pickGradient(key: string) {
   return fallbackGradients[Math.abs(hash) % fallbackGradients.length];
 }
 
-const EnrollmentIntroModal: React.FC<Props> = ({ open, onClose, course, onContinue, creditsAvailable, onBuyWithCredit, onBuyWithMoney, onAddToCart, onAddToWishlist, onPreview }) => {
+const EnrollmentIntroModal: React.FC<Props> = ({ open, onClose, course, onContinue, creditsAvailable, onBuyWithCredit }) => {
   if (!open || !course) return null;
   const gradient = pickGradient(course.title || course.id);
-  const [showFullDesc, setShowFullDesc] = useState(false);
-  const createdDate = course.createdAt ? new Date(course.createdAt) : null;
-  const fmtUsd = (n: number) => (Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`);
-  const [inCart, setInCart] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4">
@@ -114,20 +110,11 @@ const EnrollmentIntroModal: React.FC<Props> = ({ open, onClose, course, onContin
               </div>
             </div>
 
-            {/* Price/discount row (optional) */}
-            {(course.price != null || course.originalPrice != null) && (
-              <div className="flex items-center justify-center gap-3 text-sm text-center">
-                {course.originalPrice != null && course.price != null && course.originalPrice > course.price && (
-                  <span className="text-red-600 font-semibold">
-                    -{Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)}%
-                  </span>
-                )}
-                {course.price != null && (
-                  <span className="text-lg sm:text-xl font-bold text-gray-900">USD {fmtUsd(course.price)}</span>
-                )}
-                {course.originalPrice != null && (
-                  <span className="text-gray-400 line-through">${course.originalPrice.toFixed(2)}</span>
-                )}
+            {/* Credits required (courses only use credits, not USD) */}
+            {typeof course.credits === 'number' && course.credits > 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                <div className="text-xs text-gray-600 mb-1">Required Credits</div>
+                <div className="text-2xl font-bold text-yellow-600">{course.credits} Credits</div>
               </div>
             )}
 
@@ -143,25 +130,16 @@ const EnrollmentIntroModal: React.FC<Props> = ({ open, onClose, course, onContin
           <div className="space-y-2">
             <button
               onClick={onBuyWithCredit || onContinue}
-              className="w-full py-2 rounded-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-sm font-bold shadow-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2"
             >
-              Buy
+              Continue with Credits
             </button>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => { setInCart(!inCart); if (onAddToCart) onAddToCart(); }}
-                className={`w-full py-2 rounded-full font-semibold text-xs whitespace-nowrap flex items-center justify-center gap-1 ${inCart ? 'bg-red-50 text-red-700 border border-red-300 hover:bg-red-100' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
-              >
-                {inCart ? 'Remove from Cart' : (<><FaCartPlus /> Add to Cart</>)}
-              </button>
-              <button
-                onClick={onClose}
-                className="w-full py-2 rounded-full bg-white border border-gray-300 text-gray-900 text-xs font-semibold hover:bg-gray-100 whitespace-nowrap"
-              >
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="w-full py-2 rounded-full bg-white border border-gray-300 text-gray-900 text-sm font-semibold hover:bg-gray-100"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       </div>

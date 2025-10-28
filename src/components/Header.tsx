@@ -221,7 +221,7 @@ const Header = () => {
                 className={({ isActive }) => `px-3 py-2 text-sm font-medium transition-all duration-300 relative rounded-lg group ${isActive ? 'text-blue-600 bg-blue-50 shadow-md scale-105' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 hover:scale-105'} ${isActive ? 'after:content-[] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:animate-pulse' : 'after:content-[] after:absolute after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:w-0 after:h-1 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600 after:rounded-full after:transition-all after:duration-300 group-hover:after:w-full group-hover:after:left-0 group-hover:after:transform-none'}`}
               >
                 <span className="relative">
-                  For Coaches
+                  For Instructors
                 </span>
               </NavLink>
               <NavLink 
@@ -293,7 +293,7 @@ const Header = () => {
                   to="/loginCoach" 
                   className={({ isActive }) => `flex items-center gap-3 px-4 py-3 text-base font-medium transition-all duration-300 rounded-xl ${isActive ? 'text-blue-600 bg-blue-50 shadow-md' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'}`}
                 >
-                  <span>For Coaches</span>
+                  <span>For Instructors</span>
                 </NavLink>
                 <NavLink 
                   to="/admin/login" 

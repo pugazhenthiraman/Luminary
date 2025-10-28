@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaGraduationCap, 
   FaCalendarAlt, 
@@ -13,8 +13,10 @@ import {
   FaCoins,
   FaUsers,
   FaDollarSign,
-  FaTrophy
+  FaTrophy,
+  FaSpinner
 } from 'react-icons/fa';
+import creditsApi from '../../api/credits';
 
 // Interfaces
 export interface Enrollment {
@@ -32,6 +34,8 @@ export interface Enrollment {
   completedSessions: number;
   grade: string;
   feedback: string;
+  creditCost?: number;
+  rating?: number;
 }
 
 export interface Session {
@@ -73,19 +77,49 @@ interface OverviewProps {
 }
 
 const Overview: React.FC<OverviewProps> = ({ parentData, enrollments, upcomingSessions, onTabChange }) => {
+  const [creditBalance, setCreditBalance] = useState<number>(0);
+  const [loadingBalance, setLoadingBalance] = useState(true);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+
+  // Fetch credit balance
+  useEffect(() => {
+    const fetchCreditBalance = async () => {
+      if (!parentData?.id) return;
+      
+      setLoadingBalance(true);
+      try {
+        const response = await creditsApi.getBalance(parentData.id);
+        const balance = response?.creditBalance?.balance || 0;
+        // Ensure balance is a number (handle Decimal type from database)
+        const numBalance = typeof balance === 'number' ? balance : parseFloat(String(balance)) || 0;
+        setCreditBalance(numBalance);
+      } catch (error) {
+        console.error('Error fetching credit balance:', error);
+        setCreditBalance(0);
+      } finally {
+        setLoadingBalance(false);
+      }
+    };
+
+    fetchCreditBalance();
+  }, [parentData?.id]);
+
   const activeEnrollments = enrollments.filter(e => e.status === 'active');
   const totalProgress = activeEnrollments.length > 0 
     ? Math.round(activeEnrollments.reduce((sum, e) => sum + e.progress, 0) / activeEnrollments.length)
     : 0;
 
-  // Calculate total credits earned
-  const totalCredits = enrollments.reduce((sum, enrollment) => {
-    return sum + (enrollment.progress * 0.99);
+  // Calculate total credits spent (from enrollments)
+  const totalCreditsSpent = enrollments.reduce((sum, enrollment) => {
+    return sum + (enrollment.creditCost || 0);
   }, 0);
 
-  // Calculate average rating (mock data)
-  const averageRating = 4.8;
-  const totalReviews = 23;
+  // Calculate average rating from enrollments
+  const enrollmentsWithRatings = enrollments.filter(e => e.rating);
+  const averageRating = enrollmentsWithRatings.length > 0
+    ? enrollmentsWithRatings.reduce((sum, e) => sum + (e.rating || 0), 0) / enrollmentsWithRatings.length
+    : 0;
+  const totalReviews = enrollmentsWithRatings.length;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -155,12 +189,24 @@ const Overview: React.FC<OverviewProps> = ({ parentData, enrollments, upcomingSe
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 sm:p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-purple-100 text-xs sm:text-sm font-medium">Total Credits</p>
-              <p className="text-2xl sm:text-3xl font-bold mt-1">${totalCredits.toFixed(0)}</p>
-              <p className="text-purple-200 text-xs sm:text-sm mt-1">+{Math.round(totalCredits * 0.1)} this month</p>
+              <p className="text-purple-100 text-xs sm:text-sm font-medium">Credit Balance</p>
+              {loadingBalance ? (
+                <div className="flex items-center justify-center mt-3">
+                  <FaSpinner className="animate-spin text-2xl" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl sm:text-3xl font-bold mt-1">
+                    {typeof creditBalance === 'number' ? creditBalance.toFixed(0) : '0'}
+                  </p>
+                  <p className="text-purple-200 text-xs sm:text-sm mt-1">
+                    {totalCreditsSpent > 0 ? `${Math.round(totalCreditsSpent)} spent` : 'No spendings yet'}
+                  </p>
+                </>
+              )}
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center group-hover:bg-opacity-30 transition-all duration-300">
-              <FaDollarSign className="text-white text-lg sm:text-xl" />
+              <FaCoins className="text-white text-lg sm:text-xl" />
             </div>
           </div>
         </div>
@@ -169,12 +215,22 @@ const Overview: React.FC<OverviewProps> = ({ parentData, enrollments, upcomingSe
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 sm:p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-orange-100 text-xs sm:text-sm font-medium">Rating</p>
-              <p className="text-2xl sm:text-3xl font-bold mt-1">{averageRating}</p>
-              <p className="text-orange-200 text-xs sm:text-sm mt-1">Based on {totalReviews} reviews</p>
+              <p className="text-orange-100 text-xs sm:text-sm font-medium">Average Progress</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">
+                {totalProgress > 0 ? `${totalProgress}%` : 'N/A'}
+              </p>
+              <p className="text-orange-200 text-xs sm:text-sm mt-1">
+                {averageRating > 0 
+                  ? `Rating: ${averageRating.toFixed(1)} from ${totalReviews} reviews`
+                  : `${activeEnrollments.length} active enrollments`}
+              </p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center group-hover:bg-opacity-30 transition-all duration-300">
-              <FaStar className="text-white text-lg sm:text-xl" />
+              {averageRating > 0 ? (
+                <FaStar className="text-white text-lg sm:text-xl" />
+              ) : (
+                <FaChartLine className="text-white text-lg sm:text-xl" />
+              )}
             </div>
           </div>
         </div>

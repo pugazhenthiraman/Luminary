@@ -1,7 +1,4 @@
 import React from 'react';
-import { Elements } from '@stripe/react-stripe-js';
-import { stripePromise, stripeConfig } from '../../config/stripe';
-import StripePaymentForm from '../../components/StripePaymentForm';
 import { FaGraduationCap, FaTimes, FaCheck, FaChild, FaCreditCard, FaLock, FaQuestionCircle, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 
 export interface ChildItem {
@@ -59,8 +56,9 @@ interface Props {
   onPaymentChange: (field: keyof PaymentMethod, value: string) => void;
   canProceedPayment?: boolean;
   isProcessing?: boolean;
-  onProcessPayment: (paymentFormData?: any) => void;
+  onProcessPayment: () => void;
   onViewChild?: (child: ChildItem) => void;
+  enrolledChildIds?: string[];
 }
 
 function calculateAge(dateOfBirth: string): number {
@@ -90,6 +88,7 @@ const EnrollmentFlow: React.FC<Props> = ({
   isProcessing = false,
   onProcessPayment,
   onViewChild,
+  enrolledChildIds = [],
 }) => {
   if (!open || !course) return null;
 
@@ -99,6 +98,11 @@ const EnrollmentFlow: React.FC<Props> = ({
   const unitCredits = Number.isFinite(course.credits) ? course.credits : 0;
   const totalCredits = unitCredits * selectedCount;
   const totalAmount = (Number.isFinite(state.totalPrice) && state.totalPrice > 0) ? state.totalPrice : totalCredits;
+  
+  // Calculate actual unit credits from total if needed (for backwards compatibility)
+  const displayedUnitCredits = unitCredits > 0 
+    ? unitCredits 
+    : (selectedCount > 0 && totalAmount > 0 ? Math.round(totalAmount / selectedCount) : 0);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -126,7 +130,7 @@ const EnrollmentFlow: React.FC<Props> = ({
               <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base break-words">{course.title}</h3>
               <div className="flex flex-col space-y-1 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm text-gray-600">
                 <span className="break-words">Coach: {course.coach.name}</span>
-                <span className="font-semibold text-blue-600 flex-shrink-0">Course Credits: {course.credits}</span>
+                <span className="font-semibold text-blue-600 flex-shrink-0">Course Credits: {displayedUnitCredits || course.credits}</span>
               </div>
             </div>
           )}
@@ -161,19 +165,28 @@ const EnrollmentFlow: React.FC<Props> = ({
                       )
                       .map(child => {
                       const isSelected = state.selectedChildren.includes(child.id);
+                      const isEnrolled = enrolledChildIds.includes(child.id);
                       const age = calculateAge(child.dateOfBirth);
                       return (
-                        <div key={child.id} className="flex items-start justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors duration-200">
-                          <label className="flex items-start gap-3 cursor-pointer">
+                        <div key={child.id} className={`flex items-start justify-between p-2 rounded-lg transition-colors duration-200 ${isEnrolled ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50'}`}>
+                          <label className={`flex items-start gap-3 ${isEnrolled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => onToggleChild(child.id)}
-                              className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 flex-shrink-0"
+                              onChange={() => !isEnrolled && onToggleChild(child.id)}
+                              disabled={isEnrolled}
+                              className={`mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 flex-shrink-0 ${isEnrolled ? 'opacity-50 cursor-not-allowed' : ''}`}
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 text-sm sm:text-base break-words">
-                                {child.firstName} {child.lastName}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <div className="font-medium text-gray-900 text-sm sm:text-base break-words">
+                                  {child.firstName} {child.lastName}
+                                </div>
+                                {isEnrolled && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-300">
+                                    Already Enrolled
+                                  </span>
+                                )}
                               </div>
                               <div className="text-xs sm:text-sm text-gray-500 break-words">
                                 ({age} years old • {child.currentGrade || 'N/A'})
@@ -194,11 +207,11 @@ const EnrollmentFlow: React.FC<Props> = ({
                       </p>
                       <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
                         <span className="text-sm text-indigo-900 bg-white/70 px-2 py-1 rounded-md border border-indigo-200">
-                          Per child: <strong>{unitCredits}</strong> Credits
+                          Per child: <strong>{displayedUnitCredits}</strong> Credits
                         </span>
                         <span className="text-indigo-900 bg-white px-3 py-1.5 rounded-md border border-indigo-200 shadow-sm">
                           <span className="text-xs mr-1 align-middle">Total</span>
-                          <span className="text-xl sm:text-2xl font-extrabold align-middle">{totalCredits}</span>
+                          <span className="text-xl sm:text-2xl font-extrabold align-middle">{totalAmount}</span>
                           <span className="text-xs ml-1 align-middle">Credits</span>
                         </span>
                       </div>
@@ -215,66 +228,9 @@ const EnrollmentFlow: React.FC<Props> = ({
             </div>
           )}
 
-          {/* Payment step */}
-          {step === 'payment' && (
-            <div className="mb-6">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <FaCreditCard className="text-indigo-600" />
-                Payment
-              </h4>
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-6">
-                <Elements stripe={stripePromise} options={{ appearance: stripeConfig.appearance as any }}>
-                  <StripePaymentForm
-                    amount={Number(totalAmount) || 0}
-                    currency="USD"
-                    courseTitle={course.title}
-                    onSuccess={(paymentFormData) => onProcessPayment(paymentFormData)}
-                    onError={() => { /* handled inside form */ }}
-                  />
-                </Elements>
-              </div>
-            </div>
-          )}
+          {/* Payment step - REMOVED: Courses only use credits, not direct Stripe payments */}
 
-          {/* Confirmation step */}
-          {step === 'confirmation' && (
-            <div className="mb-6">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <FaCheck className="text-green-600" />
-                Confirm Enrollment
-              </h4>
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-100 mb-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <FaCheck className="text-green-600 text-xl" />
-                  </div>
-                  <div>
-                    <h5 className="font-semibold text-gray-900">Ready to Enroll!</h5>
-                    <p className="text-sm text-gray-600">Please review your enrollment details below</p>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
-                  <h5 className="font-semibold text-gray-900 mb-3">Course Information</h5>
-                  <div className="space-y-2 text-sm sm:text-base">
-                    <p><span className="text-gray-600">Course:</span> {course.title}</p>
-                    <p><span className="text-gray-600">Coach:</span> {course.coach.name}</p>
-                    <p><span className="text-gray-600">Credits:</span> {course.credits} per child</p>
-                    <p><span className="text-gray-600">Children:</span> {state.selectedChildren.length}</p>
-                  </div>
-                </div>
-                <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200">
-                  <h5 className="font-semibold text-gray-900 mb-3">Payment Details</h5>
-                  <div className="space-y-2 text-sm sm:text-base">
-                    <p><span className="text-gray-600">Card:</span> **** **** **** {state.paymentMethod?.cardNumber?.slice(-4)}</p>
-                    <p><span className="text-gray-600">Name:</span> {state.paymentMethod?.cardholderName}</p>
-                    <p><span className="text-gray-600">Total:</span> ${(state.selectedChildren.length * course.credits * 99).toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Confirmation step - REMOVED: Not needed for credit-based enrollment */}
         </div>
 
         <div className="px-4 py-3 sm:px-5 sm:py-3 border-t border-gray-200 bg-gray-50">
@@ -286,32 +242,25 @@ const EnrollmentFlow: React.FC<Props> = ({
 
             {step === 'children' && (
               <button
-                onClick={onNext}
-                disabled={selectedCount === 0}
+                onClick={onProcessPayment}
+                disabled={selectedCount === 0 || isProcessing}
                 className="ml-auto px-4 py-2 sm:px-5 sm:py-2.5 text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-md text-sm"
               >
-                Proceed to Payment
-                <FaArrowRight />
-              </button>
-            )}
-
-            {/* No footer button for payment step; Stripe form has its own submit */}
-
-            {step === 'confirmation' && (
-              <button onClick={onProcessPayment} disabled={isProcessing} className="px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm sm:text-base">
                 {isProcessing ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Processing...
+                    Enrolling...
                   </>
                 ) : (
                   <>
-                    <FaCreditCard />
-                    Pay & Enroll
+                    Confirm Enrollment
+                    <FaArrowRight />
                   </>
                 )}
               </button>
             )}
+
+            {/* No footer button for payment/confirmation steps; removed for credit-based enrollment */}
           </div>
         </div>
       </div>
