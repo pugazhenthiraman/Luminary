@@ -69,6 +69,10 @@ interface CourseDetails {
   enrollmentCount?: number;
   maxEnrollments?: number;
   timezone?: string;
+  program?: string;
+  location?: string;
+  locationType?: string;
+  ageRanges?: string[];
 }
 
 interface CoachCourseDetailsModalProps {
@@ -398,9 +402,9 @@ const CoachCourseDetailsModal: React.FC<CoachCourseDetailsModalProps> = ({
                     </h3>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Price</span>
+                        <span className="text-gray-600">Credits</span>
                         <span className="font-semibold text-green-600">
-                          ${courseDetails.creditCost ?? courseDetails.price ?? 0}
+                          {courseDetails.creditCost ?? courseDetails.price ?? 0}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -471,9 +475,9 @@ const CoachCourseDetailsModal: React.FC<CoachCourseDetailsModalProps> = ({
                       
                       <div className="bg-purple-50 rounded-lg p-4 text-center border border-purple-100">
                         <FaDollarSign className="text-purple-600 text-xl mb-2 mx-auto" />
-                        <p className="text-xs text-gray-600 uppercase tracking-wide font-medium">Credits/Price</p>
+                        <p className="text-xs text-gray-600 uppercase tracking-wide font-medium">Credits</p>
                         <p className="font-semibold text-gray-900 mt-1">
-                          ${courseDetails.creditCost ?? courseDetails.price ?? 0}
+                          {courseDetails.creditCost ?? courseDetails.price ?? 0}
                         </p>
                       </div>
                     </div>
@@ -517,18 +521,8 @@ const CoachCourseDetailsModal: React.FC<CoachCourseDetailsModalProps> = ({
                     </div>
 
                     {/* Additional Course Information */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
-                        <h5 className="font-medium text-indigo-900 mb-2 flex items-center">
-                          <FaGraduationCap className="mr-2" />
-                          Program Type
-                        </h5>
-                        <p className="text-sm text-indigo-700">
-                          {courseDetails.program || (
-                            <span className="text-gray-400 italic">Not specified</span>
-                          )}
-                        </p>
-                      </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      {/* Program Type section removed - not needed */}
                       
                       <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
                         <h5 className="font-medium text-orange-900 mb-2 flex items-center">
@@ -581,7 +575,7 @@ const CoachCourseDetailsModal: React.FC<CoachCourseDetailsModalProps> = ({
                                 <div className="flex items-center justify-between mb-3">
                                   <h4 className="font-semibold text-gray-900 flex items-center">
                                     <FaCalendarAlt className="text-blue-500 mr-2 text-sm" />
-                                    {day.day.replace('S', '').slice(0, -1)}
+                                    {day.day.endsWith('S') ? day.day.slice(0, -1) : day.day}
                                   </h4>
                                   <span className="text-sm text-gray-500 bg-white px-2 py-1 rounded">
                                     {day.timeSlots.length} session{day.timeSlots.length > 1 ? 's' : ''}

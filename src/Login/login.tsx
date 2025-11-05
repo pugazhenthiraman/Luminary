@@ -18,11 +18,16 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<{ email?: string; password?: string }>({});
+  const [validationErrors, setValidationErrors] = useState<{ email?: string; password?: string; captcha?: string }>({});
   const [isValidating, setIsValidating] = useState(false);
   const [lastEmailError, setLastEmailError] = useState('');
   const [lastPasswordError, setLastPasswordError] = useState('');
   const debounceTimerRef = useRef<number | null>(null);
+  
+  // CAPTCHA state
+  const [captchaNum1, setCaptchaNum1] = useState(0);
+  const [captchaNum2, setCaptchaNum2] = useState(0);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
   
   // Email verification state
   const [showVerification, setShowVerification] = useState(false);
@@ -48,11 +53,26 @@ const Login = () => {
   // Deactivated/suspended inline message on login page
   const [blockedMessage, setBlockedMessage] = useState('');
 
+  // Generate random CAPTCHA
+  const generateCaptcha = useCallback(() => {
+    const num1 = Math.floor(Math.random() * 10) + 1; // 1-10
+    const num2 = Math.floor(Math.random() * 10) + 1; // 1-10
+    setCaptchaNum1(num1);
+    setCaptchaNum2(num2);
+    setCaptchaAnswer('');
+  }, []);
+
+  // Generate CAPTCHA on mount
+  useEffect(() => {
+    generateCaptcha();
+  }, [generateCaptcha]);
+
   // Reset registration state when URL changes
   useEffect(() => {
     setShowRegister(false);
     setRegisterRole(null);
-  }, [location.pathname]);
+    generateCaptcha(); // Also regenerate CAPTCHA when route changes
+  }, [location.pathname, generateCaptcha]);
 
   // Clear error when component unmounts or error changes
   useEffect(() => {
@@ -196,7 +216,7 @@ const Login = () => {
     setValidationErrors({});
     
     // Basic validation
-    const newValidationErrors: { email?: string; password?: string } = {};
+    const newValidationErrors: { email?: string; password?: string; captcha?: string } = {};
     
     // Email validation
     if (!email.trim()) {
@@ -210,6 +230,15 @@ const Login = () => {
       newValidationErrors.password = 'Password is required';
     } else if (password.length < 6) {
       newValidationErrors.password = 'Password must be at least 6 characters';
+    }
+    
+    // CAPTCHA validation
+    const correctAnswer = captchaNum1 + captchaNum2;
+    if (!captchaAnswer.trim()) {
+      newValidationErrors.captcha = 'Please solve the captcha';
+    } else if (parseInt(captchaAnswer) !== correctAnswer) {
+      newValidationErrors.captcha = 'Incorrect answer. Please try again.';
+      generateCaptcha(); // Regenerate CAPTCHA on wrong answer
     }
     
     // If there are validation errors, show them and return
@@ -355,6 +384,7 @@ const Login = () => {
       // Preserve email, clear password
       setEmail(currentEmail);
       setPassword('');
+      generateCaptcha(); // Regenerate CAPTCHA on error
     } finally {
       setLoading(false);
     }
@@ -911,6 +941,55 @@ const Login = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* CAPTCHA */}
+            <div className="mb-3 sm:mb-4">
+              <label htmlFor="captcha" className="block mb-1.5 font-medium text-gray-700 text-xs italic">
+                CAPTCHA
+              </label>
+               <div className="flex items-center gap-2">
+                 <div className="flex-shrink-0 px-3 py-2 bg-gradient-to-r from-gray-100 to-gray-200 border border-gray-300 rounded-lg text-xs sm:text-sm font-bold text-gray-800 italic">
+                   {captchaNum1} + {captchaNum2} = ?
+                 </div>
+                <input
+                  type="text"
+                  name="captcha"
+                  id="captcha"
+                  placeholder="Answer"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className={`flex-1 px-2 sm:px-3 py-2 border-2 rounded-lg text-xs sm:text-sm text-center font-semibold transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                    validationErrors.captcha 
+                      ? 'border-red-300 bg-red-50 focus:border-red-500 focus:bg-red-50' 
+                      : `border-gray-200 ${userTypeInfo.focusColor}`
+                  }`}
+                  value={captchaAnswer}
+                  onChange={(e) => {
+                    setCaptchaAnswer(e.target.value.replace(/[^0-9]/g, ''));
+                    if (validationErrors.captcha) {
+                      setValidationErrors(prev => ({ ...prev, captcha: undefined }));
+                    }
+                  }}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={generateCaptcha}
+                  className="flex-shrink-0 p-2 text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+                  title="Refresh CAPTCHA"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+              {validationErrors.captcha && (
+                 <div className="text-red-500 text-xs mt-1 flex items-center gap-1.5">
+                   <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                   {validationErrors.captcha}
+                 </div>
+               )}
             </div>
 
             <button 

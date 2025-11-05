@@ -64,7 +64,8 @@ interface DaySchedule {
      category: initialData?.category || '',
      ageRanges: initialData?.ageRanges || [],
      location: initialData?.location || '',
-     locationType: initialData?.locationType || 'online',
+     // Prevent hybrid from being set - default to online if hybrid is passed
+     locationType: (initialData?.locationType === 'hybrid' ? 'online' : initialData?.locationType) || 'online',
      credits: initialData?.credits || 0,
      timezone: initialData?.timezone || '',
      program: initialData?.program || '',
@@ -1614,23 +1615,27 @@ interface DaySchedule {
                   
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {[
-                      { value: 'online', label: 'Online', icon: '🌐', desc: 'Virtual' },
-                      { value: 'in-person', label: 'In-Person', icon: '🏫', desc: 'Physical' },
-                      { value: 'hybrid', label: 'Hybrid', icon: '🔄', desc: 'Both' }
+                      { value: 'online', label: 'Online', icon: '🌐', desc: 'Virtual', disabled: false },
+                      { value: 'in-person', label: 'In-Person', icon: '🏫', desc: 'Physical', disabled: false },
+                      { value: 'hybrid', label: 'Hybrid', icon: '🔄', desc: 'Both', disabled: true }
                     ].map((type) => (
                       <button
                         key={type.value}
                         type="button"
-                        onClick={() => handleInputChange('locationType', type.value)}
-                        className={`px-4 py-4 border-2 rounded-xl transition-all duration-300 flex flex-col items-center space-y-2 hover:scale-105 ${
-                          formData.locationType === type.value
-                            ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-md ring-2 ring-purple-200'
-                            : 'border-purple-200 hover:border-purple-300 text-gray-700 bg-white'
+                        onClick={() => !type.disabled && handleInputChange('locationType', type.value)}
+                        disabled={type.disabled}
+                        className={`px-4 py-4 border-2 rounded-xl transition-all duration-300 flex flex-col items-center space-y-2 ${
+                          type.disabled 
+                            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60' 
+                            : formData.locationType === type.value
+                            ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-md ring-2 ring-purple-200 hover:scale-105'
+                            : 'border-purple-200 hover:border-purple-300 text-gray-700 bg-white hover:scale-105'
                         }`}
+                        title={type.disabled ? 'Hybrid mode is currently unavailable' : type.desc}
                       >
                         <span className="text-3xl">{type.icon}</span>
                         <span className="text-sm font-bold">{type.label}</span>
-                        <span className="text-xs text-gray-500">{type.desc}</span>
+                        <span className="text-xs">{type.disabled ? 'Coming Soon' : type.desc}</span>
                       </button>
                     ))}
                   </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FaUsers, 
   FaBook, 
@@ -52,7 +53,12 @@ interface DashboardData {
   };
 }
 
-const Overview: React.FC = () => {
+interface OverviewProps {
+  onTabChange?: (tab: string) => void;
+}
+
+const Overview: React.FC<OverviewProps> = ({ onTabChange }) => {
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +84,7 @@ const Overview: React.FC = () => {
           title: activity.status === 'APPROVED' ? 'Coach Approved' : 'New Coach Registration',
           description: `${activity.user?.firstName || ''} ${activity.user?.lastName || ''}`,
           timestamp: formatTimestamp(activity.createdAt),
-          user: `${activity.user?.firstName || ''} ${activity.user?.lastName || ''}`
+          user: 'Admin' // Show Admin as the approver, not the coach's name
         }));
         
         setRecentActivities(activities);
@@ -277,7 +283,16 @@ const Overview: React.FC = () => {
           <div className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900">Recent Activities</h2>
-              <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              <button 
+                onClick={() => {
+                  if (onTabChange) {
+                    onTabChange('coach-approval');
+                  } else {
+                    navigate('/admin/dashboard');
+                  }
+                }}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline transition-all duration-200"
+              >
                 View All
               </button>
             </div>
@@ -295,7 +310,7 @@ const Overview: React.FC = () => {
                     </div>
                     <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{activity.description}</p>
                     {activity.user && (
-                      <p className="text-xs text-gray-500 mt-1">by {activity.user}</p>
+                      <p className="text-xs text-gray-500 mt-1">By {activity.user}</p>
                     )}
                   </div>
                 </div>

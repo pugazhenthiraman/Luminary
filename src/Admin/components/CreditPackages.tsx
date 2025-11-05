@@ -392,7 +392,7 @@ const CreditPackages: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Bonus Credits
                   </label>
@@ -404,7 +404,7 @@ const CreditPackages: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, bonusCredits: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
-                </div>
+                </div> */}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -468,10 +468,10 @@ const CreditPackages: React.FC = () => {
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg border-2 border-indigo-200">
                 <h3 className="font-semibold text-gray-900 mb-2">Package Summary</h3>
                 <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
+                  {/* <div className="flex justify-between">
                     <span className="text-gray-600">Base Credits:</span>
                     <span className="font-semibold">{formData.credits || '0'}</span>
-                  </div>
+                  </div> */}
                   {parseFloat(formData.bonusCredits) > 0 && (
                     <div className="flex justify-between text-yellow-600">
                       <span>Bonus Credits:</span>
@@ -480,7 +480,8 @@ const CreditPackages: React.FC = () => {
                   )}
                   <div className="flex justify-between text-indigo-600 font-bold">
                     <span>Total Credits:</span>
-                    <span>{parseFloat(formData.credits) + parseFloat(formData.bonusCredits) || 0}</span>
+                    {/* <span>{parseFloat(formData.credits) + parseFloat(formData.bonusCredits) || 0}</span> */}
+                    <span className="font-semibold">{formData.credits || '0'}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-indigo-200">
                     <span className="text-gray-600">Price:</span>

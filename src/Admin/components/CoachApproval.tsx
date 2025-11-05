@@ -51,6 +51,24 @@ const CoachApproval: React.FC = () => {
   const [reapplicationNotes, setReapplicationNotes] = useState('');
   const [isRequestingReapplication, setIsRequestingReapplication] = useState(false);
 
+  // Format date to show only date (no timestamp)
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      
+      // Format as: Nov 4, 2025
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
   // Optimistically update a coach in local state (list + selected modal)
   const patchCoach = (coachId: string, patch: Partial<CoachData>) => {
     setCoaches(prev => prev.map(c => c.id === coachId ? { ...c, ...patch } : c));
@@ -112,6 +130,7 @@ const CoachApproval: React.FC = () => {
       showSuccessToast('Coach approved successfully!');
       setShowApproveConfirm(false);
       setCoachToApprove(null);
+      setShowDetails(false); // Close the details modal after approval
       patchCoach(coachId, { status: 'approved', isFrozen: false });
     } catch {
       showErrorToast('Failed to approve coach');
@@ -128,6 +147,7 @@ const CoachApproval: React.FC = () => {
       setShowRejectConfirm(false);
       setCoachToReject(null);
       setRejectReason('');
+      setShowDetails(false); // Close the details modal after rejection
       patchCoach(coachId, { status: 'rejected', isFrozen: false });
     } catch {
       showErrorToast('Failed to reject coach');
@@ -192,7 +212,7 @@ const CoachApproval: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Coach Approval</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Instructor Approval</h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Review and manage coach applications</p>
         </div>
         <div className="mt-4 sm:mt-0 flex items-center space-x-3">
@@ -250,7 +270,7 @@ const CoachApproval: React.FC = () => {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 truncate">{coach.firstName} {coach.lastName}</div>
-                        <div className="text-xs text-gray-500">{coach.registrationDate}</div>
+                        <div className="text-xs text-gray-500">{formatDate(coach.registrationDate)}</div>
                       </div>
                     </div>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
@@ -324,7 +344,7 @@ const CoachApproval: React.FC = () => {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{coach.firstName} {coach.lastName}</div>
-                          <div className="text-sm text-gray-500">{coach.registrationDate}</div>
+                          <div className="text-sm text-gray-500">{formatDate(coach.registrationDate)}</div>
                         </div>
                       </div>
                     </td>
@@ -476,7 +496,7 @@ const CoachApproval: React.FC = () => {
       {/* Reject Confirmation Modal */}
       {showRejectConfirm && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4"
           onClick={() => { setShowRejectConfirm(false); setCoachToReject(null); setRejectReason(''); }}
         >
           <div 
@@ -503,7 +523,7 @@ const CoachApproval: React.FC = () => {
       {/* Approve Confirmation Modal */}
       {showApproveConfirm && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4"
           onClick={() => { setShowApproveConfirm(false); setCoachToApprove(null); }}
         >
           <div 
@@ -526,7 +546,7 @@ const CoachApproval: React.FC = () => {
       {/* Request Reapplication Modal */}
       {showReapplicationModal && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4"
           onClick={() => { 
             setShowReapplicationModal(false); 
             setCoachToReapply(null); 

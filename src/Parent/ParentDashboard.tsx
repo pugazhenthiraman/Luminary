@@ -322,6 +322,7 @@ const ParentDashboard: React.FC = () => {
             program: c.program || undefined, // Optional field
             credits: Number(c.creditCost || c.price || 0), // Use creditCost first
             timezone: c.timezone || 'UTC',
+            createdAt: c.createdAt || new Date().toISOString(), // Add createdAt for date filtering
             weeklySchedule: Array.isArray(c.weeklySchedule) ? c.weeklySchedule : [],
             thumbnail: c.thumbnail || '',
             introVideo: c.videoUrl || '',

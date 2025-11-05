@@ -204,7 +204,7 @@ console.log('Loaded coaches:', normalized);
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <Overview />;
+        return <Overview onTabChange={setActiveTab} />;
       case 'course-approval':
         return <CourseApproval />;
       case 'coach-approval':

@@ -168,8 +168,8 @@ const WalletPlansModal: React.FC<Props> = ({ isOpen, onClose, onBuy, initialPlan
                           ${p.price}
                         </div>
                         <h4 className="mt-3 text-xl font-bold text-center">{p.name}</h4>
-                        {p.description && (
-                          <p className="text-xs text-gray-500 text-center mt-1">{p.description}</p>
+                        {p.description && p.description.length <= 50 && (
+                          <p className="text-xs text-gray-500 text-center mt-1 line-clamp-2">{p.description}</p>
                         )}
                         <ul className="mt-4 space-y-2 text-sm">
                           <li className="flex gap-2 items-start">

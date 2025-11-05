@@ -51,6 +51,7 @@ export interface Course {
   program?: 'morning' | 'afternoon' | 'evening';
   credits: number;
   timezone: string;
+  createdAt?: string;
   // Additional fields for course details
   ageRanges?: string[];
   location?: string;
@@ -158,11 +159,11 @@ export interface PaymentStep {
 }
 
 const priceRanges = [
-  { value: 'all', label: 'All Prices' },
-  { value: 'free', label: '> 5' },
-  { value: 'low', label: '6-10' },
-  { value: 'medium', label: '11-15' },
-  { value: 'high', label: '16+' }
+  { value: 'all', label: 'All Credits' },
+  { value: 'low', label: '1-5 Credits' },
+  { value: 'medium', label: '6-10 Credits' },
+  { value: 'high', label: '11-15 Credits' },
+  { value: 'premium', label: '16+ Credits' }
 ];
 
 const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false, onEnroll: externalOnEnroll, onTabChange, onBalanceChange, onEnrollmentSuccess, enrollments = [] }) => {
@@ -267,54 +268,55 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
       
       const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
       
-      // Price range filtering (using credits as proxy for price)
-      const coursePrice = course.credits * 99; // Mock price calculation
+      // Credit range filtering (using credits directly)
+      const courseCredits = course.credits || 0;
       let matchesPriceRange = true;
       if (selectedPriceRange !== 'all') {
         switch (selectedPriceRange) {
-          case 'free':
-            matchesPriceRange = coursePrice === 0;
-            break;
           case 'low':
-            matchesPriceRange = coursePrice >= 1 && coursePrice <= 50;
+            matchesPriceRange = courseCredits >= 1 && courseCredits <= 5;
             break;
           case 'medium':
-            matchesPriceRange = coursePrice >= 51 && coursePrice <= 150;
+            matchesPriceRange = courseCredits >= 6 && courseCredits <= 10;
             break;
           case 'high':
-            matchesPriceRange = coursePrice >= 151 && coursePrice <= 300;
+            matchesPriceRange = courseCredits >= 11 && courseCredits <= 15;
             break;
           case 'premium':
-            matchesPriceRange = coursePrice > 300;
+            matchesPriceRange = courseCredits >= 16;
             break;
         }
       }
 
-      // Date range filtering (mock implementation)
-      const courseDate = new Date(course.id); // Using course ID as creation date
-      const now = new Date();
+      // Date range filtering (using createdAt field)
       let matchesDateRange = true;
-      if (selectedDateRange !== 'all') {
-        switch (selectedDateRange) {
-          case 'today':
-            matchesDateRange = courseDate.toDateString() === now.toDateString();
-            break;
-          case 'week':
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            matchesDateRange = courseDate >= weekAgo;
-            break;
-          case 'month':
-            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            matchesDateRange = courseDate >= monthAgo;
-            break;
-          case 'quarter':
-            const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-            matchesDateRange = courseDate >= quarterAgo;
-            break;
-          case 'year':
-            const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-            matchesDateRange = courseDate >= yearAgo;
-            break;
+      if (selectedDateRange !== 'all' && course.createdAt) {
+        const courseDate = new Date(course.createdAt);
+        const now = new Date();
+        
+        // Only apply filter if courseDate is valid
+        if (!isNaN(courseDate.getTime())) {
+          switch (selectedDateRange) {
+            case 'today':
+              matchesDateRange = courseDate.toDateString() === now.toDateString();
+              break;
+            case 'week':
+              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              matchesDateRange = courseDate >= weekAgo;
+              break;
+            case 'month':
+              const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+              matchesDateRange = courseDate >= monthAgo;
+              break;
+            case 'quarter':
+              const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+              matchesDateRange = courseDate >= quarterAgo;
+              break;
+            case 'year':
+              const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+              matchesDateRange = courseDate >= yearAgo;
+              break;
+          }
         }
       }
 
@@ -325,19 +327,26 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'newest':
-          return new Date(b.id).getTime() - new Date(a.id).getTime();
+          // Sort by createdAt, newest first
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
         case 'oldest':
-          return new Date(a.id).getTime() - new Date(b.id).getTime();
+          // Sort by createdAt, oldest first
+          const dateA2 = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB2 = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateA2 - dateB2;
         case 'price-low-high':
-          return (a.credits * 99) - (b.credits * 99);
+          return (a.credits || 0) - (b.credits || 0);
         case 'price-high-low':
-          return (b.credits * 99) - (a.credits * 99);
+          return (b.credits || 0) - (a.credits || 0);
         case 'title':
           return a.title.localeCompare(b.title);
         case 'category':
           return a.category.localeCompare(b.category);
         case 'rating':
-          return (b.credits * 0.8) - (a.credits * 0.8); // Mock rating based on credits
+          // This would need actual rating data - for now sort by credits as proxy
+          return (b.credits || 0) - (a.credits || 0);
         default:
           return 0;
       }

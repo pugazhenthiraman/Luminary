@@ -27,6 +27,7 @@ import {
 } from 'react-icons/fa';
 import { showSuccessToast, showErrorToast } from '../../components/Toast';
 import childrenApi from '../../api/children';
+import { getParentProfile, updateParentProfile, changePassword as changePasswordApi } from '../../api/parent';
 
 interface Child {
   id: string;
@@ -78,9 +79,12 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
   const [children, setChildren] = useState<Child[]>(parentData.children);
   const [childrenLoading, setChildrenLoading] = useState<boolean>(false);
   const [savingChild, setSavingChild] = useState<boolean>(false);
+  const [savingProfile, setSavingProfile] = useState<boolean>(false);
+  const [changingPassword, setChangingPassword] = useState<boolean>(false);
   const [showChildModal, setShowChildModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
+  const [profileLoading, setProfileLoading] = useState<boolean>(true);
   const [childForm, setChildForm] = useState({
     firstName: '',
     lastName: '',
@@ -100,10 +104,11 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
     confirm: false
   });
   const [formData, setFormData] = useState({
-    name: `${parentData.firstName} ${parentData.lastName}`,
+    firstName: parentData.firstName,
+    lastName: parentData.lastName,
     email: parentData.email,
-    phone: '+1 (555) 123-4567',
-    address: '123 Main Street, City, State 12345'
+    phone: '',
+    address: ''
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -112,6 +117,30 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
       [field]: value
     }));
   };
+
+  // Fetch profile data from backend on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setProfileLoading(true);
+      try {
+        const res = await getParentProfile();
+        const profileData = res?.data?.data || res?.data;
+        setFormData({
+          firstName: profileData.firstName || parentData.firstName,
+          lastName: profileData.lastName || parentData.lastName,
+          email: profileData.email || parentData.email,
+          phone: profileData.phone || '',
+          address: profileData.address || ''
+        });
+      } catch (err: any) {
+        console.error('[Profile] Error fetching profile:', err);
+        // Keep using parentData if API fails
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [parentData]);
 
   // Fetch children from backend on mount
   useEffect(() => {
@@ -144,21 +173,61 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
     fetchChildren();
   }, []);
 
-  const handleSave = () => {
-    // Simulate save with mock data
-    showSuccessToast('Profile updated successfully!');
-    setIsEditing(false);
+  const handleSave = async () => {
+    setSavingProfile(true);
+    try {
+      const profileData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        phone: formData.phone.trim(),
+        address: formData.address.trim()
+      };
+
+      const res = await updateParentProfile(profileData);
+      const updatedData = res?.data?.data || res?.data;
+
+      // Update local state with response from server
+      setFormData({
+        firstName: updatedData.firstName || formData.firstName,
+        lastName: updatedData.lastName || formData.lastName,
+        email: updatedData.email || formData.email,
+        phone: updatedData.phone || formData.phone,
+        address: updatedData.address || formData.address
+      });
+
+      showSuccessToast('Profile updated successfully!');
+      setIsEditing(false);
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || 'Failed to update profile';
+      showErrorToast(errorMsg);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
-  const handleCancel = () => {
-    setFormData({
-      name: `${parentData.firstName} ${parentData.lastName}`,
-      email: parentData.email,
-      phone: '+1 (555) 123-4567',
-      address: '123 Main Street, City, State 12345'
-    });
+  const handleCancel = async () => {
+    // Refetch profile data to reset form
+    try {
+      const res = await getParentProfile();
+      const profileData = res?.data?.data || res?.data;
+      setFormData({
+        firstName: profileData.firstName || parentData.firstName,
+        lastName: profileData.lastName || parentData.lastName,
+        email: profileData.email || parentData.email,
+        phone: profileData.phone || '',
+        address: profileData.address || ''
+      });
+    } catch (err: any) {
+      // Reset to parentData if API fails
+      setFormData({
+        firstName: parentData.firstName,
+        lastName: parentData.lastName,
+        email: parentData.email,
+        phone: '',
+        address: ''
+      });
+    }
     setIsEditing(false);
-    showErrorToast('Changes cancelled');
   };
 
   // Password change functions
@@ -233,12 +302,24 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
     return true;
   };
 
-  const changePassword = () => {
+  const changePassword = async () => {
     if (!validatePasswordForm()) return;
 
-    // Simulate password change with mock data
-    showSuccessToast('Password changed successfully!');
-    closePasswordModal();
+    setChangingPassword(true);
+    try {
+      await changePasswordApi({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+
+      showSuccessToast('Password changed successfully!');
+      closePasswordModal();
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || 'Failed to change password';
+      showErrorToast(errorMsg);
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   // Child management functions
@@ -542,7 +623,8 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
               {!isEditing ? (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors duration-200 text-sm"
+                  disabled={profileLoading}
+                  className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors duration-200 text-sm"
                 >
                   <FaEdit className="text-sm" />
                   <span>Edit</span>
@@ -551,14 +633,25 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <button
                     onClick={handleSave}
-                    className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
+                    disabled={savingProfile}
+                    className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors duration-200 text-sm"
                   >
-                    <FaSave className="text-sm" />
-                    <span>Save</span>
+                    {savingProfile ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FaSave className="text-sm" />
+                        <span>Save</span>
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm"
+                    disabled={savingProfile}
+                    className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors duration-200 text-sm"
                   >
                     <FaTimes className="text-sm" />
                     <span>Cancel</span>
@@ -567,24 +660,50 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              {/* Name */}
+            {profileLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading profile...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              {/* First Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <FaUser className="inline mr-2 text-gray-400 text-sm" />
-                  Full Name
+                  First Name
                 </label>
                 {isEditing ? (
                   <input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    aria-label="Full name"
-                    placeholder="Enter your full name"
+                    aria-label="First name"
+                    placeholder="Enter your first name"
                   />
                 ) : (
-                  <p className="text-gray-900 font-medium text-sm sm:text-base">{formData.name}</p>
+                  <p className="text-gray-900 font-medium text-sm sm:text-base">{formData.firstName}</p>
+                )}
+              </div>
+
+              {/* Last Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FaUser className="inline mr-2 text-gray-400 text-sm" />
+                  Last Name
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    aria-label="Last name"
+                    placeholder="Enter your last name"
+                  />
+                ) : (
+                  <p className="text-gray-900 font-medium text-sm sm:text-base">{formData.lastName}</p>
                 )}
               </div>
 
@@ -594,17 +713,16 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
                   <FaEnvelope className="inline mr-2 text-gray-400 text-sm" />
                   Email Address
                 </label>
-                {isEditing ? (
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    aria-label="Email address"
-                    placeholder="Enter your email address"
-                  />
-                ) : (
-                  <p className="text-gray-900 font-medium text-sm sm:text-base break-words">{formData.email}</p>
+                <input
+                  type="email"
+                  value={formData.email}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed text-sm"
+                  aria-label="Email address"
+                  title="Email cannot be changed"
+                />
+                {isEditing && (
+                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed for security reasons</p>
                 )}
               </div>
 
@@ -624,7 +742,9 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
                     placeholder="Enter your phone number"
                   />
                 ) : (
-                  <p className="text-gray-900 font-medium text-sm sm:text-base">{formData.phone}</p>
+                  <p className="text-gray-900 font-medium text-sm sm:text-base">
+                    {formData.phone || <span className="text-gray-400 italic">Not provided</span>}
+                  </p>
                 )}
               </div>
 
@@ -644,10 +764,13 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
                     placeholder="Enter your address"
                   />
                 ) : (
-                  <p className="text-gray-900 font-medium text-sm sm:text-base break-words">{formData.address}</p>
+                  <p className="text-gray-900 font-medium text-sm sm:text-base break-words">
+                    {formData.address || <span className="text-gray-400 italic">Not provided</span>}
+                  </p>
                 )}
               </div>
             </div>
+            )}
           </div>
 
           {/* Children Information */}
@@ -768,7 +891,7 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
               </div>
 
               {/* Security Settings */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border border-gray-200 rounded-lg">
+              {/* <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-0">
                   <FaLock className="text-gray-400 text-sm sm:text-base" />
                   <div>
@@ -779,10 +902,10 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
                 <button className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors duration-200">
                   Enable
                 </button>
-        </div>
+        </div> */}
 
               {/* Notification Settings */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border border-gray-200 rounded-lg">
+              {/* <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-0">
                   <FaBell className="text-gray-400 text-sm sm:text-base" />
                   <div>
@@ -793,7 +916,7 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
                 <button className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors duration-200">
                   Configure
                 </button>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -970,10 +1093,20 @@ const Profile: React.FC<ProfileProps> = ({ parentData, onChildrenChange, onTabCh
                 </button>
                 <button
                   onClick={changePassword}
-                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm"
+                  disabled={changingPassword}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:from-blue-400 disabled:to-indigo-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-lg hover:shadow-xl text-sm"
                 >
-                  <FaCheck className="text-sm" />
-                  Change Password
+                  {changingPassword ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Changing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaCheck className="text-sm" />
+                      <span>Change Password</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -475,7 +475,7 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                 </div>
                 <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-100">
                   <div className="text-base sm:text-lg font-bold text-purple-600">
-                    ${(enrollment.creditCost || 0).toFixed(0)}
+                    {(enrollment.creditCost || 0).toFixed(0)}
                   </div>
                   <div className="text-xs text-gray-600">Credits</div>
                 </div>
@@ -519,7 +519,7 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                 </button>
                 {enrollment.status === 'active' && (
                   <button
-                    onClick={() => handleJoinSession(enrollment)}
+                    // onClick={() => handleJoinSession(enrollment)}
                     className="flex-1 px-3 py-2 text-sm text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center gap-1"
                   >
                     <FaVideo className="text-sm" />
@@ -710,7 +710,7 @@ const Enrollments: React.FC<EnrollmentsProps> = ({ enrollments, parentData }) =>
                     Close
                   </button>
                   <button
-                    onClick={() => handleContactCoach(selectedEnrollment)}
+                    // onClick={() => handleContactCoach(selectedEnrollment)}
                     className="flex-1 px-4 sm:px-6 py-2 sm:py-3 text-white bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <FaComments className="text-sm" />

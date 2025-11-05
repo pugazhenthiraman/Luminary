@@ -19,7 +19,7 @@ interface AdminSidebarProps {
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, showSidebar, onTabChange }) => {
   const navItems = [
     { id: 'overview', label: 'Dashboard Overview', icon: FaHome },
-    { id: 'coach-approval', label: 'Coach Approval', icon: FaUserCheck },
+    { id: 'coach-approval', label: 'Instructor Approval', icon: FaUserCheck },
     { id: 'course-approval', label: 'Course Approval', icon: FaBookOpen },
     { id: 'credit-packages', label: 'Credit Packages', icon: FaCoins },
     { id: 'analytics', label: 'Analytics', icon: FaChartLine },

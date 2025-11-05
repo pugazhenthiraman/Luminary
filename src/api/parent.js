@@ -118,7 +118,6 @@ export const getParentProfile = () => {
 };
 
 // Update parent profile
-// TODO: Check if auth/profile supports PUT for updates
 export const updateParentProfile = (profileData) => {
   return axiosInstance.put('/auth/profile', profileData)
     .then(response => {
@@ -127,6 +126,19 @@ export const updateParentProfile = (profileData) => {
     })
     .catch(error => {
       console.error('[Parent API] Error updating profile:', error);
+      throw error;
+    });
+};
+
+// Change password
+export const changePassword = (passwordData) => {
+  return axiosInstance.post('/auth/change-password', passwordData)
+    .then(response => {
+      console.log('[Parent API] Password change response:', response.data);
+      return response;
+    })
+    .catch(error => {
+      console.error('[Parent API] Error changing password:', error);
       throw error;
     });
 };
