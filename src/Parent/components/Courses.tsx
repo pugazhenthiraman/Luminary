@@ -40,6 +40,7 @@ import ReviewDisplay from '../../components/ReviewDisplay';
 import ReviewForm from '../../components/ReviewForm';
 import WalletPlansModal, { type WalletPlan } from '../../components/WalletPlansModal';
 import WalletPaymentModal from '../../components/WalletPaymentModal';
+import LocationSelector from '../../components/LocationSelector';
 
 // Course interface
 export interface Course {
@@ -56,6 +57,13 @@ export interface Course {
   ageRanges?: string[];
   location?: string;
   locationType?: string;
+  // Location fields
+  city?: string;
+  state?: string;
+  zipcode?: string;
+  distance?: number;
+  distanceKm?: number;
+  distanceFormatted?: string;
   weeklySchedule: {
     day: string;
     isActive: boolean;
@@ -98,6 +106,7 @@ export interface CoursesProps {
   onBalanceChange?: () => void;
   onEnrollmentSuccess?: () => void;
   enrollments?: any[];
+  onCoursesRefresh?: () => void;
 }
 
 export interface CoachData {
@@ -173,8 +182,77 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
   const [selectedDateRange, setSelectedDateRange] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
+  const [selectedLocationType, setSelectedLocationType] = useState('all'); // all, online, in-person, hybrid
+  // Initialize sortBy based on available location (check both localStorage and user profile)
+  const [sortBy, setSortBy] = useState(() => {
+    // Check localStorage first
+    const savedLocation = localStorage.getItem('userLocation');
+    if (savedLocation) {
+      try {
+        const location = JSON.parse(savedLocation);
+        if (location.zipcode) {
+          return 'distance'; // Default to distance when location is set
+        }
+      } catch (e) {
+        // Ignore error
+      }
+    }
+    // Check user profile (if available at mount)
+    // Note: user might not be loaded yet, so we'll also check in useEffect
+    return 'newest'; // Default to newest if no location
+  });
   const [showFilters, setShowFilters] = useState(false);
+  // Location states
+  const [userZipcode, setUserZipcode] = useState<string>('');
+  const [userCity, setUserCity] = useState<string>('');
+  const [userState, setUserState] = useState<string>('TX');
+  const [searchRadius, setSearchRadius] = useState<number>(10);
+  
+  // Load location from localStorage on mount
+  useEffect(() => {
+    const savedLocation = localStorage.getItem('userLocation');
+    const savedRadius = localStorage.getItem('searchRadius');
+    
+    if (savedLocation) {
+      try {
+        const location = JSON.parse(savedLocation);
+        if (location.zipcode) {
+          setUserZipcode(location.zipcode);
+          setUserCity(location.city || '');
+          setUserState(location.state || 'TX');
+          // When location is set, default to distance sorting (nearest first)
+          setSortBy('distance');
+        }
+      } catch (e) {
+        console.error('Error loading saved location:', e);
+      }
+    }
+    
+    // Also check user profile for location
+    if (!savedLocation && user?.zipcode) {
+      setUserZipcode(user.zipcode);
+      setUserCity(user.city || '');
+      setUserState(user.state || 'TX');
+      // When location from profile is set, default to distance sorting
+      setSortBy('distance');
+    }
+    
+    if (savedRadius) {
+      const radiusValue = parseInt(savedRadius, 10);
+      // Accept -1 for "> 25 miles" or valid numeric radius
+      if (!isNaN(radiusValue) && ([5, 10, 15, 20, 25, -1].includes(radiusValue))) {
+        setSearchRadius(radiusValue);
+      }
+    }
+  }, [user]);
+  
+  // Trigger course reload when location changes
+  useEffect(() => {
+    if (userZipcode && onTabChange) {
+      // Dispatch event to trigger reload in ParentDashboard
+      window.dispatchEvent(new Event('locationChanged'));
+    }
+  }, [userZipcode, searchRadius]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   // Course chosen for enrollment (separate from detail view)
   const [enrollCourse, setEnrollCourse] = useState<Course | null>(null);
@@ -256,7 +334,16 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
     { value: 'price-high-low', label: 'Price: High to Low' },
     { value: 'title', label: 'Sort by Title' },
     { value: 'category', label: 'Sort by Category' },
-    { value: 'rating', label: 'Sort by Rating' }
+    { value: 'rating', label: 'Sort by Rating' },
+    { value: 'distance', label: 'Distance: Nearest First' }
+  ];
+
+  // Location type options
+  const locationTypeOptions = [
+    { value: 'all', label: 'All Locations' },
+    { value: 'in-person', label: 'In-Person' },
+    { value: 'online', label: 'Online' },
+    { value: 'hybrid', label: 'Hybrid' }
   ];
 
   // Filter and sort courses
@@ -267,6 +354,9 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
                            course.coach.name.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
+      
+      // Location type filtering
+      const matchesLocationType = selectedLocationType === 'all' || course.locationType === selectedLocationType;
       
       // Credit range filtering (using credits directly)
       const courseCredits = course.credits || 0;
@@ -320,7 +410,7 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
         }
       }
 
-      return matchesSearch && matchesCategory && matchesPriceRange && matchesDateRange;
+      return matchesSearch && matchesCategory && matchesLocationType && matchesPriceRange && matchesDateRange;
     });
 
     // Sort courses
@@ -347,13 +437,19 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
         case 'rating':
           // This would need actual rating data - for now sort by credits as proxy
           return (b.credits || 0) - (a.credits || 0);
+        case 'distance':
+          // Sort by distance (nearest first - ascending order)
+          const distA = a.distance !== undefined && a.distance !== null ? a.distance : Infinity;
+          const distB = b.distance !== undefined && b.distance !== null ? b.distance : Infinity;
+          // Ascending order: lower distance first (nearest first)
+          return distA - distB;
         default:
           return 0;
       }
     });
 
     return filtered;
-  }, [courses, searchTerm, selectedCategory, selectedPriceRange, selectedDateRange, sortBy]);
+  }, [courses, searchTerm, selectedCategory, selectedLocationType, selectedPriceRange, selectedDateRange, sortBy]);
 
   const formatTime = (timeString: string) => {
     const [hours, minutes] = timeString.split(':');
@@ -370,16 +466,20 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
 
   const clearAllFilters = () => {
     setSelectedCategory('all');
+    setSelectedLocationType('all');
     setSelectedPriceRange('all');
     setSelectedDateRange('all');
     setSearchTerm('');
     setSortBy('newest');
   };
 
-  const clearFilter = (filterType: 'category' | 'price' | 'date' | 'search' | 'sort') => {
+  const clearFilter = (filterType: 'category' | 'location' | 'price' | 'date' | 'search' | 'sort') => {
     switch (filterType) {
       case 'category':
         setSelectedCategory('all');
+        break;
+      case 'location':
+        setSelectedLocationType('all');
         break;
       case 'price':
         setSelectedPriceRange('all');
@@ -399,19 +499,23 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
   const getActiveFiltersCount = () => {
     let count = 0;
     if (selectedCategory !== 'all') count++;
+    if (selectedLocationType !== 'all') count++;
     if (selectedPriceRange !== 'all') count++;
     if (selectedDateRange !== 'all') count++;
     if (searchTerm) count++;
     if (sortBy !== 'newest') count++;
+    if (userZipcode) count++; // Location search is a filter
     return count;
   };
 
   const getActiveFilters = () => {
     const filters: Array<{ type: string; label: string; value: string }> = [];
     if (selectedCategory !== 'all') filters.push({ type: 'category', label: selectedCategory, value: selectedCategory });
+    if (selectedLocationType !== 'all') filters.push({ type: 'location', label: locationTypeOptions.find(l => l.value === selectedLocationType)?.label || selectedLocationType, value: selectedLocationType });
     if (selectedPriceRange !== 'all') filters.push({ type: 'price', label: priceRanges.find(p => p.value === selectedPriceRange)?.label || selectedPriceRange, value: selectedPriceRange });
     if (selectedDateRange !== 'all') filters.push({ type: 'date', label: dateRanges.find(d => d.value === selectedDateRange)?.label || selectedDateRange, value: selectedDateRange });
     if (searchTerm) filters.push({ type: 'search', label: `"${searchTerm}"`, value: searchTerm });
+    if (userZipcode) filters.push({ type: 'location', label: `${userCity || 'Location'} (${userZipcode})`, value: userZipcode });
     if (sortBy !== 'newest') filters.push({ type: 'sort', label: sortOptions.find(s => s.value === sortBy)?.label || sortBy, value: sortBy });
     return filters;
   };
@@ -1050,6 +1154,22 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
         </div>
       </div>
 
+      {/* Location Selector */}
+      <LocationSelector
+        zipcode={userZipcode}
+        city={userCity}
+        state={userState}
+        onLocationChange={(location) => {
+          setUserZipcode(location.zipcode || '');
+          setUserCity(location.city || '');
+          setUserState(location.state || 'TX');
+        }}
+        onRadiusChange={(radius) => {
+          setSearchRadius(radius);
+        }}
+        defaultRadius={searchRadius}
+      />
+
       {/* Search and Filters */}
       <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
@@ -1174,6 +1294,23 @@ const Courses: React.FC<CoursesProps> = ({ courses, parentData, loading = false,
                   {priceRanges.map(range => (
                     <option key={range.value} value={range.value}>
                       {range.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Location Type Filter */}
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Location Type</label>
+                <select
+                  value={selectedLocationType}
+                  onChange={(e) => setSelectedLocationType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                  aria-label="Filter by location type"
+                >
+                  {locationTypeOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>

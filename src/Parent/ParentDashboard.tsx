@@ -300,12 +300,58 @@ const ParentDashboard: React.FC = () => {
   // Lazy-load approved public courses only when the Courses tab is opened
   useEffect(() => {
     if (activeTab !== 'courses') return;
-    if (didLoadCoursesRef.current) return;
 
     (async () => {
       try {
         setCoursesLoading(true);
-        const res = await getPublicCourses({ page: 1, limit: 50, sortBy: 'createdAt', sortOrder: 'desc' });
+        
+        // Priority 1: Get user location from localStorage (if manually set)
+        // Priority 2: Get from user profile (from registration)
+        // Priority 3: No location (show all courses sorted by date)
+        const savedLocation = localStorage.getItem('userLocation');
+        const savedRadius = localStorage.getItem('searchRadius');
+        let locationParams: any = {};
+        let useLocation = false;
+        
+        // Check localStorage first (user manually set location)
+        if (savedLocation) {
+          try {
+            const location = JSON.parse(savedLocation);
+            if (location.zipcode) {
+              locationParams.zipcode = location.zipcode;
+              locationParams.radius = savedRadius ? parseInt(savedRadius, 10) : 10;
+              locationParams.sortBy = 'distance'; // Sort by distance when location is provided
+              locationParams.sortOrder = 'asc'; // Nearest first
+              useLocation = true;
+            }
+          } catch (e) {
+            console.error('Error loading saved location:', e);
+          }
+        }
+        
+        // If no saved location, check user profile (from registration)
+        if (!useLocation && user?.zipcode) {
+          locationParams.zipcode = user.zipcode;
+          locationParams.radius = savedRadius ? parseInt(savedRadius, 10) : 10;
+          locationParams.sortBy = 'distance';
+          locationParams.sortOrder = 'asc';
+          useLocation = true;
+          
+          // Also save to localStorage for consistency
+          localStorage.setItem('userLocation', JSON.stringify({
+            zipcode: user.zipcode,
+            city: user.city || '',
+            state: user.state || 'TX'
+          }));
+        }
+        
+        const res = await getPublicCourses({ 
+          page: 1, 
+          limit: 50, 
+          sortBy: useLocation ? 'distance' : 'createdAt', 
+          sortOrder: useLocation ? 'asc' : 'desc',
+          ...locationParams
+        });
         const apiCourses = (res.data?.data?.courses || []).map((c: any) => {
           // Extract coach information from the nested coach object
           const coach = c.coach || {};
@@ -333,6 +379,13 @@ const ParentDashboard: React.FC = () => {
             ageRanges: Array.isArray(c.ageRanges) ? c.ageRanges : [],
             location: c.location || '',
             locationType: c.locationType || '',
+            // Location fields
+            city: c.city || '',
+            state: c.state || '',
+            zipcode: c.zipcode || '',
+            distance: c.distance !== undefined ? Number(c.distance) : undefined,
+            distanceKm: c.distanceKm !== undefined ? Number(c.distanceKm) : undefined,
+            distanceFormatted: c.distanceFormatted || (c.distance !== undefined ? `${Number(c.distance).toFixed(1)} miles` : undefined),
             coach: {
               id: String(coach.id || ''),
               name: coachName,
@@ -359,13 +412,125 @@ const ParentDashboard: React.FC = () => {
         }, 1000);
 
         setCoursesLoading(false);
-        didLoadCoursesRef.current = true;
       } catch (e) {
         console.error('[Parent] Failed to load courses from API:', e);
         setAvailableCourses([]);
         setCoursesLoading(false);
       }
     })();
+  }, [activeTab]); // Re-run when tab changes
+
+  // Reload courses when location changes (via localStorage event or callback)
+  useEffect(() => {
+    if (activeTab !== 'courses') return;
+    
+    const handleLocationChange = () => {
+      didLoadCoursesRef.current = false; // Force reload
+      // Trigger reload by updating a dependency or calling the load function again
+      // For now, we'll use a simple approach: reload when location changes
+      const reloadCourses = async () => {
+        try {
+          setCoursesLoading(true);
+          const savedLocation = localStorage.getItem('userLocation');
+          const savedRadius = localStorage.getItem('searchRadius');
+          let locationParams: any = {};
+          
+          if (savedLocation) {
+            try {
+              const location = JSON.parse(savedLocation);
+              if (location.zipcode) {
+                locationParams.zipcode = location.zipcode;
+                locationParams.radius = savedRadius ? parseInt(savedRadius, 10) : 10;
+                locationParams.sortBy = 'distance';
+                locationParams.sortOrder = 'asc';
+              }
+            } catch (e) {
+              console.error('Error loading saved location:', e);
+            }
+          }
+          
+          const useLocation = !!locationParams.zipcode;
+          const res = await getPublicCourses({ 
+            page: 1, 
+            limit: 50, 
+            sortBy: useLocation ? 'distance' : 'createdAt', 
+            sortOrder: useLocation ? 'asc' : 'desc',
+            ...locationParams
+          });
+          
+          const apiCourses = (res.data?.data?.courses || []).map((c: any) => {
+            const coach = c.coach || {};
+            const coachName = coach.firstName && coach.lastName
+              ? `${coach.firstName} ${coach.lastName}`.trim()
+              : coach.name || 'Unknown Coach';
+
+            return {
+              id: String(c.id),
+              title: c.title,
+              description: c.description || '',
+              benefits: c.benefits || '',
+              category: c.category,
+              program: c.program || undefined,
+              credits: Number(c.creditCost || c.price || 0),
+              timezone: c.timezone || 'UTC',
+              createdAt: c.createdAt || new Date().toISOString(),
+              weeklySchedule: Array.isArray(c.weeklySchedule) ? c.weeklySchedule : [],
+              thumbnail: c.thumbnail || '',
+              introVideo: c.videoUrl || '',
+              level: c.level || 'BEGINNER',
+              duration: c.courseDuration || `${c.duration} weeks`,
+              totalSessions: c.totalSessions || 0,
+              ageRanges: Array.isArray(c.ageRanges) ? c.ageRanges : [],
+              location: c.location || '',
+              locationType: c.locationType || '',
+              city: c.city || '',
+              state: c.state || '',
+              zipcode: c.zipcode || '',
+              distance: c.distance !== undefined ? Number(c.distance) : undefined,
+              distanceKm: c.distanceKm !== undefined ? Number(c.distanceKm) : undefined,
+              distanceFormatted: c.distanceFormatted || (c.distance !== undefined ? `${Number(c.distance).toFixed(1)} miles` : undefined),
+              coach: {
+                id: String(coach.id || ''),
+                name: coachName,
+                avatar: coach.avatar || coach.profileImageUrl || '',
+                rating: Number(coach.rating || 0),
+                totalReviews: Number(coach.totalReviews || 0),
+                firstName: coach.firstName || '',
+                lastName: coach.lastName || '',
+                email: coach.email || '',
+                phone: coach.phone || '',
+                domain: coach.domain || '',
+                experience: coach.experience || '',
+                address: coach.address || '',
+                languages: Array.isArray(coach.languages) ? coach.languages : [],
+                courses: Array.isArray(coach.courses) ? coach.courses : []
+              }
+            };
+          });
+          setAvailableCourses(apiCourses);
+        } catch (e) {
+          console.error('[Parent] Failed to reload courses:', e);
+        } finally {
+          setCoursesLoading(false);
+        }
+      };
+      
+      reloadCourses();
+    };
+    
+    // Listen for storage events (when location changes in another tab)
+    window.addEventListener('storage', handleLocationChange);
+    
+    // Also listen for custom location change events
+    const handleCustomLocationChange = () => {
+      handleLocationChange();
+    };
+    window.addEventListener('locationChanged', handleCustomLocationChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleLocationChange);
+      window.removeEventListener('locationChanged', handleCustomLocationChange);
+    };
   }, [activeTab]);
 
   // Show loading while checking authentication or loading parent data
@@ -406,7 +571,21 @@ const ParentDashboard: React.FC = () => {
           />
         );
       case 'courses':
-        return <Courses courses={availableCourses as any} parentData={parentData!} loading={coursesLoading} onTabChange={handleTabChange} onBalanceChange={refreshCreditBalance} onEnrollmentSuccess={refreshEnrollments} enrollments={enrollments} />;
+        return (
+          <Courses 
+            courses={availableCourses as any} 
+            parentData={parentData!} 
+            loading={coursesLoading} 
+            onTabChange={handleTabChange} 
+            onBalanceChange={refreshCreditBalance} 
+            onEnrollmentSuccess={refreshEnrollments} 
+            enrollments={enrollments}
+            onCoursesRefresh={() => {
+              // Reload courses with location parameters if needed
+              didLoadCoursesRef.current = false;
+            }}
+          />
+        );
       case 'enrollments':
         return (
           <Enrollments

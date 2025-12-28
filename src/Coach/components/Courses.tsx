@@ -65,8 +65,17 @@ interface CoursesProps {
   courses: Course[];
 }
 
+// Helper to normalize unknown errors for places that expect `.response` or `.message`
+const toAny = (err: unknown): any => err as any;
+
+// Props for thumbnail fallback component
+interface ThumbnailProps {
+  thumbnail?: string;
+  title: string;
+  generateTextThumbnail: (title: string) => string;
+}
 // ThumbnailWithFallback component
-function ThumbnailWithFallback({ thumbnail, title, generateTextThumbnail }) {
+function ThumbnailWithFallback({ thumbnail, title, generateTextThumbnail }: ThumbnailProps) {
   const [imgError, setImgError] = React.useState(false);
   if (!thumbnail || thumbnail === "" || imgError) {
     return (
@@ -323,6 +332,10 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
         timezone: courseData.timezone,
         location: courseData.location || '',
         locationType: courseData.locationType || 'online',
+        // Location fields for in-person/hybrid courses
+        city: courseData.city || undefined,
+        state: courseData.state || undefined,
+        zipcode: courseData.zipcode || undefined,
         ageRanges: courseData.ageRanges || [],
         thumbnail: courseData.thumbnail,
         introVideo: courseData.introVideo,
@@ -343,6 +356,10 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       formData.append('timezone', courseData.timezone);
       formData.append('location', courseData.location || '');
       formData.append('locationType', courseData.locationType || 'online');
+      // Location fields for in-person/hybrid courses
+      if (courseData.city) formData.append('city', courseData.city);
+      if (courseData.state) formData.append('state', courseData.state);
+      if (courseData.zipcode) formData.append('zipcode', courseData.zipcode);
       formData.append('ageRanges', JSON.stringify(courseData.ageRanges || []));
       if (courseData.duration) {
         formData.append('duration', courseData.duration);
@@ -452,7 +469,8 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       setEditingCourse(completeEditingCourse);
       setShowEditForm(true);
       
-    } catch (error) {
+    } catch (err: unknown) {
+      const error = toAny(err);
       console.error('[Coach] Failed to fetch course details for editing:', error);
       showErrorToast('Failed to load course details for editing. Please try again.');
     } finally {
@@ -564,7 +582,8 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       setShowEditForm(false);
       setEditingCourse(null);
       
-    } catch (error) {
+    } catch (err: unknown) {
+      const error = toAny(err);
       console.error('[Coach] Failed to update course:', error);
       console.error('[Coach] Error response:', error.response?.data);
       
@@ -577,7 +596,7 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
         if (error.response.status === 422) {
           if (errorData.data && Array.isArray(errorData.data)) {
             // Extract validation error messages
-            const validationErrors = errorData.data.map(err => err.message || err).join(', ');
+            const validationErrors = errorData.data.map((e: any) => e.message || e).join(', ');
             errorMessage = `Validation failed: ${validationErrors}`;
           } else if (errorData.message) {
             errorMessage = `Validation failed: ${errorData.message}`;
@@ -671,7 +690,8 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       try {
         const courseCheck = await getCourseById(courseToDelete.id);
         console.log('[Coach] Course exists, proceeding with deletion:', courseCheck.data);
-      } catch (checkError) {
+      } catch (checkErr: unknown) {
+        const checkError = toAny(checkErr);
         console.log('[Coach] Course check failed:', checkError);
         if (checkError.response?.status === 404) {
           showErrorToast('Course not found. It may have already been deleted.');
@@ -694,7 +714,8 @@ const Courses: React.FC<CoursesProps> = ({ courses }) => {
       setShowDeleteConfirm(false);
       setCourseToDelete(null);
       
-    } catch (error) {
+    } catch (err: unknown) {
+      const error = toAny(err);
       console.error('[Coach] Failed to delete course:', error);
       console.error('[Coach] Error response:', error.response);
       console.error('[Coach] Error data:', error.response?.data);

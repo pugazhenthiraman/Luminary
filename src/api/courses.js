@@ -1,7 +1,16 @@
 import axiosInstance from "./axiosInstance";
 
-export const getCourses = (params = {}) =>
-  axiosInstance.get("/courses", { params });
+export const getCourses = (params = {}) => {
+  // Clean params - remove undefined values
+  const cleanedParams = Object.keys(params).reduce((acc, key) => {
+    if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+      acc[key] = params[key];
+    }
+    return acc;
+  }, {});
+  
+  return axiosInstance.get("/courses", { params: cleanedParams });
+};
 
 export const getCourseById = (courseId) => {
   const id = parseInt(courseId, 10);

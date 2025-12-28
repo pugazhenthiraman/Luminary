@@ -46,6 +46,10 @@ interface DaySchedule {
    ageRanges: string[];
    location: string;
    locationType: 'online' | 'in-person' | 'hybrid';
+   // Location fields for in-person/hybrid courses
+   city?: string;
+   state?: string;
+   zipcode?: string;
    credits: number;
    timezone: string;
    program?: string;
@@ -66,6 +70,10 @@ interface DaySchedule {
      location: initialData?.location || '',
      // Prevent hybrid from being set - default to online if hybrid is passed
      locationType: (initialData?.locationType === 'hybrid' ? 'online' : initialData?.locationType) || 'online',
+     // Location fields
+     city: initialData?.city || '',
+     state: initialData?.state || 'TX',
+     zipcode: initialData?.zipcode || '',
      credits: initialData?.credits || 0,
      timezone: initialData?.timezone || '',
      program: initialData?.program || '',
@@ -450,6 +458,12 @@ interface DaySchedule {
     if (!formData.locationType) {
       newErrors.locationType = 'Location type is required';
       missingFields.push('Location Type');
+    }
+
+    // Validate location details for in-person/hybrid courses
+    if ((formData.locationType === 'in-person' || formData.locationType === 'hybrid') && !formData.zipcode?.trim()) {
+      newErrors.zipcode = 'Zipcode is required for in-person/hybrid courses (for distance calculation)';
+      missingFields.push('Zipcode');
     }
 
     if (!formData.timezone.trim()) {
@@ -1615,7 +1629,7 @@ interface DaySchedule {
                   
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {[
-                      { value: 'online', label: 'Online', icon: '🌐', desc: 'Virtual', disabled: false },
+                      { value: 'online', label: 'Online', icon: '🌐', desc: 'Virtual', disabled: true},
                       { value: 'in-person', label: 'In-Person', icon: '🏫', desc: 'Physical', disabled: false },
                       { value: 'hybrid', label: 'Hybrid', icon: '🔄', desc: 'Both', disabled: true }
                     ].map((type) => (
@@ -1704,6 +1718,75 @@ interface DaySchedule {
                         <FaExclamationTriangle className="text-red-500" />
                         <span>{errors.location}</span>
                       </p>
+                    </div>
+                  )}
+
+                  {/* Location Details for In-Person/Hybrid Courses */}
+                  {(formData.locationType === 'in-person' || formData.locationType === 'hybrid') && (
+                    <div className="mt-6 pt-6 border-t border-purple-200">
+                      <h6 className="font-semibold text-gray-800 mb-4 text-sm">
+                        Location Details (for distance calculation)
+                      </h6>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {/* City */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            City
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.city || ''}
+                            onChange={(e) => handleInputChange('city', e.target.value)}
+                            className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all duration-300 text-sm bg-white border-purple-200"
+                            placeholder="e.g., Dallas"
+                          />
+                        </div>
+                        {/* State */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            State
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.state || ''}
+                            onChange={(e) => {
+                              const value = e.target.value.toUpperCase().slice(0, 2);
+                              handleInputChange('state', value);
+                            }}
+                            maxLength={2}
+                            className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all duration-300 text-sm bg-white border-purple-200"
+                            placeholder="TX"
+                          />
+                        </div>
+                        {/* Zipcode */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Zipcode <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.zipcode || ''}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 5);
+                              handleInputChange('zipcode', value);
+                            }}
+                            maxLength={5}
+                            className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all duration-300 text-sm bg-white border-purple-200"
+                            placeholder="75201"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Required for distance calculation
+                          </p>
+                        </div>
+                      </div>
+                      {errors.zipcode && (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <p className="text-red-600 text-sm flex items-center space-x-2">
+                            <FaExclamationTriangle className="text-red-500" />
+                            <span>{errors.zipcode}</span>
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

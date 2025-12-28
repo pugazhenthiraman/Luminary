@@ -20,7 +20,11 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    address: '',
+    city: '',
+    state: 'TX',
+    zipcode: ''
   });
 
 
@@ -32,6 +36,9 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
   const [lastPhoneError, setLastPhoneError] = useState('');
   const [lastFirstNameError, setLastFirstNameError] = useState('');
   const [lastLastNameError, setLastLastNameError] = useState('');
+  const [lastCityError, setLastCityError] = useState('');
+  const [lastStateError, setLastStateError] = useState('');
+  const [lastZipcodeError, setLastZipcodeError] = useState('');
 
 
   // UI states
@@ -83,6 +90,26 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
     if (!name) return `${fieldName} is required`;
     if (name.length < 2) return `${fieldName} must be at least 2 characters long`;
     if (!/^[a-zA-Z\s]+$/.test(name)) return `${fieldName} can only contain letters and spaces`;
+    return '';
+  };
+
+  const validateCity = (city: string): string => {
+    if (!city || !city.trim()) return 'City is required';
+    if (city.length < 2) return 'City must be at least 2 characters long';
+    return '';
+  };
+
+  const validateState = (state: string): string => {
+    if (!state || !state.trim()) return 'State is required';
+    if (state.length !== 2) return 'State must be 2 characters (e.g., TX)';
+    if (!/^[A-Z]{2}$/.test(state)) return 'State must be 2 uppercase letters';
+    return '';
+  };
+
+  const validateZipcode = (zipcode: string): string => {
+    if (!zipcode || !zipcode.trim()) return 'Zipcode is required';
+    if (zipcode.length !== 5) return 'Zipcode must be 5 digits';
+    if (!/^\d{5}$/.test(zipcode)) return 'Zipcode must contain only numbers';
     return '';
   };
 
@@ -209,6 +236,9 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
     const confirmPasswordError = validateConfirmPassword(formData.confirmPassword, formData.password);
     const firstNameError = validateName(formData.firstName, 'First Name');
     const lastNameError = validateName(formData.lastName, 'Last Name');
+    const cityError = validateCity(formData.city);
+    const stateError = validateState(formData.state);
+    const zipcodeError = validateZipcode(formData.zipcode);
 
 
     setLastEmailError(emailError);
@@ -218,11 +248,11 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
     setLastLastNameError(lastNameError);
 
 
-    const allErrors = [emailError, passwordError, confirmPasswordError, lastPhoneError, firstNameError, lastNameError].filter(Boolean);
+    const allErrors = [emailError, passwordError, confirmPasswordError, lastPhoneError, firstNameError, lastNameError, cityError, stateError, zipcodeError].filter(Boolean);
 
 
     if (allErrors.length > 0) {
-      showErrorToast('Please fix the errors in the form');
+      showErrorToast('Please fill all the required fields');
       setIsLoading(false);
       return;
     }
@@ -234,7 +264,11 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
       email: formData.email,
       phone: formData.phone,
       password: formData.password,
-      // Add any other required fields
+      // Location fields
+      address: formData.address || undefined,
+      city: formData.city || undefined,
+      state: formData.state || undefined,
+      zipcode: formData.zipcode || undefined,
     };
 
 
@@ -519,6 +553,106 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
             </div>
           </div>
 
+          {/* Location Information Section */}
+          <div className="border-t border-gray-200 pt-4 sm:pt-6 mt-4 sm:mt-6">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3 sm:mb-4">
+              Location Information <span className="text-red-500">*</span>
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-600 mb-4">
+              Help us show you courses near you. You can update this later in your profile.
+            </p>
+            
+            <div className="space-y-4 sm:space-y-6">
+              {/* Address */}
+              <div>
+                <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                  Address <span className="text-gray-500 text-xs">(optional)</span>
+                </label>
+                <input
+                  name="address"
+                  placeholder="Street address"
+                  value={formData.address}
+                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                  className="w-full px-3 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md border-gray-200 focus:border-indigo-500"
+                />
+              </div>
+
+              {/* City, State, Zipcode */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                <div>
+                  <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                    City <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    name="city"
+                    placeholder="Dallas"
+                    value={formData.city}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, city: e.target.value }));
+                      // Clear error when user starts typing
+                      if (lastCityError) setLastCityError('');
+                    }}
+                    className={`w-full px-3 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                      lastCityError ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                    }`}
+                    required
+                  />
+                  {lastCityError && (
+                    <p className="mt-1 text-xs text-red-500">{lastCityError}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                    State <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    name="state"
+                    placeholder="TX"
+                    value={formData.state}
+                    onChange={(e) => {
+                      const value = e.target.value.toUpperCase().slice(0, 2);
+                      setFormData(prev => ({ ...prev, state: value }));
+                      // Clear error when user starts typing
+                      if (lastStateError) setLastStateError('');
+                    }}
+                    maxLength={2}
+                    className={`w-full px-3 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                      lastStateError ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                    }`}
+                    required
+                  />
+                  {lastStateError && (
+                    <p className="mt-1 text-xs text-red-500">{lastStateError}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block mb-1.5 sm:mb-2 font-medium text-gray-700 text-xs sm:text-sm">
+                    Zipcode <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    name="zipcode"
+                    type="text"
+                    placeholder="75201"
+                    value={formData.zipcode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 5);
+                      setFormData(prev => ({ ...prev, zipcode: value }));
+                      // Clear error when user starts typing
+                      if (lastZipcodeError) setLastZipcodeError('');
+                    }}
+                    maxLength={5}
+                    className={`w-full px-3 py-2 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:shadow-md ${
+                      lastZipcodeError ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                    }`}
+                    required
+                  />
+                  {lastZipcodeError && (
+                    <p className="mt-1 text-xs text-red-500">{lastZipcodeError}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
 
           <button
             className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-none rounded-lg text-sm sm:text-base font-semibold cursor-pointer shadow-lg transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl hover:-translate-y-1 transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-indigo-500/20 hover:border-indigo-400/30"

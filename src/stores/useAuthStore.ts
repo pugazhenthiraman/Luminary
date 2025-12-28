@@ -9,6 +9,11 @@ interface User {
   role: 'PARENT' | 'COACH' | 'ADMIN';
   isVerified: boolean;
   lastLogin?: string;
+  // Location fields
+  address?: string;
+  city?: string;
+  state?: string;
+  zipcode?: string;
   // Optional nested coach payload
   coach?: {
     id?: string | number;

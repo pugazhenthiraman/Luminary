@@ -223,7 +223,7 @@ const RegisterParent = ({ onBack }: { onBack: () => void }) => {
 
 
     if (allErrors.length > 0) {
-      showErrorToast('Please fix the errors in the form');
+      showErrorToast('Please fill all the required fields');
       setIsLoading(false);
       return;
     }

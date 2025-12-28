@@ -1,7 +1,7 @@
 import { getGradient } from "../utils/getGradient";
 import { validateThumbnailUrl } from "../utils/thumbnailUtils";
 import React, { useState, useEffect } from "react";
-import { FaEye, FaGraduationCap, FaCalendarAlt, FaCreditCard, FaStar } from "react-icons/fa";
+import { FaEye, FaGraduationCap, FaCalendarAlt, FaCreditCard, FaStar, FaMapMarkerAlt } from "react-icons/fa";
 import Avatar from "./Avatar";
 
 interface Coach {
@@ -34,6 +34,14 @@ interface Course {
   price?: number; // Optional USD price if available
   rating?: number; // Average rating (1-5)
   totalReviews?: number; // Total number of reviews
+  // Location fields
+  locationType?: string;
+  city?: string;
+  state?: string;
+  zipcode?: string;
+  distance?: number;
+  distanceKm?: number;
+  distanceFormatted?: string;
 }
 
 interface CourseCardProps {
@@ -110,13 +118,23 @@ const CourseCard: React.FC<CourseCardProps> = ({
           </div>
         )}
         {/* Credits/Price badge */}
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 flex flex-col gap-2 items-end">
           <div className="backdrop-blur-sm bg-white/90 text-gray-900 rounded-full px-2.5 py-1 shadow-sm border border-white/70 flex items-center gap-1">
             <FaCreditCard className="text-blue-600 text-xs" />
             <span className="text-[11px] font-semibold">
               {course.creditCost ?? course.credits ?? course.price} Credits
             </span>
           </div>
+          {/* Distance badge - show if distance is available and location type is in-person or hybrid */}
+          {course.distance !== undefined && course.distance !== null && 
+           (course.locationType === 'in-person' || course.locationType === 'hybrid') && (
+            <div className="backdrop-blur-sm bg-green-500/90 text-white rounded-full px-2.5 py-1 shadow-sm border border-white/70 flex items-center gap-1">
+              <FaMapMarkerAlt className="text-white text-xs" />
+              <span className="text-[11px] font-semibold">
+                {course.distanceFormatted || `${course.distance.toFixed(1)} mi`}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -159,10 +177,21 @@ const CourseCard: React.FC<CourseCardProps> = ({
 
       {/* Key Info Row */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="flex items-center flex-wrap gap-2">
           <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
             {course.category}
           </span>
+          {course.locationType && course.locationType !== 'online' && (
+            <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+              <FaMapMarkerAlt className="text-xs" />
+              {course.locationType === 'in-person' ? 'In-Person' : course.locationType === 'hybrid' ? 'Hybrid' : course.locationType}
+            </span>
+          )}
+          {course.city && course.state && (
+            <span className="bg-gray-100 text-gray-700 text-xs font-medium px-2 py-1 rounded-full">
+              {course.city}, {course.state}
+            </span>
+          )}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCourses } from '../api/courses';
 import { showErrorToast } from '../components/Toast';
@@ -17,6 +17,16 @@ interface Course {
   weeklySchedule: any[];
   thumbnail: string;
   introVideo?: string;
+  createdAt?: string;
+  // Location fields
+  city?: string;
+  state?: string;
+  zipcode?: string;
+  location?: string;
+  locationType?: string;
+  distance?: number;
+  distanceKm?: number;
+  distanceFormatted?: string;
   coach: {
     id: string;
     name: string;
@@ -40,73 +50,179 @@ const BrowseCourses: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  // Track location to prevent infinite loops
+  const locationRef = useRef<string>('');
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        const response = await getCourses({
-          status: 'APPROVED',
-          isActive: true
-        });
-        
-        console.log('API Response:', response?.data);
-        
-        // Backend returns: { success: true, data: { courses: [...], pagination: {...} }, message: "..." }
-        const coursesData = response?.data?.data?.courses || response?.data?.courses || [];
-        
-        // Normalize course data to match expected format
-        const normalizedCourses: Course[] = coursesData.map((course: any) => {
-          let program: 'morning' | 'afternoon' | 'evening' = 'morning';
-          if (course.program === 'afternoon' || course.program === 'evening') {
-            program = course.program;
+  // Fetch courses with location-based sorting
+  // Use useCallback to memoize the function and prevent unnecessary re-renders
+  const fetchCourses = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Priority 1: Get user location from localStorage (if manually set)
+      // For public users (not logged in), only localStorage is available
+      const savedLocation = localStorage.getItem('userLocation');
+      const savedRadius = localStorage.getItem('searchRadius');
+      let locationParams: any = {};
+      let useLocation = false;
+      
+      // Check localStorage for saved location
+      if (savedLocation) {
+        try {
+          const location = JSON.parse(savedLocation);
+          if (location.zipcode) {
+            locationParams.zipcode = location.zipcode;
+            const radiusValue = savedRadius ? parseInt(savedRadius, 10) : 10;
+            locationParams.radius = radiusValue;
+            locationParams.sortBy = 'distance'; // Sort by distance when location is provided
+            locationParams.sortOrder = 'asc'; // Nearest first
+            useLocation = true;
+            
+            // Store location key to detect changes (includes both zipcode AND radius)
+            const locationKey = `${location.zipcode}-${radiusValue}`;
+            locationRef.current = locationKey;
           }
-          
-          return {
-            id: String(course.id),
-            title: course.title || 'Untitled Course',
-            description: course.description || '',
-            benefits: course.benefits || '',
-            category: course.category || 'General',
-            program: program || undefined, // Keep undefined if empty
-            credits: Number(course.creditCost || course.credits || 0),
-            timezone: course.timezone || 'UTC',
-            weeklySchedule: course.weeklySchedule || [],
-            thumbnail: course.thumbnail || '',
-            introVideo: course.introVideo || course.videoUrl || '',
-            coach: {
-              id: String(course.coach?.id || course.coachId || ''),
-              name: course.coach?.firstName && course.coach?.lastName
-                ? `${course.coach.firstName} ${course.coach.lastName}`
-                : course.coach?.name || 'Unknown Instructor',
-              avatar: course.coach?.profileImageUrl || '',
-              rating: course.coach?.rating || 0,
-              totalReviews: course.coach?.totalReviews || 0,
-              firstName: course.coach?.firstName || '',
-              lastName: course.coach?.lastName || '',
-              email: course.coach?.email || '',
-              phone: course.coach?.phone || '',
-              status: course.coach?.status || 'approved',
-              domain: course.coach?.domain || '',
-              experience: course.coach?.experienceDescription || '',
-              address: course.coach?.address || '',
-              languages: course.coach?.languages || [],
-              courses: course.coach?.courses || []
-            }
-          };
-        });
+        } catch (e) {
+          console.error('Error loading saved location:', e);
+        }
+      }
+      
+      // Prepare API params
+      const apiParams: any = {
+        status: 'APPROVED',
+        isActive: true,
+        page: 1,
+        limit: 50,
+        ...(useLocation ? {
+          sortBy: 'distance',
+          sortOrder: 'asc',
+          ...locationParams
+        } : {
+          sortBy: 'createdAt',
+          sortOrder: 'desc'
+        })
+      };
+      
+      const response = await getCourses(apiParams);
+      
+      console.log('API Response:', response?.data);
+      
+      // Backend returns: { success: true, data: { courses: [...], pagination: {...} }, message: "..." }
+      const coursesData = response?.data?.data?.courses || response?.data?.courses || [];
+      
+      // Normalize course data to match expected format
+      const normalizedCourses: Course[] = coursesData.map((course: any) => {
+        let program: 'morning' | 'afternoon' | 'evening' = 'morning';
+        if (course.program === 'afternoon' || course.program === 'evening') {
+          program = course.program;
+        }
         
-        setCourses(normalizedCourses);
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-        showErrorToast('Failed to load courses. Please try again.');
-      } finally {
-        setLoading(false);
+        // Extract coach information from the nested coach object
+        const coach = course.coach || {};
+        const coachName = coach.firstName && coach.lastName
+          ? `${coach.firstName} ${coach.lastName}`.trim()
+          : coach.name || 'Unknown Coach';
+        
+        return {
+          id: String(course.id),
+          title: course.title || 'Untitled Course',
+          description: course.description || '',
+          benefits: course.benefits || '',
+          category: course.category || 'General',
+          program: program || undefined, // Keep undefined if empty
+          credits: Number(course.creditCost || course.credits || 0),
+          timezone: course.timezone || 'UTC',
+          createdAt: course.createdAt || new Date().toISOString(),
+          weeklySchedule: Array.isArray(course.weeklySchedule) ? course.weeklySchedule : [],
+          thumbnail: course.thumbnail || '',
+          introVideo: course.introVideo || course.videoUrl || '',
+          // Location fields
+          location: course.location || '',
+          locationType: course.locationType || '',
+          city: course.city || '',
+          state: course.state || '',
+          zipcode: course.zipcode || '',
+          distance: course.distance !== undefined ? Number(course.distance) : undefined,
+          distanceKm: course.distanceKm !== undefined ? Number(course.distanceKm) : undefined,
+          distanceFormatted: course.distanceFormatted || (course.distance !== undefined ? `${Number(course.distance).toFixed(1)} miles` : undefined),
+          coach: {
+            id: String(coach.id || ''),
+            name: coachName,
+            avatar: coach.avatar || coach.profileImageUrl || '',
+            rating: Number(coach.rating || 0),
+            totalReviews: Number(coach.totalReviews || 0),
+            firstName: coach.firstName || '',
+            lastName: coach.lastName || '',
+            email: coach.email || '',
+            phone: coach.phone || '',
+            status: coach.status || 'approved',
+            domain: coach.domain || '',
+            experience: coach.experienceDescription || '',
+            address: coach.address || '',
+            languages: Array.isArray(coach.languages) ? coach.languages : [],
+            courses: coach.courses || []
+          }
+        };
+      });
+      
+      setCourses(normalizedCourses);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      showErrorToast('Failed to load courses. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []); // Empty dependency array - function doesn't depend on any props or state
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]); // fetchCourses is stable (useCallback with empty deps)
+
+  // Listen for location and radius changes and refetch courses
+  useEffect(() => {
+    const handleLocationChange = () => {
+      // Check if location or radius actually changed
+      const savedLocation = localStorage.getItem('userLocation');
+      const savedRadius = localStorage.getItem('searchRadius');
+      
+      // Create location key that includes both zipcode AND radius
+      let locationKey = '';
+      
+      if (savedLocation) {
+        try {
+          const location = JSON.parse(savedLocation);
+          if (location.zipcode) {
+            locationKey = `${location.zipcode}-${savedRadius || 10}`;
+          }
+        } catch (e) {
+          console.error('Error handling location change:', e);
+        }
+      }
+      
+      // Only refetch if location or radius actually changed
+      if (locationRef.current !== locationKey) {
+        console.log('[BrowseCourses] Location or radius changed, refetching courses...', {
+          previous: locationRef.current,
+          current: locationKey
+        });
+        locationRef.current = locationKey; // Update ref before fetching
+        fetchCourses();
       }
     };
 
-    fetchCourses();
-  }, []);
+    // Listen for location changes (dispatched by LocationSelector or Courses component)
+    window.addEventListener('locationChanged', handleLocationChange);
+    
+    // Also listen for storage events in case localStorage changes from another tab/window
+    window.addEventListener('storage', handleLocationChange);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('locationChanged', handleLocationChange);
+      window.removeEventListener('storage', handleLocationChange);
+    };
+  }, [fetchCourses]); // Include fetchCourses in dependencies since it's stable (useCallback)
 
   // Redirect to login when trying to enroll
   const handleEnroll = (course: Course) => {
